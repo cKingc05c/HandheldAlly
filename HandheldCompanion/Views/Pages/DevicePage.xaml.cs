@@ -114,17 +114,16 @@ namespace HandheldCompanion.Views.Pages
             ManagerFactory.settingsManager.SettingValueChanged += SettingsManager_SettingValueChanged;
             MainWindow.uiSettings.ColorValuesChanged += OnColorValuesChanged;
             ControllerManager.ControllerSelected += ControllerManager_ControllerSelected;
-            ManagerFactory.deviceManager.UsbDeviceArrived += GenericDeviceUpdated;
-            ManagerFactory.deviceManager.UsbDeviceRemoved += GenericDeviceUpdated;
+            IDevice.GetCurrent().CapabilitiesChanged += OnCapabilitiesChanged;
 
             // raise events
             if (ControllerManager.HasTargetController)
                 ControllerManager_ControllerSelected(ControllerManager.GetTarget());
         }
 
-        private void GenericDeviceUpdated(PnPDevice device, Guid IntefaceGuid)
+        private void OnCapabilitiesChanged(DeviceCapabilities capabilities)
         {
-            UpdateDevice(device);
+            UpdateDevice();
         }
 
         private void ControllerManager_ControllerSelected(IController Controller)
@@ -167,7 +166,9 @@ namespace HandheldCompanion.Views.Pages
         }
 
         public void Page_Closed()
-        { }
+        {
+            IDevice.GetCurrent().CapabilitiesChanged -= OnCapabilitiesChanged;
+        }
 
         private void SettingsManager_SettingValueChanged(string? name, object value, bool temporary)
         {

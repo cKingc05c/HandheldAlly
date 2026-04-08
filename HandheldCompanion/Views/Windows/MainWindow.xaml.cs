@@ -224,8 +224,6 @@ public partial class MainWindow : GamepadWindow
 
         // manage events
         SystemManager.SystemStatusChanged += OnSystemStatusChanged;
-        ManagerFactory.deviceManager.UsbDeviceArrived += GenericDeviceUpdated;
-        ManagerFactory.deviceManager.UsbDeviceRemoved += GenericDeviceUpdated;
         ManagerFactory.notificationManager.Added += NotificationManagerUpdated;
         ManagerFactory.notificationManager.Discarded += NotificationManagerUpdated;
         ControllerManager.ControllerSelected += ControllerManager_ControllerSelected;
@@ -620,8 +618,6 @@ public partial class MainWindow : GamepadWindow
 
     private void GenericDeviceUpdated(PnPDevice device, Guid IntefaceGuid)
     {
-        // todo: improve me
-        CurrentDevice.PullSensors();
     }
 
     private void MenuItem_Click(object? sender, EventArgs e)
@@ -987,8 +983,6 @@ public partial class MainWindow : GamepadWindow
 
         // manage events
         SystemManager.SystemStatusChanged -= OnSystemStatusChanged;
-        ManagerFactory.deviceManager.UsbDeviceArrived -= GenericDeviceUpdated;
-        ManagerFactory.deviceManager.UsbDeviceRemoved -= GenericDeviceUpdated;
         ManagerFactory.notificationManager.Added -= NotificationManagerUpdated;
         ManagerFactory.notificationManager.Discarded -= NotificationManagerUpdated;
         ControllerManager.ControllerSelected -= ControllerManager_ControllerSelected;

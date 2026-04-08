@@ -1,7 +1,7 @@
 ﻿using HandheldCompanion.Devices;
+using HandheldCompanion.Helpers;
 using HandheldCompanion.Managers;
 using HandheldCompanion.Views;
-using Nefarius.Utilities.DeviceManagement.PnP;
 using System;
 using System.Windows.Media.Imaging;
 
@@ -33,21 +33,18 @@ namespace HandheldCompanion.ViewModels
 
         public AboutPageViewModel()
         {
-            ManagerFactory.deviceManager.UsbDeviceArrived += GenericDeviceUpdated;
-            ManagerFactory.deviceManager.UsbDeviceRemoved += GenericDeviceUpdated;
+            IDevice.GetCurrent().CapabilitiesChanged += OnCapabilitiesChanged;
         }
 
         public override void Dispose()
         {
-            ManagerFactory.deviceManager.UsbDeviceArrived -= GenericDeviceUpdated;
-            ManagerFactory.deviceManager.UsbDeviceRemoved -= GenericDeviceUpdated;
+            IDevice.GetCurrent().CapabilitiesChanged -= OnCapabilitiesChanged;
             base.Dispose();
         }
 
-        private void GenericDeviceUpdated(PnPDevice device, Guid IntefaceGuid)
+        private void OnCapabilitiesChanged(DeviceCapabilities capabilities)
         {
-            // Update all bindings
-            OnPropertyChanged(string.Empty);
+            UIHelper.TryBeginInvoke(() => OnPropertyChanged(string.Empty));
         }
     }
 }
