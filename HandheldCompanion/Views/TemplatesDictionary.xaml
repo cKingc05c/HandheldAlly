@@ -642,12 +642,6 @@
 
                     <Border ClipToBounds="True" CornerRadius="{DynamicResource ControlCornerRadius}">
                         <Grid>
-                            <ui:ProgressRing
-                                HorizontalAlignment="Center"
-                                VerticalAlignment="Center"
-                                Panel.ZIndex="3"
-                                IsIndeterminate="True"
-                                Visibility="{Binding IsBusy, Converter={StaticResource BooleanToVisibilityConverter}}" />
                             <ui:PersonPicture
                                 x:Name="MainImage"
                                 Width="64"
@@ -655,24 +649,21 @@
                                 Panel.ZIndex="1"
                                 DisplayName="{Binding Name}"
                                 ProfilePicture="{Binding Cover, NotifyOnTargetUpdated=True}" />
-                            <Ellipse
-                                x:Name="FavoriteAccentBar"
-                                Width="64"
-                                Height="64"
+                            <ui:ProgressRing
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center"
                                 Panel.ZIndex="2"
-                                Stroke="{DynamicResource AccentAAFillColorDefaultBrush}"
-                                StrokeThickness="4">
-                                <Ellipse.Style>
-                                    <Style TargetType="Ellipse">
-                                        <Setter Property="Visibility" Value="Collapsed" />
-                                        <Style.Triggers>
-                                            <DataTrigger Binding="{Binding IsLiked}" Value="True">
-                                                <Setter Property="Visibility" Value="Visible" />
-                                            </DataTrigger>
-                                        </Style.Triggers>
-                                    </Style>
-                                </Ellipse.Style>
-                            </Ellipse>
+                                IsIndeterminate="True"
+                                Visibility="{Binding IsBusy, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                            <ui:InfoBadge
+                                HorizontalAlignment="Right"
+                                VerticalAlignment="Bottom"
+                                Panel.ZIndex="3"
+                                Visibility="{Binding IsLiked, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                <ui:InfoBadge.IconSource>
+                                    <ui:FontIconSource Glyph="&#xe735;" />
+                                </ui:InfoBadge.IconSource>
+                            </ui:InfoBadge>
                         </Grid>
                     </Border>
 
