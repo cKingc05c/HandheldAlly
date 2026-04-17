@@ -135,9 +135,9 @@ namespace HandheldCompanion.Controllers
         protected override void InitializeInputOutput()
         {
             // Additional controller specific source buttons
-            if (HasTouchpad)
+            int touchpads = GetTouchpads();
+            if (touchpads != 0)
             {
-                int touchpads = GetTouchpads();
                 int touchpadFingers = 0;
 
                 if (touchpads >= 1)
