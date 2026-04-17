@@ -3147,6 +3147,63 @@ Thank you for using HC and helping us make it better.</value>
   <data name="ProfilesPage_AFMFDesc" xml:space="preserve">
     <value>Enhance performance by utilizing frame generation technology to increase FPS beyond the in-game limit, resulting in a smoother experience</value>
   </data>
+  <data name="ProfilesPage_AFMFAlgorithm" xml:space="preserve">
+    <value>Algorithm</value>
+  </data>
+  <data name="ProfilesPage_AFMFAlgorithmDesc" xml:space="preserve">
+    <value>Motion interpolation algorithm used by AMD Fluid Motion Frames</value>
+  </data>
+  <data name="ProfilesPage_AFMFAlgorithm_Auto" xml:space="preserve">
+    <value>Auto</value>
+  </data>
+  <data name="ProfilesPage_AFMFAlgorithm_Enhanced" xml:space="preserve">
+    <value>Enhanced</value>
+  </data>
+  <data name="ProfilesPage_AFMFAlgorithm_Standard" xml:space="preserve">
+    <value>Standard</value>
+  </data>
+  <data name="ProfilesPage_AFMFSearchMode" xml:space="preserve">
+    <value>Search mode</value>
+  </data>
+  <data name="ProfilesPage_AFMFSearchModeDesc" xml:space="preserve">
+    <value>Motion search depth used to detect frame transitions</value>
+  </data>
+  <data name="ProfilesPage_AFMFSearchMode_Auto" xml:space="preserve">
+    <value>Auto</value>
+  </data>
+  <data name="ProfilesPage_AFMFSearchMode_Standard" xml:space="preserve">
+    <value>Standard</value>
+  </data>
+  <data name="ProfilesPage_AFMFSearchMode_High" xml:space="preserve">
+    <value>High</value>
+  </data>
+  <data name="ProfilesPage_AFMFPerformanceMode" xml:space="preserve">
+    <value>Performance mode</value>
+  </data>
+  <data name="ProfilesPage_AFMFPerformanceModeDesc" xml:space="preserve">
+    <value>Trade-off between image quality and GPU workload</value>
+  </data>
+  <data name="ProfilesPage_AFMFPerformanceMode_Auto" xml:space="preserve">
+    <value>Auto</value>
+  </data>
+  <data name="ProfilesPage_AFMFPerformanceMode_Quality" xml:space="preserve">
+    <value>Quality</value>
+  </data>
+  <data name="ProfilesPage_AFMFPerformanceMode_Performance" xml:space="preserve">
+    <value>Performance</value>
+  </data>
+  <data name="ProfilesPage_AFMFFastMotionResponse" xml:space="preserve">
+    <value>Fast motion response</value>
+  </data>
+  <data name="ProfilesPage_AFMFFastMotionResponseDesc" xml:space="preserve">
+    <value>How AMD Fluid Motion Frames handles fast-moving content</value>
+  </data>
+  <data name="ProfilesPage_AFMFFastMotionResponse_RepeatFrames" xml:space="preserve">
+    <value>Repeat frames</value>
+  </data>
+  <data name="ProfilesPage_AFMFFastMotionResponse_BlendedFrames" xml:space="preserve">
+    <value>Blended frames</value>
+  </data>
   <data name="ProfilesPage_PowerSettingsPlugged" xml:space="preserve">
     <value>UNUSED</value>
   </data>

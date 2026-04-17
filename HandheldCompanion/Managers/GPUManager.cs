@@ -313,6 +313,7 @@ namespace HandheldCompanion.Managers
             {
                 amdGPU.RSRStateChanged += CurrentGPU_RSRStateChanged;
                 amdGPU.AFMFStateChanged += CurrentGPU_AFMFStateChanged;
+                amdGPU.AFMF21StateChanged += CurrentGPU_AFMF21StateChanged;
             }
             else if (GPU is IntelGPU intelGPU)
             {
@@ -343,6 +344,7 @@ namespace HandheldCompanion.Managers
             {
                 amdGPU.RSRStateChanged -= CurrentGPU_RSRStateChanged;
                 amdGPU.AFMFStateChanged -= CurrentGPU_AFMFStateChanged;
+                amdGPU.AFMF21StateChanged -= CurrentGPU_AFMF21StateChanged;
             }
             else if (GPU is IntelGPU intelGPU)
             {
@@ -514,6 +516,26 @@ namespace HandheldCompanion.Managers
                 amdGPU.SetAFMF(profile.AFMFEnabled);
         }
 
+        private void CurrentGPU_AFMF21StateChanged(bool AlgorithmSupported, int Algorithm, int SearchMode, int PerformanceMode, int FastMotionResponse)
+        {
+            if (!IsReady)
+                return;
+
+            // todo: use ProfileManager events
+            Profile? profile = ManagerFactory.profileManager.GetCurrent();
+            if (profile is null || currentGPU is not AMDGPU amdGPU || !AlgorithmSupported)
+                return;
+
+            if (Algorithm != profile.AFMFAlgorithm)
+                amdGPU.SetAFMFAlgorithm(profile.AFMFAlgorithm);
+            if (SearchMode != profile.AFMFSearchMode)
+                amdGPU.SetAFMFSearchMode(profile.AFMFSearchMode);
+            if (PerformanceMode != profile.AFMFPerformanceMode)
+                amdGPU.SetAFMFPerformanceMode(profile.AFMFPerformanceMode);
+            if (FastMotionResponse != profile.AFMFFastMotionResponse)
+                amdGPU.SetAFMFFastMotionResponse(profile.AFMFFastMotionResponse);
+        }
+
         private void CurrentGPU_IntegerScalingChanged(bool Supported, bool Enabled)
         {
             if (!IsReady)
@@ -623,6 +645,19 @@ namespace HandheldCompanion.Managers
 
                         if (!amdGPU.GetAntiLag())
                             amdGPU.SetAntiLag(true);
+
+                        // apply AFMF 2.1 sub-controls when supported
+                        if (amdGPU.GetAFMFAlgorithmSupport())
+                        {
+                            if (amdGPU.GetAFMFAlgorithm() != profile.AFMFAlgorithm)
+                                amdGPU.SetAFMFAlgorithm(profile.AFMFAlgorithm);
+                            if (amdGPU.GetAFMFSearchMode() != profile.AFMFSearchMode)
+                                amdGPU.SetAFMFSearchMode(profile.AFMFSearchMode);
+                            if (amdGPU.GetAFMFPerformanceMode() != profile.AFMFPerformanceMode)
+                                amdGPU.SetAFMFPerformanceMode(profile.AFMFPerformanceMode);
+                            if (amdGPU.GetAFMFFastMotionResponse() != profile.AFMFFastMotionResponse)
+                                amdGPU.SetAFMFFastMotionResponse(profile.AFMFFastMotionResponse);
+                        }
                     }
                     else if (amdGPU.GetAFMF())
                     {

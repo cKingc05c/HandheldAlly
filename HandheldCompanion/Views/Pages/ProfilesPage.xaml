@@ -976,20 +976,74 @@
                         </ui:SettingsExpander>
 
                         <!--  (AMD: AFMF)  -->
-                        <ui:SettingsCard
+                        <ui:SettingsExpander
                             Name="StackProfileAFMF"
                             d:IsEnabled="True"
+                            d:IsExpanded="True"
                             d:Visibility="Visible"
                             Description="{l:Static resx:Resources.ProfilesPage_AFMFDesc}"
                             Header="{l:Static resx:Resources.ProfilesPage_AFMF}"
                             IsEnabled="{Binding HasAFMFSupport, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}"
                             Visibility="{Binding IsAMDGPU, Mode=OneWay, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource BooleanToVisibilityConverter}}">
-                            <ui:SettingsCard.HeaderIcon>
+                            <ui:SettingsExpander.HeaderIcon>
                                 <ui:FontIcon Glyph="&#xe91b;" />
-                            </ui:SettingsCard.HeaderIcon>
+                            </ui:SettingsExpander.HeaderIcon>
 
                             <ui:ToggleSwitch x:Name="AFMFToggle" IsOn="{Binding AFMFEnabled, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-                        </ui:SettingsCard>
+
+                            <ui:SettingsExpander.Items>
+                                <ui:SettingsCard
+                                    d:IsEnabled="True"
+                                    Description="{l:Static resx:Resources.ProfilesPage_AFMFAlgorithmDesc}"
+                                    Header="{l:Static resx:Resources.ProfilesPage_AFMFAlgorithm}"
+                                    IsEnabled="{Binding AFMFEnabled, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}"
+                                    Visibility="{Binding HasAFMF21Support, Mode=OneWay, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                    <ComboBox Name="AFMFAlgorithmComboBox" SelectedIndex="{Binding AFMFAlgorithm, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
+                                        <ComboBoxItem Content="{l:Static resx:Resources.ProfilesPage_AFMFAlgorithm_Auto}" />
+                                        <ComboBoxItem Content="{l:Static resx:Resources.ProfilesPage_AFMFAlgorithm_Enhanced}" />
+                                        <ComboBoxItem Content="{l:Static resx:Resources.ProfilesPage_AFMFAlgorithm_Standard}" />
+                                    </ComboBox>
+                                </ui:SettingsCard>
+
+                                <ui:SettingsCard
+                                    d:IsEnabled="True"
+                                    Description="{l:Static resx:Resources.ProfilesPage_AFMFSearchModeDesc}"
+                                    Header="{l:Static resx:Resources.ProfilesPage_AFMFSearchMode}"
+                                    IsEnabled="{Binding AFMFEnabled, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}"
+                                    Visibility="{Binding HasAFMF21Support, Mode=OneWay, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                    <ComboBox Name="AFMFSearchModeComboBox" SelectedIndex="{Binding AFMFSearchMode, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
+                                        <ComboBoxItem Content="{l:Static resx:Resources.ProfilesPage_AFMFSearchMode_Auto}" />
+                                        <ComboBoxItem Content="{l:Static resx:Resources.ProfilesPage_AFMFSearchMode_Standard}" />
+                                        <ComboBoxItem Content="{l:Static resx:Resources.ProfilesPage_AFMFSearchMode_High}" />
+                                    </ComboBox>
+                                </ui:SettingsCard>
+
+                                <ui:SettingsCard
+                                    d:IsEnabled="True"
+                                    Description="{l:Static resx:Resources.ProfilesPage_AFMFPerformanceModeDesc}"
+                                    Header="{l:Static resx:Resources.ProfilesPage_AFMFPerformanceMode}"
+                                    IsEnabled="{Binding AFMFEnabled, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}"
+                                    Visibility="{Binding HasAFMF21Support, Mode=OneWay, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                    <ComboBox Name="AFMFPerformanceModeComboBox" SelectedIndex="{Binding AFMFPerformanceMode, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
+                                        <ComboBoxItem Content="{l:Static resx:Resources.ProfilesPage_AFMFPerformanceMode_Auto}" />
+                                        <ComboBoxItem Content="{l:Static resx:Resources.ProfilesPage_AFMFPerformanceMode_Quality}" />
+                                        <ComboBoxItem Content="{l:Static resx:Resources.ProfilesPage_AFMFPerformanceMode_Performance}" />
+                                    </ComboBox>
+                                </ui:SettingsCard>
+
+                                <ui:SettingsCard
+                                    d:IsEnabled="True"
+                                    Description="{l:Static resx:Resources.ProfilesPage_AFMFFastMotionResponseDesc}"
+                                    Header="{l:Static resx:Resources.ProfilesPage_AFMFFastMotionResponse}"
+                                    IsEnabled="{Binding AFMFEnabled, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}"
+                                    Visibility="{Binding HasAFMF21Support, Mode=OneWay, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                    <ComboBox Name="AFMFFastMotionResponseComboBox" SelectedIndex="{Binding AFMFFastMotionResponse, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
+                                        <ComboBoxItem Content="{l:Static resx:Resources.ProfilesPage_AFMFFastMotionResponse_RepeatFrames}" />
+                                        <ComboBoxItem Content="{l:Static resx:Resources.ProfilesPage_AFMFFastMotionResponse_BlendedFrames}" />
+                                    </ComboBox>
+                                </ui:SettingsCard>
+                            </ui:SettingsExpander.Items>
+                        </ui:SettingsExpander>
 
                         <!--  (AMD: RSR)  -->
                         <ui:SettingsExpander

@@ -221,6 +221,13 @@ namespace HandheldCompanion.ViewModels
             set { if (value != _HasAFMFSupport) { _HasAFMFSupport = value; OnPropertyChanged(nameof(HasAFMFSupport)); } }
         }
 
+        private bool _HasAFMF21Support;
+        public bool HasAFMF21Support
+        {
+            get => _HasAFMF21Support;
+            set { if (value != _HasAFMF21Support) { _HasAFMF21Support = value; OnPropertyChanged(nameof(HasAFMF21Support)); } }
+        }
+
         private bool _HasScalingModeSupport;
         public bool HasScalingModeSupport
         {
@@ -1083,6 +1090,70 @@ namespace HandheldCompanion.ViewModels
                 {
                     SelectedProfile.AFMFEnabled = value;
                     OnPropertyChanged(nameof(AFMFEnabled));
+
+                    if (!isLoadingProfile)
+                        UpdateProfile();
+                }
+            }
+        }
+
+        public int AFMFAlgorithm
+        {
+            get => SelectedProfile?.AFMFAlgorithm ?? 0;
+            set
+            {
+                if (SelectedProfile != null && SelectedProfile.AFMFAlgorithm != value)
+                {
+                    SelectedProfile.AFMFAlgorithm = value;
+                    OnPropertyChanged(nameof(AFMFAlgorithm));
+
+                    if (!isLoadingProfile)
+                        UpdateProfile();
+                }
+            }
+        }
+
+        public int AFMFSearchMode
+        {
+            get => SelectedProfile?.AFMFSearchMode ?? 0;
+            set
+            {
+                if (SelectedProfile != null && SelectedProfile.AFMFSearchMode != value)
+                {
+                    SelectedProfile.AFMFSearchMode = value;
+                    OnPropertyChanged(nameof(AFMFSearchMode));
+
+                    if (!isLoadingProfile)
+                        UpdateProfile();
+                }
+            }
+        }
+
+        public int AFMFPerformanceMode
+        {
+            get => SelectedProfile?.AFMFPerformanceMode ?? 0;
+            set
+            {
+                if (SelectedProfile != null && SelectedProfile.AFMFPerformanceMode != value)
+                {
+                    SelectedProfile.AFMFPerformanceMode = value;
+                    OnPropertyChanged(nameof(AFMFPerformanceMode));
+
+                    if (!isLoadingProfile)
+                        UpdateProfile();
+                }
+            }
+        }
+
+        public int AFMFFastMotionResponse
+        {
+            get => SelectedProfile?.AFMFFastMotionResponse ?? 0;
+            set
+            {
+                if (SelectedProfile != null && SelectedProfile.AFMFFastMotionResponse != value)
+                {
+                    SelectedProfile.AFMFFastMotionResponse = value;
+                    OnPropertyChanged(nameof(AFMFFastMotionResponse));
 
                     if (!isLoadingProfile)
                         UpdateProfile();
@@ -2179,6 +2250,9 @@ namespace HandheldCompanion.ViewModels
 
                 amdGPU.AFMFStateChanged += OnAFMFStateChanged;
                 HasAFMFSupport = amdGPU.HasAFMFSupport();
+
+                amdGPU.AFMF21StateChanged += OnAFMF21StateChanged;
+                HasAFMF21Support = amdGPU.GetAFMFAlgorithmSupport();
             }
 
             GPU.IntegerScalingChanged += OnIntegerScalingChanged;
@@ -2197,6 +2271,7 @@ namespace HandheldCompanion.ViewModels
             {
                 amdGPU.RSRStateChanged -= OnRSRStateChanged;
                 amdGPU.AFMFStateChanged -= OnAFMFStateChanged;
+                amdGPU.AFMF21StateChanged -= OnAFMF21StateChanged;
             }
 
             GPU.IntegerScalingChanged -= OnIntegerScalingChanged;
@@ -2205,6 +2280,7 @@ namespace HandheldCompanion.ViewModels
             IsAMDGPU = false;
             HasRSRSupport = false;
             HasAFMFSupport = false;
+            HasAFMF21Support = false;
             HasGPUScalingSupport = false;
             HasIntegerScalingSupport = false;
             HasScalingModeSupport = false;
@@ -2214,6 +2290,7 @@ namespace HandheldCompanion.ViewModels
         {
             OnPropertyChanged(nameof(HasRSRSupport));
             OnPropertyChanged(nameof(HasAFMFSupport));
+            OnPropertyChanged(nameof(HasAFMF21Support));
             OnPropertyChanged(nameof(HasGPUScalingSupport));
             OnPropertyChanged(nameof(HasIntegerScalingSupport));
             OnPropertyChanged(nameof(HasScalingModeSupport));
@@ -2233,6 +2310,15 @@ namespace HandheldCompanion.ViewModels
             if (Supported != HasAFMFSupport)
             {
                 HasAFMFSupport = Supported;
+                UpdateGraphicsSettingsUI();
+            }
+        }
+
+        private void OnAFMF21StateChanged(bool AlgorithmSupported, int Algorithm, int SearchMode, int PerformanceMode, int FastMotionResponse)
+        {
+            if (AlgorithmSupported != HasAFMF21Support)
+            {
+                HasAFMF21Support = AlgorithmSupported;
                 UpdateGraphicsSettingsUI();
             }
         }
@@ -2817,6 +2903,10 @@ namespace HandheldCompanion.ViewModels
             OnPropertyChanged(nameof(ProfilePath));
             OnPropertyChanged(nameof(ProfileWhitelisted));
             OnPropertyChanged(nameof(AFMFEnabled));
+            OnPropertyChanged(nameof(AFMFAlgorithm));
+            OnPropertyChanged(nameof(AFMFSearchMode));
+            OnPropertyChanged(nameof(AFMFPerformanceMode));
+            OnPropertyChanged(nameof(AFMFFastMotionResponse));
             OnPropertyChanged(nameof(ShowInLibrary));
             OnPropertyChanged(nameof(MotionInvertHorizontal));
             OnPropertyChanged(nameof(MotionInvertVertical));

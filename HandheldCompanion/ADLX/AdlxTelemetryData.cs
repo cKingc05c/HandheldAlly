@@ -45,6 +45,14 @@ namespace HandheldCompanion.ADLX
         public bool gpuTotalBoardPowerSupported;
         public double gpuTotalBoardPowerValue;
 
+        // Fan Duty
+        public bool gpuFanDutySupported;
+        public double gpuFanDutyValue;
+
+        // Shared VRAM
+        public bool gpuSharedMemorySupported;
+        public double gpuSharedMemoryValue;
+
         // Framerate
         public long timeStamp;
         public int fpsData;

@@ -85,6 +85,10 @@ public partial class ProfilesPage : Page
         GPUScalingToggle.Toggled += ProfileProperty_Changed;
         GPUScalingComboBox.SelectionChanged += ProfileProperty_Changed;
         AFMFToggle.Toggled += ProfileProperty_Changed;
+        AFMFAlgorithmComboBox.SelectionChanged += ProfileProperty_Changed;
+        AFMFSearchModeComboBox.SelectionChanged += ProfileProperty_Changed;
+        AFMFPerformanceModeComboBox.SelectionChanged += ProfileProperty_Changed;
+        AFMFFastMotionResponseComboBox.SelectionChanged += ProfileProperty_Changed;
         RSRToggle.Toggled += ProfileProperty_Changed;
         IntegerScalingToggle.Toggled += ProfileProperty_Changed;
         RISToggle.Toggled += ProfileProperty_Changed;

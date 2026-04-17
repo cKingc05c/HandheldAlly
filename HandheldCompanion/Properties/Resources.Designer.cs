@@ -8346,11 +8346,182 @@ namespace HandheldCompanion.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Algorithm.
+        /// </summary>
+        public static string ProfilesPage_AFMFAlgorithm {
+            get {
+                return ResourceManager.GetString("ProfilesPage_AFMFAlgorithm", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Auto.
+        /// </summary>
+        public static string ProfilesPage_AFMFAlgorithm_Auto {
+            get {
+                return ResourceManager.GetString("ProfilesPage_AFMFAlgorithm_Auto", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Enhanced.
+        /// </summary>
+        public static string ProfilesPage_AFMFAlgorithm_Enhanced {
+            get {
+                return ResourceManager.GetString("ProfilesPage_AFMFAlgorithm_Enhanced", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Standard.
+        /// </summary>
+        public static string ProfilesPage_AFMFAlgorithm_Standard {
+            get {
+                return ResourceManager.GetString("ProfilesPage_AFMFAlgorithm_Standard", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Motion interpolation algorithm used by AMD Fluid Motion Frames.
+        /// </summary>
+        public static string ProfilesPage_AFMFAlgorithmDesc {
+            get {
+                return ResourceManager.GetString("ProfilesPage_AFMFAlgorithmDesc", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Enhance performance by utilizing frame generation technology to increase FPS beyond the in-game limit, resulting in a smoother experience.
         /// </summary>
         public static string ProfilesPage_AFMFDesc {
             get {
                 return ResourceManager.GetString("ProfilesPage_AFMFDesc", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Fast motion response.
+        /// </summary>
+        public static string ProfilesPage_AFMFFastMotionResponse {
+            get {
+                return ResourceManager.GetString("ProfilesPage_AFMFFastMotionResponse", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Blended frames.
+        /// </summary>
+        public static string ProfilesPage_AFMFFastMotionResponse_BlendedFrames {
+            get {
+                return ResourceManager.GetString("ProfilesPage_AFMFFastMotionResponse_BlendedFrames", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Repeat frames.
+        /// </summary>
+        public static string ProfilesPage_AFMFFastMotionResponse_RepeatFrames {
+            get {
+                return ResourceManager.GetString("ProfilesPage_AFMFFastMotionResponse_RepeatFrames", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to How AMD Fluid Motion Frames handles fast-moving content.
+        /// </summary>
+        public static string ProfilesPage_AFMFFastMotionResponseDesc {
+            get {
+                return ResourceManager.GetString("ProfilesPage_AFMFFastMotionResponseDesc", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Performance mode.
+        /// </summary>
+        public static string ProfilesPage_AFMFPerformanceMode {
+            get {
+                return ResourceManager.GetString("ProfilesPage_AFMFPerformanceMode", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Auto.
+        /// </summary>
+        public static string ProfilesPage_AFMFPerformanceMode_Auto {
+            get {
+                return ResourceManager.GetString("ProfilesPage_AFMFPerformanceMode_Auto", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Performance.
+        /// </summary>
+        public static string ProfilesPage_AFMFPerformanceMode_Performance {
+            get {
+                return ResourceManager.GetString("ProfilesPage_AFMFPerformanceMode_Performance", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Quality.
+        /// </summary>
+        public static string ProfilesPage_AFMFPerformanceMode_Quality {
+            get {
+                return ResourceManager.GetString("ProfilesPage_AFMFPerformanceMode_Quality", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Trade-off between image quality and GPU workload.
+        /// </summary>
+        public static string ProfilesPage_AFMFPerformanceModeDesc {
+            get {
+                return ResourceManager.GetString("ProfilesPage_AFMFPerformanceModeDesc", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Search mode.
+        /// </summary>
+        public static string ProfilesPage_AFMFSearchMode {
+            get {
+                return ResourceManager.GetString("ProfilesPage_AFMFSearchMode", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Auto.
+        /// </summary>
+        public static string ProfilesPage_AFMFSearchMode_Auto {
+            get {
+                return ResourceManager.GetString("ProfilesPage_AFMFSearchMode_Auto", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to High.
+        /// </summary>
+        public static string ProfilesPage_AFMFSearchMode_High {
+            get {
+                return ResourceManager.GetString("ProfilesPage_AFMFSearchMode_High", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Standard.
+        /// </summary>
+        public static string ProfilesPage_AFMFSearchMode_Standard {
+            get {
+                return ResourceManager.GetString("ProfilesPage_AFMFSearchMode_Standard", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Motion search depth used to detect frame transitions.
+        /// </summary>
+        public static string ProfilesPage_AFMFSearchModeDesc {
+            get {
+                return ResourceManager.GetString("ProfilesPage_AFMFSearchModeDesc", resourceCulture);
             }
         }
         

@@ -235,6 +235,10 @@ public partial class Profile : ICloneable, IComparable, INotifyPropertyChanged
     public bool RISEnabled { get; set; }
     public int RISSharpness { get; set; } = 80; // default AMD value
     public bool AFMFEnabled { get; set; }
+    public int AFMFAlgorithm { get; set; } = 0;          // AFMF_ALGORITHM_AUTO
+    public int AFMFSearchMode { get; set; } = 0;          // AFMF_SEARCH_MODE_AUTO
+    public int AFMFPerformanceMode { get; set; } = 0;     // AFMF_PERFORMANCE_MODE_AUTO
+    public int AFMFFastMotionResponse { get; set; } = 0;  // AFMF_RESP_REPEAT_FRAMES
 
     // AppCompatFlags
     public bool FullScreenOptimization { get; set; } = true;

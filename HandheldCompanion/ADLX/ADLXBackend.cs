@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Diagnostics;
-using System.IO;
 using System.Runtime.InteropServices;
 using System.Security;
 using System.Text;
@@ -10,7 +8,6 @@ namespace HandheldCompanion.ADLX
     public static class ADLXBackend
     {
         public const string ADLX_Wrapper = @".\Resources\AMD\ADLX_Wrapper.dll";
-        public const string ADLX_Probe = @"ADLX_Probe.exe";
 
         public enum ADLX_RESULT
         {
@@ -49,9 +46,52 @@ namespace HandheldCompanion.ADLX
         [DllImport(ADLX_Wrapper, CallingConvention = CallingConvention.Cdecl)] public static extern int GetRSRSharpness();
         [DllImport(ADLX_Wrapper, CallingConvention = CallingConvention.Cdecl)] public static extern bool SetRSRSharpness(int sharpness);
 
+        public enum ADLX_AFMF_ALGORITHM
+        {
+            AFMF_ALGORITHM_AUTO     = 0, /**< @ENG_START_DOX The algorithm used by AMD Fluid Motion Frames is auto. @ENG_END_DOX */
+            AFMF_ALGORITHM_ENHANCED = 1, /**< @ENG_START_DOX The algorithm used by AMD Fluid Motion Frames is enhanced mode. @ENG_END_DOX */
+            AFMF_ALGORITHM_STANDARD = 2, /**< @ENG_START_DOX The algorithm used by AMD Fluid Motion Frames is standard mode. @ENG_END_DOX */
+        }
+
+        public enum ADLX_AFMF_SEARCH_MODE_TYPE
+        {
+            AFMF_SEARCH_MODE_AUTO     = 0, /**< @ENG_START_DOX The AMD Fluid Motion Frames search mode is auto. @ENG_END_DOX */
+            AFMF_SEARCH_MODE_STANDARD = 1, /**< @ENG_START_DOX The AMD Fluid Motion Frames search mode is standard. @ENG_END_DOX */
+            AFMF_SEARCH_MODE_HIGH     = 2, /**< @ENG_START_DOX The AMD Fluid Motion Frames search mode is high. @ENG_END_DOX */
+        }
+
+        public enum ADLX_AFMF_PERFORMANCE_MODE_TYPE
+        {
+            AFMF_PERFORMANCE_MODE_AUTO        = 0, /**< @ENG_START_DOX The AMD Fluid Motion Frames performance mode is auto. @ENG_END_DOX */
+            AFMF_PERFORMANCE_MODE_QUALITY     = 1, /**< @ENG_START_DOX The AMD Fluid Motion Frames performance mode is quality. @ENG_END_DOX */
+            AFMF_PERFORMANCE_MODE_PERFORMANCE = 2, /**< @ENG_START_DOX The AMD Fluid Motion Frames performance mode is performance. @ENG_END_DOX */
+        }
+
+        public enum ADLX_AFMF_FAST_MOTION_RESP
+        {
+            AFMF_RESP_REPEAT_FRAMES  = 0, /**< @ENG_START_DOX The AMD Fluid Motion Frames approach to fast-motion content is to repeat the frames. @ENG_END_DOX */
+            AFMF_RESP_BLENDED_FRAMES = 1, /**< @ENG_START_DOX The AMD Fluid Motion Frames approach to fast-motion content is to blend the frames. @ENG_END_DOX */
+        }
+
+        public enum ADLX_FFX_FRAME_GEN_RATIO
+        {
+            FFX_FRAME_GEN_UNKNOWN = 0, /**< @ENG_START_DOX The frame generation ratio is unknown. @ENG_END_DOX */
+            FFX_FRAME_GEN_2X      = 1, /**< @ENG_START_DOX The frame generation ratio is 2X. @ENG_END_DOX */
+        }
+
         [DllImport(ADLX_Wrapper, CallingConvention = CallingConvention.Cdecl)] public static extern bool HasAFMFSupport();
         [DllImport(ADLX_Wrapper, CallingConvention = CallingConvention.Cdecl)] public static extern bool GetAFMF();
         [DllImport(ADLX_Wrapper, CallingConvention = CallingConvention.Cdecl)] public static extern bool SetAFMF(bool enable);
+
+        [DllImport(ADLX_Wrapper, CallingConvention = CallingConvention.Cdecl)] public static extern bool GetAFMFAlgorithmSupport();
+        [DllImport(ADLX_Wrapper, CallingConvention = CallingConvention.Cdecl)] public static extern int GetAFMFAlgorithm();
+        [DllImport(ADLX_Wrapper, CallingConvention = CallingConvention.Cdecl)] public static extern bool SetAFMFAlgorithm(int algorithm);
+        [DllImport(ADLX_Wrapper, CallingConvention = CallingConvention.Cdecl)] public static extern int GetAFMFSearchMode();
+        [DllImport(ADLX_Wrapper, CallingConvention = CallingConvention.Cdecl)] public static extern bool SetAFMFSearchMode(int mode);
+        [DllImport(ADLX_Wrapper, CallingConvention = CallingConvention.Cdecl)] public static extern int GetAFMFPerformanceMode();
+        [DllImport(ADLX_Wrapper, CallingConvention = CallingConvention.Cdecl)] public static extern bool SetAFMFPerformanceMode(int mode);
+        [DllImport(ADLX_Wrapper, CallingConvention = CallingConvention.Cdecl)] public static extern int GetAFMFFastMotionResponse();
+        [DllImport(ADLX_Wrapper, CallingConvention = CallingConvention.Cdecl)] public static extern bool SetAFMFFastMotionResponse(int response);
 
         [DllImport(ADLX_Wrapper, CallingConvention = CallingConvention.Cdecl)] public static extern bool GetAntiLag(int GPU);
         [DllImport(ADLX_Wrapper, CallingConvention = CallingConvention.Cdecl)] public static extern bool SetAntiLag(int GPU, bool enable);
@@ -72,6 +112,20 @@ namespace HandheldCompanion.ADLX
         [DllImport(ADLX_Wrapper, CallingConvention = CallingConvention.Cdecl)] public static extern bool SetImageSharpening(int GPU, bool enable);
         [DllImport(ADLX_Wrapper, CallingConvention = CallingConvention.Cdecl)] public static extern int GetImageSharpeningSharpness(int GPU);
         [DllImport(ADLX_Wrapper, CallingConvention = CallingConvention.Cdecl)] public static extern bool SetImageSharpeningSharpness(int GPU, int sharpness);
+
+        [DllImport(ADLX_Wrapper, CallingConvention = CallingConvention.Cdecl)] public static extern bool HasSharpenDesktopSupport(int GPU);
+        [DllImport(ADLX_Wrapper, CallingConvention = CallingConvention.Cdecl)] public static extern bool GetSharpenDesktop(int GPU);
+        [DllImport(ADLX_Wrapper, CallingConvention = CallingConvention.Cdecl)] public static extern bool SetSharpenDesktop(int GPU, bool enable);
+
+        [DllImport(ADLX_Wrapper, CallingConvention = CallingConvention.Cdecl)] public static extern bool HasFSRSupport(int GPU);
+        [DllImport(ADLX_Wrapper, CallingConvention = CallingConvention.Cdecl)] public static extern bool GetFSR(int GPU);
+        [DllImport(ADLX_Wrapper, CallingConvention = CallingConvention.Cdecl)] public static extern bool SetFSR(int GPU, bool enable);
+
+        [DllImport(ADLX_Wrapper, CallingConvention = CallingConvention.Cdecl)] public static extern bool HasFFXFrameGenSupport(int GPU);
+        [DllImport(ADLX_Wrapper, CallingConvention = CallingConvention.Cdecl)] public static extern bool GetFFXFrameGen(int GPU);
+        [DllImport(ADLX_Wrapper, CallingConvention = CallingConvention.Cdecl)] public static extern bool SetFFXFrameGen(int GPU, bool enable);
+        [DllImport(ADLX_Wrapper, CallingConvention = CallingConvention.Cdecl)] public static extern int GetFFXFrameGenRatio(int GPU);
+        [DllImport(ADLX_Wrapper, CallingConvention = CallingConvention.Cdecl)] public static extern bool SetFFXFrameGenRatio(int GPU, int ratio);
 
         [DllImport(ADLX_Wrapper, CallingConvention = CallingConvention.Cdecl)] public static extern bool HasIntegerScalingSupport(int displayIdx);
         [DllImport(ADLX_Wrapper, CallingConvention = CallingConvention.Cdecl)] public static extern bool GetIntegerScaling(int displayIdx);
@@ -96,24 +150,13 @@ namespace HandheldCompanion.ADLX
         {
             try
             {
-                Process process = new Process();
-                process.StartInfo.FileName = Path.Combine(Environment.CurrentDirectory, "Resources", "AMD", ADLX_Probe);
-                process.StartInfo.UseShellExecute = false;
-                process.StartInfo.CreateNoWindow = true;
-                process.StartInfo.WorkingDirectory = Path.Combine(Environment.CurrentDirectory, "Resources", "AMD");
-                process.Start();
-                process.WaitForExit();
+                // Try the full ADLX initialisation first; ADLX_Wrapper.dll handles
+                // its own internal driver compatibility check.  Only fall back to
+                // the incompatible-driver path if the wrapper explicitly returns false.
+                if (IntializeAdlx(displayName, displayName.Capacity))
+                    return true;
 
-                int exitCode = process.ExitCode;
-                switch (process.ExitCode)
-                {
-                    case 2:
-                        // Assume display name won't exceed 255 characters
-                        bool success = IntializeAdlx(displayName, displayName.Capacity);
-                        return success;
-                    default:
-                        return InitializeAdlxWithIncompatibleDriver();
-                }
+                return InitializeAdlxWithIncompatibleDriver();
             }
             catch { }
 

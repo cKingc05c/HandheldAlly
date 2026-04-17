@@ -20,6 +20,9 @@ namespace HandheldCompanion.GraphicsProcessingUnit
 
         public event AFMFStateChangedEventHandler? AFMFStateChanged;
         public delegate void AFMFStateChangedEventHandler(bool Supported, bool Enabled);
+
+        public event AFMF21StateChangedEventHandler? AFMF21StateChanged;
+        public delegate void AFMF21StateChangedEventHandler(bool AlgorithmSupported, int Algorithm, int SearchMode, int PerformanceMode, int FastMotionResponse);
         #endregion
 
         private bool prevRSRSupport = false;
@@ -28,6 +31,12 @@ namespace HandheldCompanion.GraphicsProcessingUnit
 
         private bool prevAFMFSupport = false;
         private bool prevAFMF = false;
+
+        private bool prevAFMFAlgorithmSupport = false;
+        private int prevAFMFAlgorithm = -1;
+        private int prevAFMFSearchMode = -1;
+        private int prevAFMFPerformanceMode = -1;
+        private int prevAFMFFastMotionResponse = -1;
 
         protected AdlxTelemetryData TelemetryData = new();
 
@@ -85,6 +94,46 @@ namespace HandheldCompanion.GraphicsProcessingUnit
                 return false;
 
             return Execute(ADLXBackend.GetAFMF, false);
+        }
+
+        public bool GetAFMFAlgorithmSupport()
+        {
+            if (!IsInitialized)
+                return false;
+
+            return Execute(ADLXBackend.GetAFMFAlgorithmSupport, false);
+        }
+
+        public int GetAFMFAlgorithm()
+        {
+            if (!IsInitialized)
+                return 0;
+
+            return Execute(ADLXBackend.GetAFMFAlgorithm, 0);
+        }
+
+        public int GetAFMFSearchMode()
+        {
+            if (!IsInitialized)
+                return 0;
+
+            return Execute(ADLXBackend.GetAFMFSearchMode, 0);
+        }
+
+        public int GetAFMFPerformanceMode()
+        {
+            if (!IsInitialized)
+                return 0;
+
+            return Execute(ADLXBackend.GetAFMFPerformanceMode, 0);
+        }
+
+        public int GetAFMFFastMotionResponse()
+        {
+            if (!IsInitialized)
+                return 0;
+
+            return Execute(ADLXBackend.GetAFMFFastMotionResponse, 0);
         }
 
         public int GetRSRSharpness()
@@ -193,6 +242,38 @@ namespace HandheldCompanion.GraphicsProcessingUnit
                 return false;
 
             return Execute(() => ADLXBackend.SetAFMF(enable), false);
+        }
+
+        public bool SetAFMFAlgorithm(int algorithm)
+        {
+            if (!IsInitialized)
+                return false;
+
+            return Execute(() => ADLXBackend.SetAFMFAlgorithm(algorithm), false);
+        }
+
+        public bool SetAFMFSearchMode(int mode)
+        {
+            if (!IsInitialized)
+                return false;
+
+            return Execute(() => ADLXBackend.SetAFMFSearchMode(mode), false);
+        }
+
+        public bool SetAFMFPerformanceMode(int mode)
+        {
+            if (!IsInitialized)
+                return false;
+
+            return Execute(() => ADLXBackend.SetAFMFPerformanceMode(mode), false);
+        }
+
+        public bool SetAFMFFastMotionResponse(int response)
+        {
+            if (!IsInitialized)
+                return false;
+
+            return Execute(() => ADLXBackend.SetAFMFFastMotionResponse(response), false);
         }
 
         public override bool SetImageSharpeningSharpness(int sharpness)
@@ -497,6 +578,45 @@ namespace HandheldCompanion.GraphicsProcessingUnit
 
                             prevAFMFSupport = AFMFSupport;
                             prevAFMF = AFMF;
+                        }
+                    }
+                    catch { }
+
+                    try
+                    {
+                        // get AFMF 2.1 sub-controls (only probed when basic AFMF is supported)
+                        bool AFMFAlgorithmSupport = false;
+                        int AFMFAlgorithm = 0;
+                        int AFMFSearchMode = 0;
+                        int AFMFPerformanceMode = 0;
+                        int AFMFFastMotionResponse = 0;
+
+                        if (prevAFMFSupport)
+                        {
+                            AFMFAlgorithmSupport = GetAFMFAlgorithmSupport();
+                            if (AFMFAlgorithmSupport)
+                            {
+                                AFMFAlgorithm = GetAFMFAlgorithm();
+                                AFMFSearchMode = GetAFMFSearchMode();
+                                AFMFPerformanceMode = GetAFMFPerformanceMode();
+                                AFMFFastMotionResponse = GetAFMFFastMotionResponse();
+                            }
+                        }
+
+                        if (AFMFAlgorithmSupport != prevAFMFAlgorithmSupport ||
+                            AFMFAlgorithm != prevAFMFAlgorithm ||
+                            AFMFSearchMode != prevAFMFSearchMode ||
+                            AFMFPerformanceMode != prevAFMFPerformanceMode ||
+                            AFMFFastMotionResponse != prevAFMFFastMotionResponse)
+                        {
+                            // raise event
+                            AFMF21StateChanged?.Invoke(AFMFAlgorithmSupport, AFMFAlgorithm, AFMFSearchMode, AFMFPerformanceMode, AFMFFastMotionResponse);
+
+                            prevAFMFAlgorithmSupport = AFMFAlgorithmSupport;
+                            prevAFMFAlgorithm = AFMFAlgorithm;
+                            prevAFMFSearchMode = AFMFSearchMode;
+                            prevAFMFPerformanceMode = AFMFPerformanceMode;
+                            prevAFMFFastMotionResponse = AFMFFastMotionResponse;
                         }
                     }
                     catch { }

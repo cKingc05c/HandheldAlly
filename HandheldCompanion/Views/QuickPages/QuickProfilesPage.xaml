@@ -841,6 +841,73 @@
                                             IsOn="{Binding AFMFEnabled, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                             Style="{DynamicResource InvertedToggleSwitchStyle}" />
                                     </Grid>
+
+                                    <!--  AFMF 2.1 sub-controls  -->
+                                    <Separator
+                                        Background="{DynamicResource ExpanderHeaderBackground}"
+                                        Visibility="{Binding HasAFMF21Support, Mode=OneWay, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource BooleanToVisibilityConverter}}" />
+
+                                    <ikw:SimpleStackPanel
+                                        d:Visibility="Visible"
+                                        Spacing="3"
+                                        Visibility="{Binding HasAFMF21Support, Mode=OneWay, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource BooleanToVisibilityConverter}}">
+
+                                        <Grid IsEnabled="{Binding AFMFEnabled, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="5*" />
+                                                <ColumnDefinition Width="5*" />
+                                            </Grid.ColumnDefinitions>
+
+                                            <ikw:SimpleStackPanel VerticalAlignment="Center">
+                                                <TextBlock Style="{StaticResource BodyTextBlockStyle}" Text="{l:Static resx:Resources.ProfilesPage_AFMFAlgorithm}" />
+                                                <TextBlock
+                                                    Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                                                    Style="{StaticResource CaptionTextBlockStyle}"
+                                                    Text="{l:Static resx:Resources.ProfilesPage_AFMFAlgorithmDesc}"
+                                                    TextWrapping="Wrap" />
+                                            </ikw:SimpleStackPanel>
+
+                                            <ComboBox
+                                                Name="AFMFAlgorithmComboBox"
+                                                Grid.Column="1"
+                                                Margin="12,0,0,0"
+                                                HorizontalAlignment="Stretch"
+                                                VerticalAlignment="Center"
+                                                SelectedIndex="{Binding AFMFAlgorithm, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
+                                                <ComboBoxItem Content="{l:Static resx:Resources.ProfilesPage_AFMFAlgorithm_Auto}" />
+                                                <ComboBoxItem Content="{l:Static resx:Resources.ProfilesPage_AFMFAlgorithm_Enhanced}" />
+                                                <ComboBoxItem Content="{l:Static resx:Resources.ProfilesPage_AFMFAlgorithm_Standard}" />
+                                            </ComboBox>
+                                        </Grid>
+
+                                        <Grid IsEnabled="{Binding AFMFEnabled, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="5*" />
+                                                <ColumnDefinition Width="5*" />
+                                            </Grid.ColumnDefinitions>
+
+                                            <ikw:SimpleStackPanel VerticalAlignment="Center">
+                                                <TextBlock Style="{StaticResource BodyTextBlockStyle}" Text="{l:Static resx:Resources.ProfilesPage_AFMFPerformanceMode}" />
+                                                <TextBlock
+                                                    Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                                                    Style="{StaticResource CaptionTextBlockStyle}"
+                                                    Text="{l:Static resx:Resources.ProfilesPage_AFMFPerformanceModeDesc}"
+                                                    TextWrapping="Wrap" />
+                                            </ikw:SimpleStackPanel>
+
+                                            <ComboBox
+                                                Name="AFMFPerformanceModeComboBox"
+                                                Grid.Column="1"
+                                                Margin="12,0,0,0"
+                                                HorizontalAlignment="Stretch"
+                                                VerticalAlignment="Center"
+                                                SelectedIndex="{Binding AFMFPerformanceMode, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
+                                                <ComboBoxItem Content="{l:Static resx:Resources.ProfilesPage_AFMFPerformanceMode_Auto}" />
+                                                <ComboBoxItem Content="{l:Static resx:Resources.ProfilesPage_AFMFPerformanceMode_Quality}" />
+                                                <ComboBoxItem Content="{l:Static resx:Resources.ProfilesPage_AFMFPerformanceMode_Performance}" />
+                                            </ComboBox>
+                                        </Grid>
+                                    </ikw:SimpleStackPanel>
                                 </ikw:SimpleStackPanel>
 
                                 <!--  Separator  -->
