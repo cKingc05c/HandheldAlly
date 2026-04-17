@@ -2362,12 +2362,23 @@ namespace HandheldCompanion.ViewModels
                         FramerateLimits.Add(new ScreenFramelimitViewModel(frameLimit));
                 }
 
-                // Restore the selection if we had one
-                if (currentSelectedLimit.HasValue && FramerateLimits.Any())
+                // Restore the selection if we had one, otherwise use the current profile's value
+                if (FramerateLimits.Any())
                 {
-                    var matchingLimit = FramerateLimits.FirstOrDefault(vm => vm.FrameLimit.limit == currentSelectedLimit.Value);
-                    if (matchingLimit != null)
-                        SelectedFrameLimit = matchingLimit;
+                    if (currentSelectedLimit.HasValue)
+                    {
+                        var matchingLimit = FramerateLimits.FirstOrDefault(vm => vm.FrameLimit.limit == currentSelectedLimit.Value);
+                        if (matchingLimit != null)
+                            SelectedFrameLimit = matchingLimit;
+                    }
+                    else if (SelectedProfile != null)
+                    {
+                        using (new LoadingScope(this))
+                        {
+                            ScreenFramelimit closest = desktopScreen.GetClosest(SelectedProfile.FramerateValue);
+                            SelectedFrameLimit = FramerateLimits.FirstOrDefault(vm => vm.FrameLimit.limit == closest.limit);
+                        }
+                    }
                 }
             }
             catch { }
