@@ -154,6 +154,23 @@ public class DesktopScreen : IDisposable
         return devMode.dmDisplayFrequency;
     }
 
+    public int GetMaximumFrequency()
+    {
+        // Find all resolutions matching the current pixel dimensions
+        ScreenResolution? currentRes = screenResolutions.FirstOrDefault(r =>
+            (r.Width == devMode.dmPelsWidth && r.Height == devMode.dmPelsHeight) ||
+            (r.Width == devMode.dmPelsHeight && r.Height == devMode.dmPelsWidth));
+
+        if (currentRes is not null && currentRes.Frequencies.Count > 0)
+        {
+            // Frequencies is sorted descending, so the first key is the highest
+            return currentRes.Frequencies.Keys.First();
+        }
+
+        // Fall back to current frequency if the resolution is not found
+        return devMode.dmDisplayFrequency;
+    }
+
     // A function that takes a screen frequency int value and returns a list of integer values that are the quotient of the frequency and the closest divisor
     public List<ScreenFramelimit> GetFramelimits()
     {
@@ -162,7 +179,7 @@ public class DesktopScreen : IDisposable
 
         // A variable to store the divider value, rounded to nearest even number
         int divider = 1;
-        int dmDisplayFrequency = RoundToEven(devMode.dmDisplayFrequency);
+        int dmDisplayFrequency = RoundToEven(GetMaximumFrequency());
 
         if (_cachedFrameLimits.ContainsKey(dmDisplayFrequency))
         {

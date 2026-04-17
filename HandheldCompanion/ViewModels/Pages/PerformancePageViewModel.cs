@@ -185,7 +185,7 @@ namespace HandheldCompanion.ViewModels
                 if (!ManagerFactory.multimediaManager.IsReady || ManagerFactory.multimediaManager.PrimaryDesktop is null)
                     return 60.0d;
 
-                return ManagerFactory.multimediaManager.PrimaryDesktop.devMode.dmDisplayFrequency;
+                return ManagerFactory.multimediaManager.PrimaryDesktop.GetMaximumFrequency();
             }
         }
 
