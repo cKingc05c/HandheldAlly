@@ -1,5 +1,8 @@
 using HandheldCompanion.Managers;
 using HandheldCompanion.Misc;
+using HandheldCompanion.Properties;
+using HandheldCompanion.Views;
+using iNKORE.UI.WPF.Modern.Controls;
 using System;
 using System.Collections.ObjectModel;
 using System.Windows.Input;
@@ -32,9 +35,26 @@ namespace HandheldCompanion.ViewModels
             Collection = collection;
             _builtInName = string.Empty;
 
-            DeleteCommand = new DelegateCommand(() =>
+            DeleteCommand = new DelegateCommand(async () =>
             {
-                ManagerFactory.collectionManager.DeleteCollection(collection.Id);
+                Dialog dialog = new Dialog(MainWindow.GetCurrent())
+                {
+                    Title = string.Format(Resources.ProfilesPage_AreYouSureDelete1, collection.Name),
+                    Content = Resources.ProfilesPage_AreYouSureDelete2,
+                    CloseButtonText = Resources.ProfilesPage_Cancel,
+                    PrimaryButtonText = Resources.ProfilesPage_Delete
+                };
+
+                ContentDialogResult result = await dialog.ShowAsync();
+                switch (result)
+                {
+                    case ContentDialogResult.None:
+                        dialog.Hide();
+                        break;
+                    case ContentDialogResult.Primary:
+                        ManagerFactory.collectionManager.DeleteCollection(collection.Id);
+                        break;
+                }
             });
         }
 

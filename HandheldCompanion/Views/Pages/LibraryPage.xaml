@@ -23,90 +23,10 @@
     <Grid Margin="20">
         <ikw:SimpleStackPanel Spacing="12">
             <ikw:SimpleStackPanel Spacing="3">
-                <ui:SettingsExpander
-                    d:IsExpanded="True"
-                    Description="Manage library settings"
-                    Header="Library">
+                <ui:SettingsExpander Header="Manage library settings">
                     <ui:SettingsExpander.HeaderIcon>
                         <ui:FontIcon Glyph="&#xE7BC;" />
                     </ui:SettingsExpander.HeaderIcon>
-
-                    <ikw:SimpleStackPanel
-                        Grid.Column="1"
-                        HorizontalAlignment="Right"
-                        Orientation="Horizontal"
-                        Spacing="3">
-                        <Button
-                            Height="31"
-                            VerticalAlignment="Bottom"
-                            Command="{Binding ToggleSortCommand}">
-                            <Button.Style>
-                                <Style BasedOn="{StaticResource AccentButtonStyle}" TargetType="Button">
-                                    <Setter Property="Content">
-                                        <Setter.Value>
-                                            <ui:FontIcon
-                                                Height="28"
-                                                VerticalAlignment="Center"
-                                                Icon="{x:Static ui:FluentSystemIcons.ArrowSortDownLines_24_Regular}" />
-                                        </Setter.Value>
-                                    </Setter>
-
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding SortAscending}" Value="False">
-                                            <Setter Property="Content">
-                                                <Setter.Value>
-                                                    <ui:FontIcon
-                                                        Height="28"
-                                                        VerticalAlignment="Center"
-                                                        Icon="{x:Static ui:FluentSystemIcons.ArrowSortUpLines_24_Regular}" />
-                                                </Setter.Value>
-                                            </Setter>
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </Button.Style>
-                        </Button>
-                        <Button
-                            Height="31"
-                            VerticalAlignment="Bottom"
-                            Command="{Binding ToggleViewModeCommand}">
-                            <Button.Style>
-                                <Style BasedOn="{StaticResource AccentButtonStyle}" TargetType="Button">
-                                    <Setter Property="Content">
-                                        <Setter.Value>
-                                            <ui:FontIcon
-                                                Height="28"
-                                                VerticalAlignment="Center"
-                                                Icon="{x:Static ui:FluentSystemIcons.AppsListDetail_24_Filled}" />
-                                        </Setter.Value>
-                                    </Setter>
-
-                                    <Style.Triggers>
-                                        <DataTrigger Binding="{Binding ViewMode}" Value="1">
-                                            <Setter Property="Content">
-                                                <Setter.Value>
-                                                    <ui:FontIcon
-                                                        Height="28"
-                                                        VerticalAlignment="Center"
-                                                        Icon="{x:Static ui:FluentSystemIcons.Grid_20_Filled}" />
-                                                </Setter.Value>
-                                            </Setter>
-                                        </DataTrigger>
-                                        <DataTrigger Binding="{Binding ViewMode}" Value="2">
-                                            <Setter Property="Content">
-                                                <Setter.Value>
-                                                    <ui:FontIcon
-                                                        Height="28"
-                                                        VerticalAlignment="Center"
-                                                        Icon="{x:Static ui:FluentSystemIcons.GridKanban_20_Filled}" />
-                                                </Setter.Value>
-                                            </Setter>
-                                        </DataTrigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </Button.Style>
-                        </Button>
-                    </ikw:SimpleStackPanel>
 
                     <ui:SettingsExpander.Items>
                         <ui:SettingsCard Header="Download metadata and artworks">
@@ -166,29 +86,101 @@
 
             <Grid>
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="8*" />
+                    <ColumnDefinition Width="7*" />
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
+
                 <ui:AutoSuggestBox
                     HorizontalAlignment="Stretch"
-                    VerticalAlignment="Center"
+                    VerticalAlignment="Stretch"
                     PlaceholderText="Search library..."
                     Text="{Binding SearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
                     <ui:AutoSuggestBox.QueryIcon>
                         <ui:FontIcon Icon="{x:Static ui:SegoeFluentIcons.Search}" />
                     </ui:AutoSuggestBox.QueryIcon>
                 </ui:AutoSuggestBox>
-                <ComboBox
+
+                <ikw:SimpleStackPanel
                     Grid.Column="1"
                     Margin="6,0,0,0"
-                    HorizontalAlignment="Right"
-                    VerticalAlignment="Bottom"
-                    SelectedIndex="{Binding SortTarget}">
-                    <ComboBoxItem Content="Alphabetic" />
-                    <ComboBoxItem Content="Platform" />
-                    <ComboBoxItem Content="Recently added" />
-                    <ComboBoxItem Content="Recently played" />
-                </ComboBox>
+                    Orientation="Horizontal"
+                    Spacing="3">
+                    <ComboBox
+                        HorizontalAlignment="Right"
+                        VerticalAlignment="Stretch"
+                        SelectedIndex="{Binding SortTarget}">
+                        <ComboBoxItem Content="Alphabetic" />
+                        <ComboBoxItem Content="Platform" />
+                        <ComboBoxItem Content="Recently added" />
+                        <ComboBoxItem Content="Recently played" />
+                    </ComboBox>
+
+                    <Button Height="31" Command="{Binding ToggleSortCommand}">
+                        <Button.Style>
+                            <Style BasedOn="{StaticResource AccentButtonStyle}" TargetType="Button">
+                                <Setter Property="Content">
+                                    <Setter.Value>
+                                        <ui:FontIcon
+                                            Height="28"
+                                            VerticalAlignment="Center"
+                                            Icon="{x:Static ui:FluentSystemIcons.ArrowSortDownLines_24_Regular}" />
+                                    </Setter.Value>
+                                </Setter>
+
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding SortAscending}" Value="False">
+                                        <Setter Property="Content">
+                                            <Setter.Value>
+                                                <ui:FontIcon
+                                                    Height="28"
+                                                    VerticalAlignment="Center"
+                                                    Icon="{x:Static ui:FluentSystemIcons.ArrowSortUpLines_24_Regular}" />
+                                            </Setter.Value>
+                                        </Setter>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
+
+                    <Button Height="31" Command="{Binding ToggleViewModeCommand}">
+                        <Button.Style>
+                            <Style BasedOn="{StaticResource AccentButtonStyle}" TargetType="Button">
+                                <Setter Property="Content">
+                                    <Setter.Value>
+                                        <ui:FontIcon
+                                            Height="28"
+                                            VerticalAlignment="Center"
+                                            Icon="{x:Static ui:FluentSystemIcons.AppsListDetail_24_Filled}" />
+                                    </Setter.Value>
+                                </Setter>
+
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding ViewMode}" Value="1">
+                                        <Setter Property="Content">
+                                            <Setter.Value>
+                                                <ui:FontIcon
+                                                    Height="28"
+                                                    VerticalAlignment="Center"
+                                                    Icon="{x:Static ui:FluentSystemIcons.Grid_20_Filled}" />
+                                            </Setter.Value>
+                                        </Setter>
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding ViewMode}" Value="2">
+                                        <Setter Property="Content">
+                                            <Setter.Value>
+                                                <ui:FontIcon
+                                                    Height="28"
+                                                    VerticalAlignment="Center"
+                                                    Icon="{x:Static ui:FluentSystemIcons.GridKanban_20_Filled}" />
+                                            </Setter.Value>
+                                        </Setter>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
+                </ikw:SimpleStackPanel>
             </Grid>
 
             <!--  Unified Library (Favorites shown with wide template, others with grid/list template)  -->
@@ -196,7 +188,7 @@
             <!--  The spinner overlays the content via Panel.ZIndex inside the Grid wrapper.  -->
             <Grid>
                 <ikw:SimpleStackPanel Spacing="8">
-                    <TextBlock Style="{StaticResource BaseTextBlockStyle}" Text="Library" />
+                    <!-- <TextBlock Style="{StaticResource BaseTextBlockStyle}" Text="Library" /> -->
 
                     <ItemsControl
                         x:Name="profilesRepeater"
@@ -269,7 +261,24 @@
                         <ItemsControl.ItemTemplate>
                             <DataTemplate>
                                 <ikw:SimpleStackPanel Spacing="4">
-                                    <TextBlock Style="{DynamicResource {x:Static ui:ThemeKeys.TitleTextBlockStyleKey}}" Text="{Binding Name}" />
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock
+                                            VerticalAlignment="Center"
+                                            Style="{DynamicResource {x:Static ui:ThemeKeys.TitleTextBlockStyleKey}}"
+                                            Text="{Binding Name}" />
+                                        <Button
+                                            Grid.Column="1"
+                                            VerticalAlignment="Stretch"
+                                            Command="{Binding DeleteCommand}"
+                                            Visibility="{Binding CanDelete, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                            <ui:FontIcon Icon="{x:Static ui:SegoeFluentIcons.Delete}" />
+                                        </Button>
+                                    </Grid>
+                                    <Separator Opacity="0.5" />
                                     <ItemsControl ItemsSource="{Binding Profiles}">
                                         <ItemsControl.ItemContainerStyle>
                                             <Style TargetType="ContentPresenter">
