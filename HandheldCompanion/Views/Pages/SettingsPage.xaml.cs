@@ -156,7 +156,7 @@ public partial class SettingsPage : Page
         });
     }
 
-    private void SettingsManager_SettingValueChanged(string? name, object value, bool temporary)
+    private void SettingsManager_SettingValueChanged(string? name, object? value, bool temporary)
     {
         // UI thread
         UIHelper.TryInvoke(() =>
@@ -203,10 +203,11 @@ public partial class SettingsPage : Page
                     Toggle_Notification.IsOn = Convert.ToBoolean(value);
                     break;
                 case "CurrentCulture":
-                    cB_Language.SelectedItem = (string)value switch
+                    string cultureName = value as string ?? string.Empty;
+                    cB_Language.SelectedItem = cultureName switch
                     {
                         "" => TranslationSource.Instance.CurrentCulture,
-                        _ => new CultureInfo((string)value)
+                        _ => new CultureInfo(cultureName)
                     };
                     break;
                 case "PlatformRTSSEnabled":
@@ -248,8 +249,14 @@ public partial class SettingsPage : Page
                 case "QuickToolsSlideAnimation":
                     QuicktoolsSlideAnimationToggle.IsOn = Convert.ToBoolean(value);
                     break;
-                case "GPUManagerMonitor":
-                    Toggle_GPUMonitor.IsOn = Convert.ToBoolean(value);
+                case "PerformanceManagerEnabled":
+                    Toggle_PerformanceManager.IsOn = Convert.ToBoolean(value);
+                    break;
+                case "GPUManagementEnabled":
+                    Toggle_GPUManagement.IsOn = Convert.ToBoolean(value);
+                    break;
+                case "LibraryPageEnabled":
+                    Toggle_LibraryPage.IsOn = Convert.ToBoolean(value);
                     break;
                 case "QuickToolsApplyNoise":
                     QuickToolsNoiseToggle.IsOn = Convert.ToBoolean(value);
@@ -334,7 +341,7 @@ public partial class SettingsPage : Page
         ManagerFactory.settingsManager.SetProperty("DesktopLayoutOnStart", Toggle_DesktopLayoutOnStart.IsOn);
     }
 
-    private void UpdateManager_Updated(UpdateStatus status, UpdateFile updateFile, object value)
+    private void UpdateManager_Updated(UpdateStatus status, UpdateFile? updateFile, object? value)
     {
         // UI thread
         UIHelper.TryInvoke(() =>
@@ -384,7 +391,9 @@ public partial class SettingsPage : Page
                     {
                         ProgressBarUpdate.Visibility = Visibility.Collapsed;
 
-                        var updateFiles = (Dictionary<string, UpdateFile>)value;
+                        var updateFiles = value as Dictionary<string, UpdateFile>;
+                        if (updateFiles is null)
+                            break;
                         LabelUpdate.Text = Properties.Resources.SettingsPage_UpdateAvailable;
 
                         foreach (var update in updateFiles.Values)
@@ -412,7 +421,7 @@ public partial class SettingsPage : Page
                     {
                         CurrentChangelog.Visibility = Visibility.Visible;
                         LabelUpdateDate.Visibility = Visibility.Visible;
-                        CurrentChangelog.AppendText((string)value);
+                        CurrentChangelog.AppendText(value as string ?? string.Empty);
                         B_CheckUpdate.IsEnabled = true;
                     }
                     break;
@@ -426,9 +435,11 @@ public partial class SettingsPage : Page
 
                 case UpdateStatus.Downloading:
                     {
-                        var progress = (int)value;
+                        if (value is not int progress)
+                            break;
+
                         updateFile.updatePercentage.Text =
-                            Properties.Resources.SettingsPage_DownloadingPercentage + $"{value} %";
+                            Properties.Resources.SettingsPage_DownloadingPercentage + $"{progress} %";
                     }
                     break;
 
@@ -663,12 +674,28 @@ public partial class SettingsPage : Page
         ManagerFactory.settingsManager.SetProperty("QuickToolsSlideAnimation", QuicktoolsSlideAnimationToggle.IsOn);
     }
 
-    private void Toggle_GPUMonitor_Toggled(object sender, RoutedEventArgs e)
+    private void Toggle_PerformanceManager_Toggled(object sender, RoutedEventArgs e)
     {
         if (!IsLoaded)
             return;
 
-        ManagerFactory.settingsManager.SetProperty("GPUManagerMonitor", Toggle_GPUMonitor.IsOn);
+        ManagerFactory.settingsManager.SetProperty("PerformanceManagerEnabled", Toggle_PerformanceManager.IsOn);
+    }
+
+    private void Toggle_GPUManagement_Toggled(object sender, RoutedEventArgs e)
+    {
+        if (!IsLoaded)
+            return;
+
+        ManagerFactory.settingsManager.SetProperty("GPUManagementEnabled", Toggle_GPUManagement.IsOn);
+    }
+
+    private void Toggle_LibraryPage_Toggled(object sender, RoutedEventArgs e)
+    {
+        if (!IsLoaded)
+            return;
+
+        ManagerFactory.settingsManager.SetProperty("LibraryPageEnabled", Toggle_LibraryPage.IsOn);
     }
 
     private void QuickToolsNoiseToggle_Toggled(object sender, RoutedEventArgs e)

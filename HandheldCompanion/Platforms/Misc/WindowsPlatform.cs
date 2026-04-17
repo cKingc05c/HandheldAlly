@@ -20,7 +20,7 @@ public sealed class WindowsPlatform : IPlatform
     public bool GoBackToSleepEnabled { get; private set; }
 
     private readonly EnhancedSleepPolicy _enhancedSleep = new();
-    private ModernStandbyResleepMonitor _monitor;
+    private ModernStandbyResleepMonitor? _monitor;
 
     public WindowsPlatform()
     {
@@ -76,7 +76,7 @@ public sealed class WindowsPlatform : IPlatform
         SettingsManager_SettingValueChanged("GoBackToSleep", ManagerFactory.settingsManager.GetString("GoBackToSleep"), false);
     }
 
-    private void SettingsManager_SettingValueChanged(string name, object value, bool temporary)
+    private void SettingsManager_SettingValueChanged(string name, object? value, bool temporary)
     {
         switch (name)
         {
@@ -146,7 +146,8 @@ public sealed class WindowsPlatform : IPlatform
 
     private bool ShouldResleepOnWakeReason(ModernStandbyResleepMonitor.WakeReason reason)
     {
-        return reason != ModernStandbyResleepMonitor.WakeReason.PowerButton;
+        return reason != ModernStandbyResleepMonitor.WakeReason.PowerButton &&
+               reason != ModernStandbyResleepMonitor.WakeReason.FingerprintReader;
     }
 
     private sealed class EnhancedSleepPolicy
@@ -171,7 +172,7 @@ public sealed class WindowsPlatform : IPlatform
 
         private Dictionary<string, Snapshot> _snapshot;
 
-        private static string cacheDirectory, cacheFile;
+        private static string cacheDirectory = string.Empty, cacheFile = string.Empty;
         private const string fileName = "enhanced_sleep_snapshot.json";
 
         private readonly record struct Snapshot(uint AC, uint DC);
@@ -274,7 +275,7 @@ public sealed class WindowsPlatform : IPlatform
             PowerScheme.WritePowerCfg(subgroup, setting, snap.AC, snap.DC);
         }
 
-        private Dictionary<string, Snapshot> LoadSnapshotFromDisk()
+        private Dictionary<string, Snapshot>? LoadSnapshotFromDisk()
         {
             try
             {
@@ -320,7 +321,7 @@ public sealed class WindowsPlatform : IPlatform
         private readonly XNamespace _ns = "http://schemas.microsoft.com/win/2004/08/events/event";
         private readonly Func<WakeReason, bool> _shouldResleep;
 
-        private EventLogWatcher _watcher;
+        private EventLogWatcher? _watcher;
 
         // Simple cooldown to avoid "wake, resleep, immediate wake, resleep ..." storms
         private long _lastResleepTicks;
@@ -329,6 +330,7 @@ public sealed class WindowsPlatform : IPlatform
         {
             Unknown = 0,
             PowerButton = 1,
+            FingerprintReader = 4,
             Joystick = 7,
             ChargerConnected = 28,
             Other = 999
@@ -372,7 +374,7 @@ public sealed class WindowsPlatform : IPlatform
             }
         }
 
-        private void OnEventRecordWritten(object sender, EventRecordWrittenEventArgs e)
+        private void OnEventRecordWritten(object? sender, EventRecordWrittenEventArgs e)
         {
             if (e.EventRecord == null)
                 return;
@@ -394,7 +396,7 @@ public sealed class WindowsPlatform : IPlatform
 
                 Interlocked.Exchange(ref _lastResleepTicks, now);
 
-                LogManager.LogInformation("[GoBackToSleep] Wake reason != PowerButton. Sending system back to sleep...");
+                LogManager.LogInformation("[GoBackToSleep] Wake reason is not intentional ({0}). Sending system back to sleep...", reason);
                 SuspendSystem();
             }
         }
@@ -423,6 +425,7 @@ public sealed class WindowsPlatform : IPlatform
                 return code switch
                 {
                     1 => WakeReason.PowerButton,
+                    4 => WakeReason.FingerprintReader,
                     7 => WakeReason.Joystick,
                     28 => WakeReason.ChargerConnected,
                     0 => WakeReason.Unknown,

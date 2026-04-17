@@ -5,10 +5,10 @@ namespace HandheldCompanion.Managers
 {
     public class NotificationManager : IManager
     {
-        public event AddedEventHandler Added;
+        public event AddedEventHandler? Added;
         public delegate void AddedEventHandler(Notification notification);
 
-        public event DiscardedEventHandler Discarded;
+        public event DiscardedEventHandler? Discarded;
         public delegate void DiscardedEventHandler(Notification notification);
 
         public ConcurrentList<Notification> Notifications = new();

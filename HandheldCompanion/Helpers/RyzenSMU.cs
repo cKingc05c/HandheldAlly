@@ -192,7 +192,7 @@ namespace HandheldCompanion.Helpers
             }
         }
 
-        public bool SendMsg<T>(T msg, uint param)
+        public bool SendMsg<T>(T msg, uint param) where T : unmanaged
         {
             return SendMsg((ushort)(object)msg, param, out _);
         }

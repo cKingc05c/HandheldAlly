@@ -10,7 +10,7 @@ namespace HandheldCompanion.Views.Pages
     public partial class NotificationsPage : Page
     {
         public delegate void StatusChangedEventHandler(int status);
-        public event StatusChangedEventHandler StatusChanged;
+        public event StatusChangedEventHandler? StatusChanged;
 
         public NotificationsPage()
         {

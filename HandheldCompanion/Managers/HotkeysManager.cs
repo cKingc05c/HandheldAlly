@@ -86,16 +86,16 @@ public class HotkeysManager : IManager
         // update chord(s)
         if (storedChord.KeyState.Count != 0 || storedChord.ButtonState.Buttons.Count() != 0)
         {
-            if (hotkeys.TryGetValue(buttonFlags, out Hotkey hotkey))
+            if (hotkeys.TryGetValue(buttonFlags, out Hotkey? hotkey) && hotkey is not null)
             {
                 switch (storedChord.chordTarget)
                 {
                     case InputsChordTarget.Input:
-                        hotkey.inputsChord = storedChord.Clone() as InputsChord;
+                        hotkey.inputsChord = storedChord.Clone() as InputsChord ?? hotkey.inputsChord;
                         break;
                     case InputsChordTarget.Output:
                         if (hotkey.command is KeyboardCommands keyboardCommands)
-                            keyboardCommands.outputChord = storedChord.Clone() as InputsChord;
+                            keyboardCommands.outputChord = storedChord.Clone() as InputsChord ?? keyboardCommands.outputChord;
                         break;
                 }
 
@@ -128,7 +128,11 @@ public class HotkeysManager : IManager
 
             Version version = new();
             if (jObject.ContainsKey("Version"))
-                version = Version.Parse((string)jObject["Version"]);
+            {
+                string? versionText = (string?)jObject["Version"];
+                if (!string.IsNullOrEmpty(versionText))
+                    version = Version.Parse(versionText);
+            }
 
             if (version == Version.Parse("0.0.0.0"))
             {
@@ -157,6 +161,9 @@ public class HotkeysManager : IManager
             // parse profile
             if (hotkey is null)
                 hotkey = JsonConvert.DeserializeObject<Hotkey>(outputraw, new JsonSerializerSettings { TypeNameHandling = TypeNameHandling.All });
+
+            if (hotkey is null)
+                return;
 
             // store fileName
             hotkey.FileName = Path.GetFileName(fileName);
@@ -340,7 +347,7 @@ public class HotkeysManager : IManager
 
         if (hotkeys.ContainsKey(hotkey.ButtonFlags))
         {
-            _ = hotkeys.TryRemove(hotkey.ButtonFlags, out Hotkey removedValue);
+            _ = hotkeys.TryRemove(hotkey.ButtonFlags, out Hotkey? removedValue);
 
             // raise event(s)
             Deleted?.Invoke(hotkey);
@@ -351,10 +358,10 @@ public class HotkeysManager : IManager
 
     #region events
 
-    public event DeletedEventHandler Deleted;
+    public event DeletedEventHandler? Deleted;
     public delegate void DeletedEventHandler(Hotkey hotkey);
 
-    public event UpdatedEventHandler Updated;
+    public event UpdatedEventHandler? Updated;
     public delegate void UpdatedEventHandler(Hotkey hotkey);
 
     #endregion

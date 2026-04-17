@@ -40,7 +40,7 @@ namespace HandheldCompanion.Misc
             Layout.Updated += Layout_Updated;
         }
 
-        private LayoutTemplate(string name, string description, string author, bool isInternal, Type deviceType = null) : this()
+        private LayoutTemplate(string name, string description, string author, bool isInternal, Type? deviceType = null) : this()
         {
             Name = name;
             Description = description;
@@ -54,7 +54,7 @@ namespace HandheldCompanion.Misc
             Layout.FillDefault();
         }
 
-        private LayoutTemplate(string templateName, string author, bool isInternal, Type deviceType = null) :
+        private LayoutTemplate(string templateName, string author, bool isInternal, Type? deviceType = null) :
             this(TranslationSource.Instance[$"LayoutTemplate_{templateName}"], TranslationSource.Instance[$"LayoutTemplate_{templateName}Desc"], author, isInternal, deviceType)
         {
             switch (templateName)
@@ -240,11 +240,13 @@ namespace HandheldCompanion.Misc
         [JsonProperty] public string Executable { get; set; } = string.Empty;
         [JsonProperty] public bool IsInternal { get; set; } = false;
         [JsonProperty] public Layout Layout { get; set; } = new();
-        [JsonProperty] public Type ControllerType { get; set; }
+        [JsonProperty] public Type? ControllerType { get; set; }
 
-        public int CompareTo(object obj)
+        public int CompareTo(object? obj)
         {
-            var profile = (LayoutTemplate)obj;
+            if (obj is not LayoutTemplate profile)
+                return 1;
+
             return profile.Name.CompareTo(Name);
         }
 
@@ -260,7 +262,7 @@ namespace HandheldCompanion.Misc
 
         #region events
 
-        public event UpdatedEventHandler Updated;
+        public event UpdatedEventHandler? Updated;
 
         public delegate void UpdatedEventHandler(LayoutTemplate layoutTemplate);
 

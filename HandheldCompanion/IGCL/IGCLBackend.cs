@@ -513,12 +513,13 @@ namespace HandheldCompanion.IGCL
 
         public static bool Initialize()
         {
-            if (status == IGCLStatus.DLL_INITIALIZE_SUCCESS)
+            var initializeIgcl = InitializeIgcl;
+            if (status == IGCLStatus.DLL_INITIALIZE_SUCCESS && initializeIgcl is not null)
             {
                 ctl_result_t Result = ctl_result_t.CTL_RESULT_SUCCESS;
 
                 // Call Init and check the result
-                Result = InitializeIgcl();
+                Result = initializeIgcl();
                 return Result == ctl_result_t.CTL_RESULT_SUCCESS;
             }
 
@@ -527,19 +528,25 @@ namespace HandheldCompanion.IGCL
 
         public static void Terminate()
         {
-            if (status == IGCLStatus.DLL_INITIALIZE_SUCCESS)
+            var closeIgcl = CloseIgcl;
+            if (status == IGCLStatus.DLL_INITIALIZE_SUCCESS && closeIgcl is not null)
             {
-                CloseIgcl();
+                closeIgcl();
             }
         }
 
         public static int GetDeviceIdx(string deviceName)
         {
+            var enumerateDevices = EnumerateDevices;
+            var getDeviceProperties = GetDeviceProperties;
+            if (status != IGCLStatus.DLL_INITIALIZE_SUCCESS || enumerateDevices is null || getDeviceProperties is null)
+                return -1;
+
             ctl_result_t Result = ctl_result_t.CTL_RESULT_SUCCESS;
             uint adapterCount = 0;
 
             // Get the number of Intel devices
-            IntPtr hDevices = EnumerateDevices(ref adapterCount);
+            IntPtr hDevices = enumerateDevices(ref adapterCount);
             if (hDevices == IntPtr.Zero)
                 return -1;
 
@@ -557,7 +564,7 @@ namespace HandheldCompanion.IGCL
                     handle = devices[idx]
                 };
 
-                Result = GetDeviceProperties(hDevice, ref StDeviceAdapterProperties);
+                Result = getDeviceProperties(hDevice, ref StDeviceAdapterProperties);
                 if (Result != ctl_result_t.CTL_RESULT_SUCCESS)
                     continue;
 
@@ -570,6 +577,10 @@ namespace HandheldCompanion.IGCL
 
         internal static bool HasGPUScalingSupport(nint deviceIdx, uint displayIdx)
         {
+            var getScalingCaps = GetScalingCaps;
+            if (getScalingCaps is null)
+                return false;
+
             ctl_result_t Result = ctl_result_t.CTL_RESULT_SUCCESS;
             ctl_scaling_caps_t ScalingCaps = new();
 
@@ -582,7 +593,7 @@ namespace HandheldCompanion.IGCL
                 handle = device
             };
 
-            Result = GetScalingCaps(hDevice, displayIdx, ref ScalingCaps);
+            Result = getScalingCaps(hDevice, displayIdx, ref ScalingCaps);
             if (Result != ctl_result_t.CTL_RESULT_SUCCESS)
                 return false;
 
@@ -591,6 +602,10 @@ namespace HandheldCompanion.IGCL
 
         internal static bool GetGPUScaling(nint deviceIdx, uint displayIdx)
         {
+            var getScalingSettings = GetScalingSettings;
+            if (getScalingSettings is null)
+                return false;
+
             ctl_result_t Result = ctl_result_t.CTL_RESULT_SUCCESS;
             ctl_scaling_settings_t ScalingSettings = new();
 
@@ -603,7 +618,7 @@ namespace HandheldCompanion.IGCL
                 handle = device
             };
 
-            Result = GetScalingSettings(hDevice, displayIdx, ref ScalingSettings);
+            Result = getScalingSettings(hDevice, displayIdx, ref ScalingSettings);
             if (Result != ctl_result_t.CTL_RESULT_SUCCESS)
                 return false;
 
@@ -612,6 +627,11 @@ namespace HandheldCompanion.IGCL
 
         internal static bool SetGPUScaling(nint deviceIdx, uint displayIdx, bool enabled = true)
         {
+            var getScalingSettings = GetScalingSettings;
+            var setScalingSettings = SetScalingSettings;
+            if (getScalingSettings is null || setScalingSettings is null)
+                return false;
+
             ctl_result_t Result = ctl_result_t.CTL_RESULT_SUCCESS;
             ctl_scaling_settings_t ScalingSettings = new();
 
@@ -624,7 +644,7 @@ namespace HandheldCompanion.IGCL
                 handle = device
             };
 
-            Result = GetScalingSettings(hDevice, displayIdx, ref ScalingSettings);
+            Result = getScalingSettings(hDevice, displayIdx, ref ScalingSettings);
             if (Result != ctl_result_t.CTL_RESULT_SUCCESS)
                 return false;
 
@@ -635,12 +655,12 @@ namespace HandheldCompanion.IGCL
             // fill custom scaling details
             ScalingSettings.Enable = enabled;
 
-            Result = SetScalingSettings(hDevice, displayIdx, ScalingSettings);
+            Result = setScalingSettings(hDevice, displayIdx, ScalingSettings);
             if (Result != ctl_result_t.CTL_RESULT_SUCCESS)
                 return false;
 
             // check if value was properly applied
-            Result = GetScalingSettings(hDevice, displayIdx, ref ScalingSettings);
+            Result = getScalingSettings(hDevice, displayIdx, ref ScalingSettings);
             if (Result != ctl_result_t.CTL_RESULT_SUCCESS)
                 return false;
 
@@ -649,6 +669,11 @@ namespace HandheldCompanion.IGCL
 
         internal static bool SetImageSharpening(nint deviceIdx, uint displayIdx, bool enable)
         {
+            var getSharpnessSettings = GetSharpnessSettings;
+            var setSharpnessSettings = SetSharpnessSettings;
+            if (getSharpnessSettings is null || setSharpnessSettings is null)
+                return false;
+
             ctl_result_t Result = ctl_result_t.CTL_RESULT_SUCCESS;
             ctl_sharpness_settings_t GetSharpness = new();
 
@@ -661,7 +686,7 @@ namespace HandheldCompanion.IGCL
                 handle = device
             };
 
-            Result = GetSharpnessSettings(hDevice, displayIdx, ref GetSharpness);
+            Result = getSharpnessSettings(hDevice, displayIdx, ref GetSharpness);
             if (Result != ctl_result_t.CTL_RESULT_SUCCESS)
                 return false;
 
@@ -675,7 +700,7 @@ namespace HandheldCompanion.IGCL
                 default:
                 case false:
                     GetSharpness.Intensity = 0;
-                    Result = SetSharpnessSettings(hDevice, displayIdx, GetSharpness);
+                    Result = setSharpnessSettings(hDevice, displayIdx, GetSharpness);
                     if (Result != ctl_result_t.CTL_RESULT_SUCCESS)
                         return false;
                     break;
@@ -684,12 +709,12 @@ namespace HandheldCompanion.IGCL
             // fill custom scaling details
             GetSharpness.Enable = enable;
 
-            Result = SetSharpnessSettings(hDevice, displayIdx, GetSharpness);
+            Result = setSharpnessSettings(hDevice, displayIdx, GetSharpness);
             if (Result != ctl_result_t.CTL_RESULT_SUCCESS)
                 return false;
 
             // check if value was properly applied
-            Result = GetSharpnessSettings(hDevice, displayIdx, ref GetSharpness);
+            Result = getSharpnessSettings(hDevice, displayIdx, ref GetSharpness);
             if (Result != ctl_result_t.CTL_RESULT_SUCCESS)
                 return false;
 
@@ -699,33 +724,50 @@ namespace HandheldCompanion.IGCL
         internal static ctl_endurance_gaming_caps_t GetEnduranceGamingCapacities(int deviceIdx)
         {
             ctl_endurance_gaming_caps_t caps = new();
+            var getEnduranceGamingCaps = GetEnduranceGamingCaps;
+            if (getEnduranceGamingCaps is null)
+                return caps;
+
             ctl_device_adapter_handle_t hDev = new ctl_device_adapter_handle_t { handle = devices[deviceIdx] };
-            ctl_result_t res = GetEnduranceGamingCaps!(hDev, ref caps);
+            ctl_result_t res = getEnduranceGamingCaps(hDev, ref caps);
             return caps;
         }
 
         internal static ctl_endurance_gaming_t GetEnduranceGaming(int deviceIdx)
         {
             ctl_endurance_gaming_t settings = new();
+            var getEnduranceGamingSettings = GetEnduranceGamingSettings;
+            if (getEnduranceGamingSettings is null)
+                return settings;
+
             ctl_device_adapter_handle_t hDev = new ctl_device_adapter_handle_t { handle = devices[deviceIdx] };
-            ctl_result_t res = GetEnduranceGamingSettings!(hDev, ref settings);
+            ctl_result_t res = getEnduranceGamingSettings(hDev, ref settings);
             return settings;
         }
 
         internal static bool SetEnduranceGaming(int deviceIdx, ctl_3d_endurance_gaming_control_t control, ctl_3d_endurance_gaming_mode_t mode)
         {
+            var setEnduranceGamingSettings = SetEnduranceGamingSettings;
+            if (setEnduranceGamingSettings is null)
+                return false;
+
             ctl_endurance_gaming_t settings = new ctl_endurance_gaming_t
             {
                 EGControl = control,
                 EGMode = mode
             };
             ctl_device_adapter_handle_t hDev = new ctl_device_adapter_handle_t { handle = devices[deviceIdx] };
-            ctl_result_t res = SetEnduranceGamingSettings!(hDev, settings);
+            ctl_result_t res = setEnduranceGamingSettings(hDev, settings);
             return res == ctl_result_t.CTL_RESULT_SUCCESS;
         }
 
         internal static bool SetScalingMode(nint deviceIdx, uint displayIdx, int mode)
         {
+            var getScalingSettings = GetScalingSettings;
+            var setScalingSettings = SetScalingSettings;
+            if (getScalingSettings is null || setScalingSettings is null)
+                return false;
+
             ctl_result_t Result = ctl_result_t.CTL_RESULT_SUCCESS;
             ctl_scaling_settings_t ScalingSettings = new();
 
@@ -738,7 +780,7 @@ namespace HandheldCompanion.IGCL
                 handle = device
             };
 
-            Result = GetScalingSettings(hDevice, displayIdx, ref ScalingSettings);
+            Result = getScalingSettings(hDevice, displayIdx, ref ScalingSettings);
             if (Result != ctl_result_t.CTL_RESULT_SUCCESS)
                 return false;
 
@@ -766,12 +808,12 @@ namespace HandheldCompanion.IGCL
             // fill custom scaling details
             ScalingSettings.ScalingType = ScalingType;
 
-            Result = SetScalingSettings(hDevice, displayIdx, ScalingSettings);
+            Result = setScalingSettings(hDevice, displayIdx, ScalingSettings);
             if (Result != ctl_result_t.CTL_RESULT_SUCCESS)
                 return false;
 
             // check if value was properly applied
-            Result = GetScalingSettings(hDevice, displayIdx, ref ScalingSettings);
+            Result = getScalingSettings(hDevice, displayIdx, ref ScalingSettings);
             if (Result != ctl_result_t.CTL_RESULT_SUCCESS)
                 return false;
 
@@ -780,6 +822,10 @@ namespace HandheldCompanion.IGCL
 
         internal static bool GetImageSharpening(nint deviceIdx, uint displayIdx)
         {
+            var getSharpnessSettings = GetSharpnessSettings;
+            if (getSharpnessSettings is null)
+                return false;
+
             ctl_result_t Result = ctl_result_t.CTL_RESULT_SUCCESS;
             ctl_sharpness_settings_t GetSharpness = new();
 
@@ -792,7 +838,7 @@ namespace HandheldCompanion.IGCL
                 handle = device
             };
 
-            Result = GetSharpnessSettings(hDevice, displayIdx, ref GetSharpness);
+            Result = getSharpnessSettings(hDevice, displayIdx, ref GetSharpness);
             if (Result != ctl_result_t.CTL_RESULT_SUCCESS)
                 return false;
 
@@ -801,6 +847,10 @@ namespace HandheldCompanion.IGCL
 
         internal static int GetImageSharpeningSharpness(nint deviceIdx, uint displayIdx)
         {
+            var getSharpnessSettings = GetSharpnessSettings;
+            if (getSharpnessSettings is null)
+                return 0;
+
             ctl_result_t Result = ctl_result_t.CTL_RESULT_SUCCESS;
 
             IntPtr device = devices[deviceIdx];
@@ -814,7 +864,7 @@ namespace HandheldCompanion.IGCL
 
             ctl_sharpness_settings_t GetSharpness = new();
 
-            Result = GetSharpnessSettings(hDevice, displayIdx, ref GetSharpness);
+            Result = getSharpnessSettings(hDevice, displayIdx, ref GetSharpness);
             if (Result != ctl_result_t.CTL_RESULT_SUCCESS)
                 return 0;
 
@@ -823,6 +873,11 @@ namespace HandheldCompanion.IGCL
 
         internal static bool SetImageSharpeningSharpness(nint deviceIdx, uint displayIdx, int sharpness)
         {
+            var getSharpnessSettings = GetSharpnessSettings;
+            var setSharpnessSettings = SetSharpnessSettings;
+            if (getSharpnessSettings is null || setSharpnessSettings is null)
+                return false;
+
             ctl_result_t Result = ctl_result_t.CTL_RESULT_SUCCESS;
             ctl_sharpness_settings_t GetSharpness = new();
 
@@ -835,7 +890,7 @@ namespace HandheldCompanion.IGCL
                 handle = device
             };
 
-            Result = GetSharpnessSettings(hDevice, displayIdx, ref GetSharpness);
+            Result = getSharpnessSettings(hDevice, displayIdx, ref GetSharpness);
             if (Result != ctl_result_t.CTL_RESULT_SUCCESS)
                 return false;
 
@@ -846,12 +901,12 @@ namespace HandheldCompanion.IGCL
             // fill custom scaling details
             GetSharpness.Intensity = sharpness;
 
-            Result = SetSharpnessSettings(hDevice, displayIdx, GetSharpness);
+            Result = setSharpnessSettings(hDevice, displayIdx, GetSharpness);
             if (Result != ctl_result_t.CTL_RESULT_SUCCESS)
                 return false;
 
             // check if value was properly applied
-            Result = GetSharpnessSettings(hDevice, displayIdx, ref GetSharpness);
+            Result = getSharpnessSettings(hDevice, displayIdx, ref GetSharpness);
             if (Result != ctl_result_t.CTL_RESULT_SUCCESS)
                 return false;
 
@@ -860,6 +915,10 @@ namespace HandheldCompanion.IGCL
 
         internal static bool HasIntegerScalingSupport(nint deviceIdx, uint displayIdx)
         {
+            var getRetroScalingCaps = GetRetroScalingCaps;
+            if (getRetroScalingCaps is null)
+                return false;
+
             ctl_result_t Result = ctl_result_t.CTL_RESULT_SUCCESS;
             ctl_retro_scaling_caps_t RetroScalingCaps = new();
 
@@ -872,7 +931,7 @@ namespace HandheldCompanion.IGCL
                 handle = device
             };
 
-            Result = GetRetroScalingCaps(hDevice, ref RetroScalingCaps);
+            Result = getRetroScalingCaps(hDevice, ref RetroScalingCaps);
             if (Result != ctl_result_t.CTL_RESULT_SUCCESS)
                 return false;
 
@@ -881,6 +940,10 @@ namespace HandheldCompanion.IGCL
 
         internal static bool GetIntegerScaling(nint deviceIdx)
         {
+            var getRetroScalingSettings = GetRetroScalingSettings;
+            if (getRetroScalingSettings is null)
+                return false;
+
             ctl_result_t Result = ctl_result_t.CTL_RESULT_SUCCESS;
             ctl_retro_scaling_settings_t RetroScalingSettings = new();
 
@@ -893,7 +956,7 @@ namespace HandheldCompanion.IGCL
                 handle = device
             };
 
-            Result = GetRetroScalingSettings(hDevice, ref RetroScalingSettings);
+            Result = getRetroScalingSettings(hDevice, ref RetroScalingSettings);
             if (Result != ctl_result_t.CTL_RESULT_SUCCESS)
                 return false;
 
@@ -902,6 +965,11 @@ namespace HandheldCompanion.IGCL
 
         internal static bool SetIntegerScaling(nint deviceIdx, bool enabled, byte type)
         {
+            var getRetroScalingSettings = GetRetroScalingSettings;
+            var setRetroScalingSettings = SetRetroScalingSettings;
+            if (getRetroScalingSettings is null || setRetroScalingSettings is null)
+                return false;
+
             ctl_result_t Result = ctl_result_t.CTL_RESULT_SUCCESS;
             ctl_retro_scaling_settings_t RetroScalingSettings = new();
             ctl_retro_scaling_type_flags_t RetroScalingType = (ctl_retro_scaling_type_flags_t)(type + 1);
@@ -915,7 +983,7 @@ namespace HandheldCompanion.IGCL
                 handle = device
             };
 
-            Result = GetRetroScalingSettings(hDevice, ref RetroScalingSettings);
+            Result = getRetroScalingSettings(hDevice, ref RetroScalingSettings);
             if (Result != ctl_result_t.CTL_RESULT_SUCCESS)
                 return false;
 
@@ -927,12 +995,12 @@ namespace HandheldCompanion.IGCL
             RetroScalingSettings.Enable = enabled;
             RetroScalingSettings.RetroScalingType = RetroScalingType;
 
-            Result = SetRetroScalingSettings(hDevice, RetroScalingSettings);
+            Result = setRetroScalingSettings(hDevice, RetroScalingSettings);
             if (Result != ctl_result_t.CTL_RESULT_SUCCESS)
                 return false;
 
             // check if value was properly applied
-            Result = GetRetroScalingSettings(hDevice, ref RetroScalingSettings);
+            Result = getRetroScalingSettings(hDevice, ref RetroScalingSettings);
             if (Result != ctl_result_t.CTL_RESULT_SUCCESS)
                 return false;
 
@@ -941,6 +1009,10 @@ namespace HandheldCompanion.IGCL
 
         public static ctl_telemetry_data GetTelemetry(nint deviceIdx)
         {
+            var getTelemetryData = GetTelemetryData;
+            if (getTelemetryData is null)
+                return new ctl_telemetry_data();
+
             ctl_result_t Result = ctl_result_t.CTL_RESULT_SUCCESS;
             ctl_telemetry_data TelemetryData = new();
 
@@ -953,7 +1025,7 @@ namespace HandheldCompanion.IGCL
                 handle = device
             };
 
-            Result = GetTelemetryData(hDevice, ref TelemetryData);
+            Result = getTelemetryData(hDevice, ref TelemetryData);
             if (Result != ctl_result_t.CTL_RESULT_SUCCESS)
                 return TelemetryData;
 

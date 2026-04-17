@@ -54,7 +54,7 @@ internal class ModelN64 : IModel
         // specific button material(s)
         foreach (ButtonFlags button in Enum.GetValues(typeof(ButtonFlags)))
         {
-            Material buttonMaterial = null;
+            Material buttonMaterial;
 
             if (ButtonMap.TryGetValue(button, out var map))
                 foreach (var model3D in map)

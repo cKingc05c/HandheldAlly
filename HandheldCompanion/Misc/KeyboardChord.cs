@@ -18,7 +18,7 @@ public class KeyboardChord
     public short flushInterval;
     public ButtonState state = new();
 
-    public KeyboardChord(string name, List<KeyCode> chordDown = null, List<KeyCode> chordUP = null, bool silenced = false, ButtonFlags button = ButtonFlags.None, short flushInterval = 20)
+    public KeyboardChord(string name, List<KeyCode>? chordDown = null, List<KeyCode>? chordUP = null, bool silenced = false, ButtonFlags button = ButtonFlags.None, short flushInterval = 20)
     {
         this.name = name;
         this.silenced = silenced;

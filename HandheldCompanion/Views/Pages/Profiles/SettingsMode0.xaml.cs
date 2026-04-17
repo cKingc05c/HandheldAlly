@@ -51,16 +51,20 @@ public partial class SettingsMode0 : Page
                 // UI thread
                 UIHelper.TryInvoke(() =>
                 {
-                    SliderSensitivityX.Value = ProfilesPage.selectedProfile.MotionSensivityX;
-                    SliderSensitivityY.Value = ProfilesPage.selectedProfile.MotionSensivityY;
-                    tb_ProfileAimingDownSightsMultiplier.Value = ProfilesPage.selectedProfile.AimingSightsMultiplier;
+                    Profile? selectedProfile = ProfilesPage.selectedProfile;
+                    if (selectedProfile is null)
+                        return;
 
-                    GyroHotkey.inputsChord.ButtonState = ProfilesPage.selectedProfile.AimingSightsTrigger.Clone() as ButtonState;
+                    SliderSensitivityX.Value = selectedProfile.MotionSensivityX;
+                    SliderSensitivityY.Value = selectedProfile.MotionSensivityY;
+                    tb_ProfileAimingDownSightsMultiplier.Value = selectedProfile.AimingSightsMultiplier;
+
+                    GyroHotkey.inputsChord.ButtonState = (ButtonState)selectedProfile.AimingSightsTrigger.Clone();
                     ManagerFactory.hotkeysManager.UpdateOrCreateHotkey(GyroHotkey);
 
                     // temp
                     StackCurve.Children.Clear();
-                    foreach (KeyValuePair<double, double> elem in ProfilesPage.selectedProfile.MotionSensivityArray)
+                    foreach (KeyValuePair<double, double> elem in selectedProfile.MotionSensivityArray)
                     {
                         // skip first item ?
                         if (elem.Key == 0)
@@ -162,7 +166,7 @@ public partial class SettingsMode0 : Page
         if (ProfilesPage.selectedProfile is null)
             return;
 
-        Control thumb = null;
+        Control? thumb = null;
 
         foreach (Control control in StackCurve.Children)
         {
@@ -193,18 +197,26 @@ public partial class SettingsMode0 : Page
 
     private void Button_Click(object sender, RoutedEventArgs e)
     {
+        Profile? selectedProfile = ProfilesPage.selectedProfile;
+        if (selectedProfile is null)
+            return;
+
         // default preset
         foreach (Control Thumb in StackCurve.Children)
         {
             var x = (double)Thumb.Tag;
             Thumb.Height = StackCurve.Height / 2.0f;
-            ProfilesPage.selectedProfile.MotionSensivityArray[x] = Thumb.Height / StackCurve.Height;
+            selectedProfile.MotionSensivityArray[x] = Thumb.Height / StackCurve.Height;
         }
         ProfilesPage.SubmitProfile();
     }
 
     private void Button_Click_1(object sender, RoutedEventArgs e)
     {
+        Profile? selectedProfile = ProfilesPage.selectedProfile;
+        if (selectedProfile is null)
+            return;
+
         // agressive preset
         var tempx = 24f / Profile.SensivityArraySize;
         foreach (Control Thumb in StackCurve.Children)
@@ -213,13 +225,17 @@ public partial class SettingsMode0 : Page
             var value = (float)(-Math.Sqrt(x * tempx) + 0.85f);
 
             Thumb.Height = StackCurve.Height * value;
-            ProfilesPage.selectedProfile.MotionSensivityArray[x] = Thumb.Height / StackCurve.Height;
+            selectedProfile.MotionSensivityArray[x] = Thumb.Height / StackCurve.Height;
         }
         ProfilesPage.SubmitProfile();
     }
 
     private void Button_Click_2(object sender, RoutedEventArgs e)
     {
+        Profile? selectedProfile = ProfilesPage.selectedProfile;
+        if (selectedProfile is null)
+            return;
+
         // precise preset
         var tempx = 12f / Profile.SensivityArraySize;
         foreach (Control Thumb in StackCurve.Children)
@@ -228,7 +244,7 @@ public partial class SettingsMode0 : Page
             var value = (float)(Math.Sqrt(x * tempx) + 0.25f - tempx * x);
 
             Thumb.Height = StackCurve.Height * value;
-            ProfilesPage.selectedProfile.MotionSensivityArray[x] = Thumb.Height / StackCurve.Height;
+            selectedProfile.MotionSensivityArray[x] = Thumb.Height / StackCurve.Height;
         }
         ProfilesPage.SubmitProfile();
     }
@@ -256,7 +272,7 @@ public partial class SettingsMode0 : Page
         if (ProfilesPage.selectedProfile is null)
             return;
 
-        if (!ProfilesPage.selectedProfile.Layout.GyroLayout.TryGetValue(AxisLayoutFlags.Gyroscope, out IActions currentAction))
+        if (!ProfilesPage.selectedProfile.Layout.GyroLayout.TryGetValue(AxisLayoutFlags.Gyroscope, out IActions? currentAction))
             return;
 
         if (hotkey.ButtonFlags != gyroButtonFlags)
@@ -265,7 +281,7 @@ public partial class SettingsMode0 : Page
         // update gyro hotkey
         GyroHotkey = hotkey;
 
-        ProfilesPage.selectedProfile.AimingSightsTrigger = hotkey.inputsChord.ButtonState.Clone() as ButtonState;
+        ProfilesPage.selectedProfile.AimingSightsTrigger = (ButtonState)hotkey.inputsChord.ButtonState.Clone();
         ProfilesPage.SubmitProfile();
     }
 }

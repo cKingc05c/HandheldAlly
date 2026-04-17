@@ -34,7 +34,7 @@ namespace HandheldCompanion.Actions
         private bool isCursorDown = false;
         private bool isTouched = false;
         private Vector2 remainder = new();
-        private KeyCode[] modifiersPressed;
+        private KeyCode[]? modifiersPressed;
         private OneEuroFilterPair mouseFilter;
         private float accelMemory = 0f;
 

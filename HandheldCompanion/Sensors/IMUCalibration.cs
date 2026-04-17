@@ -24,7 +24,10 @@ namespace HandheldCompanion.Sensors
         {
             // initialize path
             CalibrationPath = Path.Combine(App.SettingsPath, "calibration.json");
-            Calibrations = DeserializeCollection();
+
+            Dictionary<string, IMUCalibration>? _calibrations = DeserializeCollection();
+            if ( _calibrations != null)
+                Calibrations = _calibrations;
         }
 
         public IMUCalibration(float xOffset, float yOffset, float zOffset, int weight)
@@ -61,10 +64,10 @@ namespace HandheldCompanion.Sensors
             File.WriteAllText(CalibrationPath, json);
         }
 
-        public static Dictionary<string, IMUCalibration> DeserializeCollection()
+        public static Dictionary<string, IMUCalibration>? DeserializeCollection()
         {
             if (!File.Exists(CalibrationPath))
-                return [];
+                return null;
 
             string json = File.ReadAllText(CalibrationPath);
             return JsonConvert.DeserializeObject<Dictionary<string, IMUCalibration>>(json);
@@ -77,7 +80,7 @@ namespace HandheldCompanion.Sensors
 
         public static IMUCalibration GetCalibration(string path)
         {
-            if (Calibrations.TryGetValue(path, out IMUCalibration calibration))
+            if (Calibrations.TryGetValue(path, out IMUCalibration? calibration))
             {
                 LogManager.LogDebug("Restored calibration offsets for device: {0}", path);
                 return calibration;

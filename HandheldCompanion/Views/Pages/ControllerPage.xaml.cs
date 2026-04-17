@@ -1,5 +1,4 @@
-﻿using HandheldCompanion.Controllers;
-using HandheldCompanion.Devices;
+﻿using HandheldCompanion.Devices;
 using HandheldCompanion.Helpers;
 using HandheldCompanion.Managers;
 using HandheldCompanion.Misc;
@@ -11,7 +10,6 @@ using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Documents;
-using static HandheldCompanion.Managers.ControllerManager;
 using Page = System.Windows.Controls.Page;
 
 namespace HandheldCompanion.Views.Pages;
@@ -40,7 +38,7 @@ public partial class ControllerPage : Page
         this.Tag = Tag;
     }
 
-    private void SettingsManager_SettingValueChanged(string name, object value, bool temporary)
+    private void SettingsManager_SettingValueChanged(string name, object? value, bool temporary)
     {
         // UI thread
         UIHelper.TryInvoke(() =>
@@ -94,7 +92,7 @@ public partial class ControllerPage : Page
     {
         // Combine the base key with the attempts number to form the resource key
         string resourceKey = $"{baseKey}{attempts}";
-        return Properties.Resources.ResourceManager.GetString(resourceKey, CultureInfo.CurrentUICulture);
+        return Properties.Resources.ResourceManager.GetString(resourceKey, CultureInfo.CurrentUICulture) ?? string.Empty;
     }
 
     private TextBlock CreateFormattedContent(string title, string description)
@@ -196,7 +194,7 @@ public partial class ControllerPage : Page
 
     private void Button_Layout_Click(object sender, RoutedEventArgs e)
     {
-        Layout desktopLayout = ManagerFactory.layoutManager.GetDesktop();
+        Layout? desktopLayout = ManagerFactory.layoutManager.GetDesktop();
         if (desktopLayout is null)
             return;
 

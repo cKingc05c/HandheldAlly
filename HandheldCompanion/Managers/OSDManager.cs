@@ -14,7 +14,7 @@ namespace HandheldCompanion.Managers;
 public static class OSDManager
 {
     public delegate void InitializedEventHandler();
-    public static event InitializedEventHandler Initialized;
+    public static event InitializedEventHandler? Initialized;
 
     // C1: GPU
     // C2: CPU
@@ -25,7 +25,7 @@ public static class OSDManager
     private const string Header = "<C0=FFFFFF><C1=8000FF><A0=-4><S0=-50><S1=50>";
 
     private static bool IsInitialized;
-    public static string[] OverlayOrder;
+    public static string[] OverlayOrder = [];
     public static int OverlayCount;
     public static short OverlayLevel;
     public static short OverlayTimeLevel;
@@ -40,8 +40,8 @@ public static class OSDManager
     private static int RefreshInterval = 100;
 
     private static readonly ConcurrentDictionary<int, OSD> OnScreenDisplays = new();
-    public static OSD OnScreenDisplay => OnScreenDisplays.FirstOrDefault(o => o.Key == OnScreenAppEntry.ProcessId).Value;
-    public static AppEntry OnScreenAppEntry;
+    public static OSD? OnScreenDisplay => OnScreenAppEntry is not null && OnScreenDisplays.TryGetValue(OnScreenAppEntry.ProcessId, out OSD? osd) ? osd : null;
+    public static AppEntry? OnScreenAppEntry;
     private static List<string> Content = new();
     private static readonly OverlayManager _overlayManager = new();
 
@@ -94,7 +94,7 @@ public static class OSDManager
         PlatformManager.RTSS.Hooked += RTSS_Hooked;
         PlatformManager.RTSS.Unhooked += RTSS_Unhooked;
 
-        AppEntry appEntry = PlatformManager.RTSS.GetAppEntry();
+        AppEntry? appEntry = PlatformManager.RTSS.GetAppEntry();
         if (appEntry is not null)
             RTSS_Hooked(appEntry);
     }
@@ -199,7 +199,7 @@ public static class OSDManager
 
             try
             {
-                if (processId == OnScreenAppEntry.ProcessId)
+                if (OnScreenAppEntry is not null && processId == OnScreenAppEntry.ProcessId)
                 {
                     string content = Draw(processId);
                     processOSD.Update(content);
@@ -246,7 +246,7 @@ public static class OSDManager
             entry.elements.Add(new OverlayEntryElement((float)value, (float)available, unit));
     }
 
-    private static void SettingsManager_SettingValueChanged(string name, object value, bool temporary)
+    private static void SettingsManager_SettingValueChanged(string name, object? value, bool temporary)
     {
         switch (name)
         {
@@ -309,7 +309,7 @@ public static class OSDManager
                 break;
 
             case "OnScreenDisplayOrder":
-                OverlayOrder = value.ToString().Split(",");
+                OverlayOrder = Convert.ToString(value)?.Split(",") ?? new string[0];
                 OverlayCount = OverlayOrder.Length;
                 break;
             case "OnScreenDisplayTimeLevel":
@@ -405,7 +405,6 @@ public class OverlayEntry : IDisposable
     public void Dispose()
     {
         elements.Clear();
-        elements = null;
     }
 }
 
@@ -421,7 +420,6 @@ public class OverlayRow : IDisposable
     public void Dispose()
     {
         entries.Clear();
-        entries = null;
     }
 
     public override string ToString()

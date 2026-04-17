@@ -7,7 +7,7 @@ namespace HandheldCompanion.Views.Pages;
 public partial class LayoutItemPage : Page
 {
     // page vars
-    private ActionSettingsPage actionSettingsPage;
+    private ActionSettingsPage actionSettingsPage = null!;
 
 
     public MappingViewModel? CurrentMapping { get; private set; }
@@ -77,9 +77,7 @@ public partial class LayoutItemPage : Page
 
         // Update the settings page with the mapping
         if (actionSettingsPage is not null)
-        {
             actionSettingsPage.SetMapping(mapping);
-        }
     }
 
     private void Page_Loaded(object sender, RoutedEventArgs e)

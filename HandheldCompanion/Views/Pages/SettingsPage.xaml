@@ -198,21 +198,37 @@
                 </ui:SettingsCard>
             </ikw:SimpleStackPanel>
 
+            <!--  Components options  -->
+            <TextBlock Style="{StaticResource BaseTextBlockStyle}" Text="Components options" />
+            <ikw:SimpleStackPanel Spacing="3">
+                <!--  Performance Manager  -->
+                <ui:SettingsCard Description="Enable or disable all TDP, CPU and GPU frequency overrides managed by the performance manager" Header="Performance management">
+                    <ui:SettingsCard.HeaderIcon>
+                        <ui:FontIcon Icon="{x:Static ui:SegoeFluentIcons.SpeedHigh}" />
+                    </ui:SettingsCard.HeaderIcon>
+                    <ui:ToggleSwitch Name="Toggle_PerformanceManager" Toggled="Toggle_PerformanceManager_Toggled" />
+                </ui:SettingsCard>
+
+                <!--  GPU Management  -->
+                <ui:SettingsCard Description="Enable or disable GPU management settings such as RSR, Integer Scaling, AFMF and image sharpening" Header="GPU management">
+                    <ui:SettingsCard.HeaderIcon>
+                        <ui:FontIcon Icon="{x:Static ui:SegoeFluentIcons.TVMonitor}" />
+                    </ui:SettingsCard.HeaderIcon>
+                    <ui:ToggleSwitch Name="Toggle_GPUManagement" Toggled="Toggle_GPUManagement_Toggled" />
+                </ui:SettingsCard>
+
+                <!--  Library Page  -->
+                <ui:SettingsCard Description="Enable or disable the built-in game library management. Disable this if you use your own library software" Header="Library management">
+                    <ui:SettingsCard.HeaderIcon>
+                        <ui:FontIcon Icon="{x:Static ui:SegoeFluentIcons.Library}" />
+                    </ui:SettingsCard.HeaderIcon>
+                    <ui:ToggleSwitch Name="Toggle_LibraryPage" Toggled="Toggle_LibraryPage_Toggled" />
+                </ui:SettingsCard>
+            </ikw:SimpleStackPanel>
+
             <!--  Advanced options  -->
             <TextBlock Style="{StaticResource BaseTextBlockStyle}" Text="Advanced options" />
             <ikw:SimpleStackPanel Spacing="3">
-                <!--  Toast notification  (Not implemented)  -->
-                <ui:SettingsCard
-                    Description="Monitor external changes to GPU settings and automatically restore preferred configuration"
-                    Header="GPU-Settings monitoring"
-                    IsEnabled="False"
-                    Visibility="Collapsed">
-                    <ui:SettingsCard.HeaderIcon>
-                        <ui:FontIcon Icon="{x:Static ui:SegoeFluentIcons.History}" />
-                    </ui:SettingsCard.HeaderIcon>
-                    <ui:ToggleSwitch Name="Toggle_GPUMonitor" Toggled="Toggle_GPUMonitor_Toggled" />
-                </ui:SettingsCard>
-
                 <!--  Master Timer  -->
                 <ui:SettingsCard Description="Controller update rate. A higher rate improves responsiveness but increases CPU usage" Header="Update rate">
                     <ui:SettingsCard.HeaderIcon>

@@ -15,7 +15,7 @@ namespace HandheldCompanion.ViewModels
         public ObservableCollection<LibraryVisualViewModel> LibraryArtworks { get; } = [];
         public ObservableCollection<LibraryVisualViewModel> LibraryLogos { get; } = [];
 
-        private LibraryEntry _LibEntry;
+        private LibraryEntry _LibEntry = null!;
         public LibraryEntry LibEntry
         {
             get => _LibEntry;

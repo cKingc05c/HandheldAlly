@@ -6,7 +6,7 @@ namespace HandheldCompanion
 {
     public static class VisualTreeHelperExtensions
     {
-        public static T FindAncestor<T>(DependencyObject current)
+        public static T? FindAncestor<T>(DependencyObject current)
             where T : DependencyObject
         {
             while (current != null)
@@ -20,7 +20,7 @@ namespace HandheldCompanion
             return null;
         }
 
-        public static DependencyObject FindCommonAncestor(DependencyObject obj1, DependencyObject obj2)
+        public static DependencyObject? FindCommonAncestor(DependencyObject obj1, DependencyObject obj2)
         {
             var ancestors1 = new List<DependencyObject>();
             var current = obj1;

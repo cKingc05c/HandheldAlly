@@ -98,8 +98,8 @@ namespace HandheldCompanion
         {
             Hotkey hotkey = new(ButtonFlags)
             {
-                command = this.command?.Clone() as ICommands,
-                inputsChord = this.inputsChord?.Clone() as InputsChord,
+                command = this.command.Clone() as ICommands ?? new EmptyCommands(),
+                inputsChord = this.inputsChord.Clone() as InputsChord ?? new InputsChord() { chordType = InputsChordType.Click },
                 IsPinned = this.IsPinned,
                 IsInternal = this.IsInternal
             };
@@ -130,10 +130,8 @@ namespace HandheldCompanion
             {
                 // Free managed resources
                 command?.Dispose();
-                command = null;
 
                 inputsChord.Dispose();
-                inputsChord = null;
             }
 
             _disposed = true;

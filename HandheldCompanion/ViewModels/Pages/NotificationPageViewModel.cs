@@ -1,5 +1,4 @@
-﻿using HandheldCompanion.Extensions;
-using HandheldCompanion.Managers;
+﻿using HandheldCompanion.Managers;
 using HandheldCompanion.Notifications;
 using System.Collections.ObjectModel;
 using System.Linq;
@@ -17,10 +16,6 @@ namespace HandheldCompanion.ViewModels.Pages
             // Enable thread-safe access to the collection
             BindingOperations.EnableCollectionSynchronization(Notifications, _collectionLock);
 
-            // manage events
-            ManagerFactory.notificationManager.Added += NotificationManager_Added;
-            ManagerFactory.notificationManager.Discarded += NotificationManager_Discarded;
-
             // raise events
             switch (ManagerFactory.notificationManager.Status)
             {
@@ -36,6 +31,9 @@ namespace HandheldCompanion.ViewModels.Pages
 
         private void QueryNotifications()
         {
+            ManagerFactory.notificationManager.Added += NotificationManager_Added;
+            ManagerFactory.notificationManager.Discarded += NotificationManager_Discarded;
+
             foreach (Notification notification in ManagerFactory.notificationManager.Notifications)
                 NotificationManager_Added(notification);
         }
@@ -82,8 +80,10 @@ namespace HandheldCompanion.ViewModels.Pages
 
         public override void Dispose()
         {
+            ManagerFactory.notificationManager.Initialized -= NotificationManager_Initialized;
             ManagerFactory.notificationManager.Added -= NotificationManager_Added;
             ManagerFactory.notificationManager.Discarded -= NotificationManager_Discarded;
+            base.Dispose();
         }
     }
 }

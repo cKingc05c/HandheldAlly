@@ -20,7 +20,7 @@ namespace HandheldCompanion.Converters
                           .Select(x => x.item)
                           .ToList();
             }
-            return null;
+            return Array.Empty<object>();
         }
 
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) =>
@@ -40,7 +40,7 @@ namespace HandheldCompanion.Converters
                           .Select(x => x.item)
                           .ToList();
             }
-            return null;
+            return Array.Empty<object>();
         }
 
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture) =>

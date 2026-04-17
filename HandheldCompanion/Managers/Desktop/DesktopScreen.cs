@@ -28,7 +28,7 @@ public class ScreenResolution : IComparable<ScreenResolution>
         return $"{Width} x {Height}";
     }
 
-    public int CompareTo(ScreenResolution other)
+    public int CompareTo(ScreenResolution? other)
     {
         if (other == null) return 1;
 
@@ -43,7 +43,7 @@ public class ScreenResolution : IComparable<ScreenResolution>
         return -Height.CompareTo(other.Height);
     }
 
-    public override bool Equals(object obj)
+    public override bool Equals(object? obj)
     {
         if (obj is ScreenResolution other)
         {
@@ -106,14 +106,14 @@ public enum ScreenOrientation
 public class DesktopScreen : IDisposable
 {
     public DisplayDevice devMode;
-    public Screen screen;
+    public Screen? screen;
     public string DevicePath;
     public string FriendlyName;
-    public bool IsPrimary => screen.Primary;
+    public bool IsPrimary => screen?.Primary ?? false;
 
     public List<ScreenResolution> screenResolutions = new List<ScreenResolution>();
     public List<ScreenDivider> screenDividers = new List<ScreenDivider>();
-    public ScreenResolution nativeResolution;
+    public ScreenResolution? nativeResolution;
 
     private static Dictionary<int, List<ScreenFramelimit>> _cachedFrameLimits = new Dictionary<int, List<ScreenFramelimit>>();
 
@@ -138,11 +138,11 @@ public class DesktopScreen : IDisposable
         return screenResolutions.Count(a => a.Width == resolution.Width && a.Height == resolution.Height) > 0;
     }
 
-    public ScreenResolution GetResolution()
+    public ScreenResolution? GetResolution()
     {
         // todo: improve me
         // that's a dirty way to manage native portrait display or rotated display
-        ScreenResolution resolution = screenResolutions.FirstOrDefault(a => a.Width == devMode.dmPelsWidth && a.Height == devMode.dmPelsHeight);
+        ScreenResolution? resolution = screenResolutions.FirstOrDefault(a => a.Width == devMode.dmPelsWidth && a.Height == devMode.dmPelsHeight);
         if (resolution is null)
             resolution = screenResolutions.FirstOrDefault(a => a.Width == devMode.dmPelsHeight && a.Height == devMode.dmPelsWidth);
 

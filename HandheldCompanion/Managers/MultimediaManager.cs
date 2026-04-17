@@ -24,12 +24,12 @@ public class MultimediaManager : IManager
 {
     // Screen management
     public ConcurrentDictionary<string, DesktopScreen> AllScreens = [];
-    public DesktopScreen PrimaryDesktop;
+    public DesktopScreen? PrimaryDesktop;
     private readonly object _displayLock = new();
 
     // Audio management
     private readonly MMDeviceEnumerator _deviceEnumerator;
-    private MMDevice _multimediaDevice;
+    private MMDevice? _multimediaDevice;
     private readonly MMDeviceNotificationClient _notificationClient;
     private bool _volumeSupport;
 
@@ -83,7 +83,7 @@ public class MultimediaManager : IManager
         }
 
         // Initial display query
-        SystemEvents_DisplaySettingsChanged(null, null);
+        SystemEvents_DisplaySettingsChanged(null, new EventArgs());
 
         base.Start();
     }
@@ -151,7 +151,7 @@ public class MultimediaManager : IManager
         }
     }
 
-    private void SettingsManager_SettingValueChanged(string name, object value, bool temporary)
+    private void SettingsManager_SettingValueChanged(string name, object? value, bool temporary)
     {
         // do something
     }
@@ -220,7 +220,7 @@ public class MultimediaManager : IManager
     /// </summary>
     private static bool TryGetEdidMonitorName(string lookupInstanceKeyName, out string monitorName)
     {
-        monitorName = null;
+        monitorName = string.Empty;
 
         using var displayKey = Registry.LocalMachine.OpenSubKey(@"SYSTEM\CurrentControlSet\Enum\DISPLAY");
         if (displayKey == null) return false;
@@ -325,6 +325,9 @@ public class MultimediaManager : IManager
                 DesktopScreen desktopScreen = new(screen);
 
                 // Pull all available resolutions and frequencies
+                if (desktopScreen.screen is null)
+                    continue;
+
                 List<DisplayDevice> resolutions = GetResolutions(desktopScreen.screen.DeviceName);
                 foreach (DisplayDevice mode in resolutions)
                 {
@@ -382,8 +385,11 @@ public class MultimediaManager : IManager
 
                 // Clamp native resolution to maximum available
                 ScreenResolution? maxRes = desktopScreen.screenResolutions.FirstOrDefault();
-                nativeWidth = desktopScreen.nativeResolution.Width = Math.Min(maxRes.Width, nativeWidth);
-                nativeHeight = desktopScreen.nativeResolution.Height = Math.Min(maxRes.Height, nativeHeight);
+                if (maxRes is not null)
+                {
+                    nativeWidth = desktopScreen.nativeResolution.Width = Math.Min(maxRes.Width, nativeWidth);
+                    nativeHeight = desktopScreen.nativeResolution.Height = Math.Min(maxRes.Height, nativeHeight);
+                }
 
                 // Calculate integer scaling dividers
                 int divider = 1;
@@ -406,7 +412,7 @@ public class MultimediaManager : IManager
             }
 
             // Update primary screen
-            DesktopScreen newPrimary = desktopScreens.Values.FirstOrDefault(a => a.IsPrimary);
+            DesktopScreen? newPrimary = desktopScreens.Values.FirstOrDefault(a => a.IsPrimary);
             if (newPrimary is not null)
             {
                 bool isNewPrimary = PrimaryDesktop?.DevicePath != newPrimary.DevicePath;
@@ -444,8 +450,8 @@ public class MultimediaManager : IManager
                 AllScreens.TryAdd(desktop.DevicePath, desktop);
 
             // Notify subscribers of display settings change
-            ScreenResolution screenResolution = PrimaryDesktop.GetResolution();
-            if (screenResolution is not null)
+            ScreenResolution? screenResolution = PrimaryDesktop?.GetResolution();
+            if (screenResolution is not null && PrimaryDesktop is not null)
                 DisplaySettingsChanged?.Invoke(PrimaryDesktop, screenResolution);
 
             RemoveStatus(ManagerStatus.Busy);
@@ -469,7 +475,7 @@ public class MultimediaManager : IManager
         maxHeight = 0;
 
         // Open the DISPLAY key in the registry.
-        using (RegistryKey displayKey = Registry.LocalMachine.OpenSubKey(@"SYSTEM\CurrentControlSet\Enum\DISPLAY"))
+        using (RegistryKey? displayKey = Registry.LocalMachine.OpenSubKey(@"SYSTEM\CurrentControlSet\Enum\DISPLAY"))
         {
             if (displayKey == null)
                 return;
@@ -477,7 +483,7 @@ public class MultimediaManager : IManager
             // Each subkey here represents a monitor model.
             foreach (string monitorKeyName in displayKey.GetSubKeyNames())
             {
-                using (RegistryKey monitorKey = displayKey.OpenSubKey(monitorKeyName))
+                using (RegistryKey? monitorKey = displayKey.OpenSubKey(monitorKeyName))
                 {
                     if (monitorKey == null)
                         continue;
@@ -491,13 +497,13 @@ public class MultimediaManager : IManager
 
                         // Build the path to "Device Parameters".
                         string deviceParamsPath = instanceKeyName + @"\Device Parameters";
-                        using (RegistryKey deviceKey = monitorKey.OpenSubKey(deviceParamsPath))
+                        using (RegistryKey? deviceKey = monitorKey.OpenSubKey(deviceParamsPath))
                         {
                             if (deviceKey == null)
                                 continue;
 
                             // Retrieve the EDID data.
-                            byte[] edidData = deviceKey.GetValue("EDID") as byte[];
+                            byte[]? edidData = deviceKey.GetValue("EDID") as byte[];
                             if (edidData == null || edidData.Length < 128)
                                 continue;
 
@@ -627,12 +633,18 @@ public class MultimediaManager : IManager
             return;
 
         volume = Math.Clamp(volume, 0.0d, 100.0d);
+        if (_multimediaDevice?.AudioEndpointVolume is null)
+            return;
+
         _multimediaDevice.AudioEndpointVolume.MasterVolumeLevelScalar = (float)(volume / 100.0d);
     }
 
     public double GetVolume()
     {
         if (!_volumeSupport)
+            return 0.0d;
+
+        if (_multimediaDevice?.AudioEndpointVolume is null)
             return 0.0d;
 
         return _multimediaDevice.AudioEndpointVolume.MasterVolumeLevelScalar * 100.0d;
@@ -657,12 +669,18 @@ public class MultimediaManager : IManager
         if (!_volumeSupport)
             return;
 
+        if (_multimediaDevice?.AudioEndpointVolume is null)
+            return;
+
         _multimediaDevice.AudioEndpointVolume.Mute = true;
     }
 
     public void Unmute()
     {
         if (!_volumeSupport)
+            return;
+
+        if (_multimediaDevice?.AudioEndpointVolume is null)
             return;
 
         _multimediaDevice.AudioEndpointVolume.Mute = false;
@@ -673,6 +691,9 @@ public class MultimediaManager : IManager
         if (!_volumeSupport)
             return;
 
+        if (_multimediaDevice?.AudioEndpointVolume is null)
+            return;
+
         _multimediaDevice.AudioEndpointVolume.Mute = !_multimediaDevice.AudioEndpointVolume.Mute;
     }
 
@@ -681,7 +702,7 @@ public class MultimediaManager : IManager
         if (!_volumeSupport)
             return true;
 
-        return _multimediaDevice.AudioEndpointVolume.Mute;
+        return _multimediaDevice?.AudioEndpointVolume?.Mute ?? true;
     }
 
     #endregion
@@ -809,22 +830,22 @@ public class MultimediaManager : IManager
 
     #region Events
 
-    public event DisplaySettingsChangedEventHandler DisplaySettingsChanged;
+    public event DisplaySettingsChangedEventHandler? DisplaySettingsChanged;
     public delegate void DisplaySettingsChangedEventHandler(DesktopScreen screen, ScreenResolution resolution);
 
-    public event PrimaryScreenChangedEventHandler PrimaryScreenChanged;
+    public event PrimaryScreenChangedEventHandler? PrimaryScreenChanged;
     public delegate void PrimaryScreenChangedEventHandler(DesktopScreen screen);
 
-    public event ScreenConnectedEventHandler ScreenConnected;
+    public event ScreenConnectedEventHandler? ScreenConnected;
     public delegate void ScreenConnectedEventHandler(DesktopScreen screen);
 
-    public event ScreenDisconnectedEventHandler ScreenDisconnected;
+    public event ScreenDisconnectedEventHandler? ScreenDisconnected;
     public delegate void ScreenDisconnectedEventHandler(DesktopScreen screen);
 
-    public event VolumeNotificationEventHandler VolumeNotification;
+    public event VolumeNotificationEventHandler? VolumeNotification;
     public delegate void VolumeNotificationEventHandler(float volume);
 
-    public event BrightnessNotificationEventHandler BrightnessNotification;
+    public event BrightnessNotificationEventHandler? BrightnessNotification;
     public delegate void BrightnessNotificationEventHandler(int brightness);
 
     #endregion

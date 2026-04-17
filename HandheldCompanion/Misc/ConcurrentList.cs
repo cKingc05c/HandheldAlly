@@ -334,7 +334,7 @@ public class ConcurrentList<T> : IList<T>, IDisposable
 
     private int IndexOfInternal(T item)
     {
-        return Array.FindIndex(_arr, 0, _count, x => x.Equals(item));
+        return Array.FindIndex(_arr, 0, _count, x => x is not null && x.Equals(item));
     }
 
     private void RemoveAtInternal(int index)

@@ -18,13 +18,13 @@ namespace HandheldCompanion.Controllers
     public class IController : IDisposable
     {
         #region events
-        public event UserIndexChangedEventHandler UserIndexChanged;
+        public event UserIndexChangedEventHandler? UserIndexChanged;
         public delegate void UserIndexChangedEventHandler(byte UserIndex);
 
-        public event StateChangedEventHandler StateChanged;
+        public event StateChangedEventHandler? StateChanged;
         public delegate void StateChangedEventHandler();
 
-        public event VisibilityChangedEventHandler VisibilityChanged;
+        public event VisibilityChangedEventHandler? VisibilityChanged;
         public delegate void VisibilityChangedEventHandler(bool status);
         #endregion
 
@@ -87,7 +87,7 @@ namespace HandheldCompanion.Controllers
         protected float gX = 0.0f, gZ = 0.0f, gY = 0.0f;
 
         protected double VibrationStrength = 1.0d;
-        private Task rumbleTask;
+        private Task? rumbleTask;
 
         protected object hidLock = new();
 
@@ -157,7 +157,7 @@ namespace HandheldCompanion.Controllers
             ManagerFactory.settingsManager.SettingValueChanged += SettingsManager_SettingValueChanged;
         }
 
-        protected virtual void SettingsManager_SettingValueChanged(string name, object value, bool temporary)
+        protected virtual void SettingsManager_SettingValueChanged(string name, object? value, bool temporary)
         { }
 
         protected virtual void SettingsManager_Initialized()
@@ -877,8 +877,8 @@ namespace HandheldCompanion.Controllers
                 IsDisposing = true;
 
                 // Dispose Inputs
-                Inputs?.Dispose();
-                Inputs = null;
+                Inputs.Dispose();
+                Inputs = null!;
 
                 // Dispose gamepad motions
                 foreach (var gamepadMotion in gamepadMotions.Values)

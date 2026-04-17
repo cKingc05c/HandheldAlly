@@ -32,30 +32,30 @@ namespace HandheldCompanion.Managers
     public class UIGamepad
     {
         #region events
-        public static event GotFocusEventHandler GotFocus;
+        public static event GotFocusEventHandler? GotFocus;
         public delegate void GotFocusEventHandler(string Name);
 
-        public static event LostFocusEventHandler LostFocus;
+        public static event LostFocusEventHandler? LostFocus;
         public delegate void LostFocusEventHandler(string Name);
         #endregion
 
         private GamepadWindow gamepadWindow;
         private string windowName = string.Empty;
 
-        private ScrollViewer scrollViewer;
+        private ScrollViewer? scrollViewer;
 
         // NavigationViews
         // - windowNavigationView: the NavigationView hosted by the Window (e.g. MainWindow)
         // - pageNavigationView: an optional NavigationView hosted inside the current Page (e.g. LayoutPage)
-        private NavigationView windowNavigationView;
-        private NavigationView pageNavigationView;
+        private NavigationView? windowNavigationView;
+        private NavigationView? pageNavigationView;
 
         private Frame gamepadFrame;
-        private Page gamepadPage;
+        private Page? gamepadPage;
         private Timer gamepadTimer;
 
         // tooltip
-        private static Timer tooltipTimer;
+        private static Timer tooltipTimer = null!;
         private static ToolTip tooltip = new ToolTip
         {
             Content = "This is a tooltip!",
@@ -76,10 +76,10 @@ namespace HandheldCompanion.Managers
         private ButtonState prevButtonState = new();
 
         // store the latest NavigationViewItem that had focus on this window (windowNavigationView)
-        private Control prevNavigation;
+        private Control? prevNavigation;
 
         // store the latest NavigationViewItem that had focus on the current page (pageNavigationView)
-        private Control prevPageNavigation;
+        private Control? prevPageNavigation;
         // key: Page, store the latest control that had focus on this page
         private Dictionary<object, Control> prevControl = [];
         // key: Window, store which window has focus
@@ -112,7 +112,7 @@ namespace HandheldCompanion.Managers
             this.gamepadWindow.ContentDialogOpened += ContentDialogOpened;
             this.gamepadWindow.ContentDialogClosed += ContentDialogClosed;
 
-            this.windowName = gamepadWindow.Tag.ToString();
+            this.windowName = gamepadWindow.Tag?.ToString() ?? string.Empty;
 
             if (gamepadWindow is OverlayQuickTools quickTools)
             {
@@ -164,7 +164,7 @@ namespace HandheldCompanion.Managers
 
         private void ContentDialogClosed(ContentDialog contentDialog)
         {
-            if (gamepadPage is not null && prevControl.TryGetValue(gamepadPage.Tag, out Control control))
+            if (gamepadPage is not null && prevControl.TryGetValue(gamepadPage.Tag, out Control? control))
             {
                 if (_focused[windowName])
                     Focus(control);
@@ -173,7 +173,7 @@ namespace HandheldCompanion.Managers
 
         private bool HasFlyoutOpen = false;
         private List<MenuItem> flyoutMenuItems = new();  // populated from MenuFlyout.Items when open
-        private MenuItem focusedFlyoutItem = null;        // tracks which item is highlighted
+        private MenuItem? focusedFlyoutItem = null;        // tracks which item is highlighted
 
         private void ContentDialogOpened(ContentDialog contentDialog)
         {
@@ -181,12 +181,13 @@ namespace HandheldCompanion.Managers
             // event fires (OnLayoutUpdated calls us synchronously mid-layout-pass).
             gamepadWindow.Dispatcher.BeginInvoke(() =>
             {
-                Control control = WPFUtils.GetTopLeftControl<Control>(gamepadWindow.controlElements);
-                Focus(control);
+                Control? control = WPFUtils.GetTopLeftControl<Control>(gamepadWindow.controlElements);
+                if (control is not null)
+                    Focus(control);
             }, DispatcherPriority.Loaded);
         }
 
-        private void WindowGotFocus(object sender, RoutedEventArgs e, FocusSource focusSource)
+        private void WindowGotFocus(object? sender, RoutedEventArgs? e, FocusSource focusSource)
         {
             // already has focus
             if (_focused.TryGetValue(windowName, out bool isFocused) && isFocused)
@@ -246,7 +247,7 @@ namespace HandheldCompanion.Managers
                 ContentRendered(null, null);
         }
 
-        private void WindowLostFocus(object sender, RoutedEventArgs e, FocusSource focusSource)
+        private void WindowLostFocus(object? sender, RoutedEventArgs? e, FocusSource focusSource)
         {
             // doesn't have focus
             if (_focused.TryGetValue(windowName, out bool isFocused) && !isFocused)
@@ -376,7 +377,7 @@ namespace HandheldCompanion.Managers
             gamepadTimer.Start();
         }
 
-        private void ContentRendered(object? sender, System.Timers.ElapsedEventArgs e)
+        private void ContentRendered(object? sender, System.Timers.ElapsedEventArgs? e)
         {
             // stop listening for render events
             gamepadFrame.ContentRendered -= ContentRendering;
@@ -386,7 +387,8 @@ namespace HandheldCompanion.Managers
             {
                 // refresh page-scoped NavigationView if any
                 // (e.g. LayoutPage has its own NavigationView hosted inside the Page)
-                pageNavigationView = WPFUtils.FindVisualChild<NavigationView>(gamepadPage);
+                if (gamepadPage is not null)
+                    pageNavigationView = WPFUtils.FindVisualChild<NavigationView>(gamepadPage);
 
                 // store selected navigation items (window and page)
                 if (windowNavigationView?.SelectedItem is NavigationViewItem windowNvi)
@@ -405,12 +407,13 @@ namespace HandheldCompanion.Managers
                     IgnoreList.Add(typeof(AppBarButton));
                 }
 
-                Control control;
+                Control? control;
                 if (prevControl.TryGetValue(gamepadPage.Tag, out control))
                 {
                     if (_goingBack)
                     {
-                        Focus(control);
+                        if (control is not null)
+                            Focus(control);
 
                         // remove state
                         _goingBack = false;
@@ -438,8 +441,8 @@ namespace HandheldCompanion.Managers
             });
         }
 
-        private Control forcedFocus;
-        private Control parentFocus;
+        private Control? forcedFocus;
+        private Control? parentFocus;
 
         private void TooltipTimer_Elapsed(object? sender, System.Timers.ElapsedEventArgs e)
         {
@@ -451,7 +454,7 @@ namespace HandheldCompanion.Managers
             });
         }
 
-        public void Focus(Control control, Control parent = null, bool force = false)
+        public void Focus(Control? control, Control? parent = null, bool force = false)
         {
             if (control is null || !HasFocus())
                 return;
@@ -506,7 +509,7 @@ namespace HandheldCompanion.Managers
             gamepadWindow.SetFocusedElement(control);
         }
 
-        public Control GetFocusedElement()
+        public Control? GetFocusedElement()
         {
             // When a flyout is open, return the tracked popup item directly.
             // Popup elements have no common visual ancestor with gamepadWindow,
@@ -629,7 +632,7 @@ namespace HandheldCompanion.Managers
             if (page is null || windowNavigationView is null)
                 return true;
 
-            string pageTag = page.Tag?.ToString();
+            string? pageTag = page.Tag?.ToString();
             if (string.IsNullOrEmpty(pageTag))
                 return false;
 
@@ -734,14 +737,14 @@ namespace HandheldCompanion.Managers
                 try
                 {
                     // get current focused element
-                    Control focusedElement = GetFocusedElement();
+                    Control? focusedElement = GetFocusedElement();
 
                     // If the focused control is gone (null), hidden/collapsed, or disabled,
                     // redirect focus to the nearest available control so gamepad navigation
                     // is not silently swallowed.
                     if (focusedElement is null || !focusedElement.IsVisible || !focusedElement.IsEnabled)
                     {
-                        Control fallback = WPFUtils.GetTopLeftControl<Control>(gamepadWindow.controlElements);
+                        Control? fallback = WPFUtils.GetTopLeftControl<Control>(gamepadWindow.controlElements);
                         if (fallback is not null)
                             Focus(fallback);
                         return;
@@ -806,12 +809,9 @@ namespace HandheldCompanion.Managers
                             // specific scenario
                             if (toggleButton.Name.Equals("ExpanderHeader"))
                             {
-                                Expander Expander = WPFUtils.FindParent<Expander>(toggleButton);
-                                if (Expander is not null)
-                                {
-                                    // set state
-                                    Expander.IsExpanded = !Expander.IsExpanded;
-                                }
+                                Expander? Expander = WPFUtils.FindParent<Expander>(toggleButton);
+                                // set state
+                                Expander?.IsExpanded = !Expander.IsExpanded;
                             }
                             else if (toggleButton is RadioButton radioButton)
                             {
@@ -897,7 +897,7 @@ namespace HandheldCompanion.Managers
                             // play sound
                             UISounds.PlayOggFile(UISounds.Expanded);
 
-                            if (prevControl.TryGetValue(gamepadPage.Tag, out Control control) && control is not NavigationViewItem)
+                            if (gamepadPage is not null && prevControl.TryGetValue(gamepadPage.Tag, out Control? control) && control is not NavigationViewItem)
                             {
                                 Focus(control);
                                 return;
@@ -949,7 +949,7 @@ namespace HandheldCompanion.Managers
                         else if (focusedElement is ComboBoxItem comboBoxItem)
                         {
                             // get the associated ComboBox
-                            comboBox = ItemsControl.ItemsControlFromItemContainer(focusedElement) as ComboBox;
+                            comboBox = (ComboBox)ItemsControl.ItemsControlFromItemContainer(focusedElement);
                             if (comboBox is not null && comboBox.IsDropDownOpen)
                             {
                                 int idx = comboBox.Items.IndexOf(comboBoxItem);
@@ -966,13 +966,14 @@ namespace HandheldCompanion.Managers
                         else if (focusedElement is ListBoxItem listBoxItem)
                         {
                             // get the associated ComboBox
-                            ListBox listBox = ItemsControl.ItemsControlFromItemContainer(focusedElement) as ListBox;
+                            ListBox? listBox = (ListBox)ItemsControl.ItemsControlFromItemContainer(focusedElement);
                             if (listBox is not null)
                             {
                                 // leave ListBox and get below control
                                 // todo: we could look for the neareast control with a specific tag, like in HTML with Submit button from a form ?
                                 focusedElement = WPFUtils.GetClosestControl<Control>(listBox, gamepadWindow.controlElements, WPFUtils.Direction.Down);
-                                Focus(focusedElement);
+                                if (focusedElement is not null)
+                                    Focus(focusedElement);
                             }
                             return;
                         }
@@ -982,7 +983,7 @@ namespace HandheldCompanion.Managers
                             if (flyout is not null)
                             {
                                 // Self-removing closed handler: clears flyout state and restores focus to the button
-                                EventHandler<object> closedHandler = null;
+                                EventHandler<object>? closedHandler = null;
                                 closedHandler = (s, e) =>
                                 {
                                     flyout.Closed -= closedHandler;
@@ -1001,7 +1002,7 @@ namespace HandheldCompanion.Managers
                                 flyout.Closed += closedHandler;
 
                                 // Self-removing opened handler: switches focus into the flyout
-                                EventHandler<object> openedHandler = null;
+                                EventHandler<object>? openedHandler = null;
                                 openedHandler = (s, e) =>
                                 {
                                     flyout.Opened -= openedHandler;
@@ -1079,7 +1080,8 @@ namespace HandheldCompanion.Managers
                                     List<Control> pageNavItems = GetNavigationItems(focusedNavView);
                                     Control? navItem = null;
 
-                                    if (prevPageNavigation is not null && WPFUtils.FindParent<NavigationView>(prevPageNavigation) == focusedNavView)
+                                    NavigationView? parent = prevPageNavigation is null ? null : WPFUtils.FindParent<NavigationView>(prevPageNavigation);
+                                    if (prevPageNavigation is not null && parent is not null && parent == focusedNavView)
                                         navItem = prevPageNavigation;
 
                                     navItem ??= pageNavItems.OfType<NavigationViewItem>().FirstOrDefault(i => i.IsSelected) as Control;
@@ -1133,7 +1135,7 @@ namespace HandheldCompanion.Managers
                         {
                             default:
                                 {
-                                    if (gamepadWindow.currentDialog is not null && prevControl.TryGetValue(gamepadPage, out Control control))
+                                    if (gamepadWindow.currentDialog is not null && gamepadPage is not null && prevControl.TryGetValue(gamepadPage, out Control? control))
                                     {
                                         Focus(control);
                                         return;
@@ -1197,7 +1199,7 @@ namespace HandheldCompanion.Managers
                                 {
                                     if (focusedElement.Tag is ProfileViewModel profileViewModel)
                                     {
-                                        profileViewModel.OpenLayout.Execute(null);
+                                        profileViewModel.OpenLayout?.Execute(null);
                                     }
                                 }
                                 break;
@@ -1216,9 +1218,8 @@ namespace HandheldCompanion.Managers
                                     else
                                     {
                                         // To get the first RadioButton in the list, if any
-                                        RadioButton firstRadioButton = WPFUtils.FindChildren(focusedElement).FirstOrDefault(c => c is RadioButton) as RadioButton;
-                                        if (firstRadioButton is not null)
-                                            firstRadioButton.IsChecked = true;
+                                        RadioButton? firstRadioButton = WPFUtils.FindChildren(focusedElement).FirstOrDefault(c => c is RadioButton) as RadioButton;
+                                        firstRadioButton?.IsChecked = true;
                                     }
                                 }
                                 break;
@@ -1329,13 +1330,14 @@ namespace HandheldCompanion.Managers
                                     break;
                                 case true:
                                     {
-                                        if (prevControl.TryGetValue(gamepadPage.Tag, out Control control) && control is not NavigationViewItem)
+                                        if (gamepadPage is not null && prevControl.TryGetValue(gamepadPage.Tag, out Control? control) && control is not NavigationViewItem)
                                             Focus(control);
                                         else
                                         {
                                             // get the nearest non-navigation control
                                             focusedElement = WPFUtils.GetTopLeftControl<Control>(gamepadWindow.controlElements);
-                                            Focus(focusedElement);
+                                            if (focusedElement is not null)
+                                                Focus(focusedElement);
                                         }
                                     }
                                     break;
@@ -1361,7 +1363,7 @@ namespace HandheldCompanion.Managers
                                         NavigationView? scope = WPFUtils.FindParent<NavigationView>(focusedElement) ?? windowNavigationView;
                                         List<Control> scopeItems = scope is not null ? GetNavigationItems(scope) : gamepadWindow.controlElements;
 
-                                        Control target;
+                                        Control? target;
 
                                         // For NavigationView, treat Left/Right as Previous/Next in visual order.
                                         // This is important for Left-pane NavigationViews (vertical lists) where "left" and "right"
@@ -1392,7 +1394,8 @@ namespace HandheldCompanion.Managers
                                             target = WPFUtils.GetClosestControl<NavigationViewItem>(focusedElement, scopeItems, direction);
                                         }
 
-                                        Focus(target);
+                                        if (target is not null)
+                                            Focus(target);
 
                                         // update navigation caches
                                         if (target is NavigationViewItem)

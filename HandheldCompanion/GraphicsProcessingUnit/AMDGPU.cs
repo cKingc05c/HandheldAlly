@@ -15,10 +15,10 @@ namespace HandheldCompanion.GraphicsProcessingUnit
     public class AMDGPU : GPU
     {
         #region events
-        public event RSRStateChangedEventHandler RSRStateChanged;
+        public event RSRStateChangedEventHandler? RSRStateChanged;
         public delegate void RSRStateChangedEventHandler(bool Supported, bool Enabled, int Sharpness);
 
-        public event AFMFStateChangedEventHandler AFMFStateChanged;
+        public event AFMFStateChangedEventHandler? AFMFStateChanged;
         public delegate void AFMFStateChangedEventHandler(bool Supported, bool Enabled);
         #endregion
 
@@ -548,7 +548,7 @@ namespace HandheldCompanion.GraphicsProcessingUnit
             UpdateSettings();
         }
 
-        protected override void BusyTimer_Elapsed(object sender, ElapsedEventArgs e)
+        protected override void BusyTimer_Elapsed(object? sender, ElapsedEventArgs e)
         {
             // Call the generic method to terminate conflicting processes.
             TerminateConflictingProcesses();

@@ -7,10 +7,10 @@ namespace HandheldCompanion.Managers;
 
 public static class TimerManager
 {
-    public static event InitializedEventHandler Initialized;
+    public static event InitializedEventHandler? Initialized;
     public delegate void InitializedEventHandler();
 
-    public static event TickEventHandler Tick;
+    public static event TickEventHandler? Tick;
     public delegate void TickEventHandler(long ticks, float delta);
 
     private static int MasterInterval = 8; // 125Hz
@@ -65,7 +65,7 @@ public static class TimerManager
         SettingsManager_SettingValueChanged("MasterInterval", ManagerFactory.settingsManager.GetString("MasterInterval"), false);
     }
 
-    private static void SettingsManager_SettingValueChanged(string name, object value, bool temporary)
+    private static void SettingsManager_SettingValueChanged(string name, object? value, bool temporary)
     {
         switch (name)
         {

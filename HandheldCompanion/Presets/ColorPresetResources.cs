@@ -31,7 +31,7 @@ public class ColorPresetResources : ResourceDictionary
         }
     }
 
-    private void OnCurrentPresetChanged(object sender, EventArgs e)
+    private void OnCurrentPresetChanged(object? sender, EventArgs e)
     {
         ApplyCurrentPreset();
     }

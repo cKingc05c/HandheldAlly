@@ -230,8 +230,8 @@ namespace HandheldCompanion.ViewModels
             if (hotkey.ButtonFlags != gyroButtonFlags)
                 return;
 
-            gyroAction.MotionTrigger = hotkey.inputsChord.ButtonState.Clone() as ButtonState;
-            GyroHotkey.inputsChord.ButtonState = gyroAction.MotionTrigger.Clone() as ButtonState;
+            gyroAction.MotionTrigger = (ButtonState)hotkey.inputsChord.ButtonState.Clone();
+            GyroHotkey.inputsChord.ButtonState = (ButtonState)gyroAction.MotionTrigger.Clone();
 
             // update gyro hotkey
             GyroHotkey = hotkey;
@@ -251,13 +251,13 @@ namespace HandheldCompanion.ViewModels
 
         private void InputsManager_StartedListening(ButtonFlags buttonFlags, InputsChordTarget chordTarget)
         {
-            HotkeyViewModel hotkeyViewModel = HotkeysList.Where(h => h.Hotkey.ButtonFlags == buttonFlags).FirstOrDefault();
+            HotkeyViewModel? hotkeyViewModel = HotkeysList.FirstOrDefault(h => h.Hotkey.ButtonFlags == buttonFlags);
             hotkeyViewModel?.SetListening(true, chordTarget);
         }
 
         private void InputsManager_StoppedListening(ButtonFlags buttonFlags, InputsChord storedChord)
         {
-            HotkeyViewModel hotkeyViewModel = HotkeysList.Where(h => h.Hotkey.ButtonFlags == buttonFlags).FirstOrDefault();
+            HotkeyViewModel? hotkeyViewModel = HotkeysList.FirstOrDefault(h => h.Hotkey.ButtonFlags == buttonFlags);
             hotkeyViewModel?.SetListening(false, storedChord.chordTarget);
         }
 
@@ -294,7 +294,7 @@ namespace HandheldCompanion.ViewModels
                     {
                         Axis = GyroActions.DefaultAxisLayoutFlags,
                         AxisAntiDeadZone = GyroActions.DefaultAxisAntiDeadZone,
-                        MotionTrigger = GyroHotkey.inputsChord.ButtonState.Clone() as ButtonState
+                        MotionTrigger = (ButtonState)GyroHotkey.inputsChord.ButtonState.Clone()
                     };
                 }
 
@@ -331,7 +331,7 @@ namespace HandheldCompanion.ViewModels
                         MouseType = GyroActions.DefaultMouseActionsType,
                         Sensivity = GyroActions.DefaultSensivity,
                         Deadzone = GyroActions.DefaultDeadzone,
-                        MotionTrigger = GyroHotkey.inputsChord.ButtonState.Clone() as ButtonState
+                        MotionTrigger = (ButtonState)GyroHotkey.inputsChord.ButtonState.Clone()
                     };
                 }
 
@@ -381,11 +381,13 @@ namespace HandheldCompanion.ViewModels
             switch (Action.actionType)
             {
                 case ActionType.Joystick:
-                    ((AxisActions)Action).Axis = (AxisLayoutFlags)SelectedTarget.Tag;
+                    if (SelectedTarget.Tag is AxisLayoutFlags axisLayoutFlags)
+                        ((AxisActions)Action).Axis = axisLayoutFlags;
                     break;
 
                 case ActionType.Mouse:
-                    ((MouseActions)Action).MouseType = (MouseActionsType)SelectedTarget.Tag;
+                    if (SelectedTarget.Tag is MouseActionsType mouseActionsType)
+                        ((MouseActions)Action).MouseType = mouseActionsType;
                     break;
             }
         }
@@ -406,12 +408,11 @@ namespace HandheldCompanion.ViewModels
         {
             if (layout.GyroLayout.TryGetValue((AxisLayoutFlags)Value, out var newAction))
             {
-                GyroHotkey.inputsChord.ButtonState = ((GyroActions)newAction).MotionTrigger.Clone() as ButtonState;
+                GyroHotkey.inputsChord.ButtonState = (ButtonState)((GyroActions)newAction).MotionTrigger.Clone();
 
                 // update hotkey UI
                 HotkeyViewModel? foundHotkey = HotkeysList.FirstOrDefault(p => p.Hotkey.ButtonFlags == GyroHotkey.ButtonFlags);
-                if (foundHotkey is not null)
-                    foundHotkey.Hotkey = GyroHotkey;
+                foundHotkey?.Hotkey = GyroHotkey;
 
                 SetAction(newAction, false);
             }

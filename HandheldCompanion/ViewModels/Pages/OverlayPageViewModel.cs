@@ -344,8 +344,8 @@ namespace HandheldCompanion.ViewModels
             }
         }
 
-        private ImageSource _ProcessIcon;
-        public ImageSource ProcessIcon
+        private ImageSource? _ProcessIcon;
+        public ImageSource? ProcessIcon
         {
             get => _ProcessIcon;
             set
@@ -372,7 +372,7 @@ namespace HandheldCompanion.ViewModels
             }
         }
 
-        private string _ProcessPath;
+        private string _ProcessPath = string.Empty;
         public string ProcessPath
         {
             get => _ProcessPath;
@@ -497,7 +497,7 @@ namespace HandheldCompanion.ViewModels
             // manage events
             ManagerFactory.gpuManager.Hooked += GPUManager_Hooked;
 
-            GPU gpu = GPUManager.GetCurrent();
+            GPU? gpu = GPUManager.GetCurrent();
             if (gpu is not null)
                 GPUManager_Hooked(gpu);
         }
@@ -512,7 +512,7 @@ namespace HandheldCompanion.ViewModels
             // manage events
             ManagerFactory.processManager.ForegroundChanged += ProcessManager_ForegroundChanged;
 
-            ProcessEx processEx = ProcessManager.GetCurrent();
+            ProcessEx? processEx = ProcessManager.GetCurrent();
             if (processEx is null)
                 return;
 
@@ -552,7 +552,7 @@ namespace HandheldCompanion.ViewModels
 
         private void UpdateTimer_Elapsed(object? sender, ElapsedEventArgs e)
         {
-            GPU gpu = GPUManager.GetCurrent();
+            GPU? gpu = GPUManager.GetCurrent();
             if (gpu is not null)
             {
                 if (gpu.HasPower())
@@ -707,7 +707,7 @@ namespace HandheldCompanion.ViewModels
             base.Dispose();
         }
 
-        private void SettingsManager_SettingValueChanged(string name, object value, bool temporary)
+        private void SettingsManager_SettingValueChanged(string name, object? value, bool temporary)
         {
             if (name == Settings.OnScreenDisplayRefreshRate)
             {

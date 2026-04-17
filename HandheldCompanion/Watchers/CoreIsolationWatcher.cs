@@ -10,13 +10,17 @@ namespace HandheldCompanion.Watchers
     public class CoreIsolationWatcher : ISpaceWatcher
     {
         private static WqlEventQuery HypervisorQuery = new WqlEventQuery(@"SELECT * FROM RegistryValueChangeEvent WHERE Hive = 'HKEY_LOCAL_MACHINE' AND KeyPath = 'SYSTEM\\CurrentControlSet\\Control\\DeviceGuard\\Scenarios\\HypervisorEnforcedCodeIntegrity' AND ValueName='Enabled'");
-        private static WqlEventQuery VulnerableDriverQuery = new WqlEventQuery(@"SELECT * FROM RegistryValueChangeEvent WHERE Hive = 'HKEY_LOCAL_MACHINE' AND KeyPath = 'SYSTEM\\CurrentControlSet\\Control\\CI\\Config' AND ValueName='VulnerableDriverBlocklistEnable'");
+            private static WqlEventQuery VulnerableDriverQuery = new WqlEventQuery(@"SELECT * FROM RegistryValueChangeEvent WHERE Hive = 'HKEY_LOCAL_MACHINE' AND KeyPath = 'SYSTEM\\CurrentControlSet\\Control\\CI\\Config' AND ValueName='VulnerableDriverBlocklistEnable'");
+            private static WqlEventQuery SmartAppControlQuery = new WqlEventQuery(@"SELECT * FROM RegistryValueChangeEvent WHERE Hive = 'HKEY_LOCAL_MACHINE' AND KeyPath = 'SYSTEM\\CurrentControlSet\\Control\\CI\\Policy' AND ValueName='VerifiedAndReputablePolicyState'");
 
-        private ManagementEventWatcher VulnerableDriverWatcher = new ManagementEventWatcher(VulnerableDriverQuery);
-        private ManagementEventWatcher HypervisorWatcher = new ManagementEventWatcher(HypervisorQuery);
+            private ManagementEventWatcher VulnerableDriverWatcher = new ManagementEventWatcher(VulnerableDriverQuery);
+            private ManagementEventWatcher HypervisorWatcher = new ManagementEventWatcher(HypervisorQuery);
+            private ManagementEventWatcher SmartAppControlWatcher = new ManagementEventWatcher(SmartAppControlQuery);
 
-        public bool HypervisorEnforcedCodeIntegrityEnabled => RegistryUtils.GetBoolean(@"SYSTEM\CurrentControlSet\Control\DeviceGuard\Scenarios\HypervisorEnforcedCodeIntegrity", "Enabled");
-        public bool VulnerableDriverBlocklistEnable => RegistryUtils.GetBoolean(@"SYSTEM\CurrentControlSet\Control\CI\Config", "VulnerableDriverBlocklistEnable");
+            public bool HypervisorEnforcedCodeIntegrityEnabled => RegistryUtils.GetBoolean(@"SYSTEM\CurrentControlSet\Control\DeviceGuard\Scenarios\HypervisorEnforcedCodeIntegrity", "Enabled");
+            public bool VulnerableDriverBlocklistEnable => RegistryUtils.GetBoolean(@"SYSTEM\CurrentControlSet\Control\CI\Config", "VulnerableDriverBlocklistEnable");
+            // VerifiedAndReputablePolicyState: 0 = Off, 1 = Evaluation, 2 = On
+            public bool SmartAppControlEnabled => RegistryUtils.GetInt(@"SYSTEM\CurrentControlSet\Control\CI\Policy", "VerifiedAndReputablePolicyState") != 0;
 
         public CoreIsolationWatcher()
         {
@@ -43,7 +47,13 @@ namespace HandheldCompanion.Watchers
                 VulnerableDriverWatcher,
                 VulnerableDriverQuery);
 
-            UpdateStatus(HypervisorEnforcedCodeIntegrityEnabled || VulnerableDriverBlocklistEnable);
+            SetupRegistryWatcher(
+                @"SYSTEM\CurrentControlSet\Control\CI\Policy",
+                "VerifiedAndReputablePolicyState",
+                SmartAppControlWatcher,
+                SmartAppControlQuery);
+
+            UpdateStatus(HypervisorEnforcedCodeIntegrityEnabled || VulnerableDriverBlocklistEnable || SmartAppControlEnabled);
 
             base.Start();
         }
@@ -52,6 +62,7 @@ namespace HandheldCompanion.Watchers
         {
             HypervisorWatcher.Stop();
             VulnerableDriverWatcher.Stop();
+            SmartAppControlWatcher.Stop();
 
             base.Stop();
         }
@@ -73,7 +84,7 @@ namespace HandheldCompanion.Watchers
             bool controlFlowEnabled = output.Contains("ON");
 
             // Get status
-            bool enabled = VulnerableDriverBlocklistEnable || HypervisorEnforcedCodeIntegrityEnabled || controlFlowEnabled;
+            bool enabled = VulnerableDriverBlocklistEnable || HypervisorEnforcedCodeIntegrityEnabled || controlFlowEnabled || SmartAppControlEnabled;
 
             UpdateStatus(enabled);
         }
@@ -82,6 +93,8 @@ namespace HandheldCompanion.Watchers
         {
             RegistryUtils.SetValue(@"SYSTEM\CurrentControlSet\Control\DeviceGuard\Scenarios\HypervisorEnforcedCodeIntegrity", "Enabled", enabled ? 1 : 0);
             RegistryUtils.SetValue(@"SYSTEM\CurrentControlSet\Control\CI\Config", "VulnerableDriverBlocklistEnable", enabled ? 1 : 0);
+            // VerifiedAndReputablePolicyState: 0 = Off, 2 = On (1 = Evaluation is treated as enabled)
+            RegistryUtils.SetValue(@"SYSTEM\CurrentControlSet\Control\CI\Policy", "VerifiedAndReputablePolicyState", enabled ? 2 : 0);
 
             // Control Flow Guard settings
             ProcessUtils.ExecutePowerShellScript($"Set-ProcessMitigation -System {(enabled ? "-Enable" : "-Disable")} CFG");
@@ -114,6 +127,14 @@ namespace HandheldCompanion.Watchers
 
             watcher.EventArrived += new EventArrivedEventHandler(HandleEvent);
             watcher.Start();
+        }
+
+        public override void Dispose()
+        {
+            base.Dispose(); // calls Stop() which stops all three ManagementEventWatchers
+            HypervisorWatcher.Dispose();
+            VulnerableDriverWatcher.Dispose();
+            SmartAppControlWatcher.Dispose();
         }
     }
 }

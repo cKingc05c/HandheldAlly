@@ -53,7 +53,7 @@
             }
         }
 
-        private string _category;
+        private string _category = string.Empty;
         public string Category
         {
             get

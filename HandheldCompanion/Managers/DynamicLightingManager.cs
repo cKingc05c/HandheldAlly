@@ -40,7 +40,7 @@ public static class DynamicLightingManager
     private static int squareSize = 100;
     private const int squareStep = 10;
 
-    private static Thread ambilightThread;
+    private static Thread? ambilightThread;
     private static bool ambilightThreadRunning;
     private static int ambilightThreadDelay = 33;
 
@@ -173,7 +173,7 @@ public static class DynamicLightingManager
 
     private static bool GetAmbientLightingEnabled()
     {
-        using (RegistryKey key = Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Lighting"))
+        using (RegistryKey? key = Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Lighting"))
             if (key != null)
                 return Convert.ToBoolean(key.GetValue(OSAmbientLightingEnabledKey));
 
@@ -182,13 +182,15 @@ public static class DynamicLightingManager
 
     private static void SetAmbientLightingEnabled(bool enabled)
     {
-        using (RegistryKey key = Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Lighting", writable: true))
-            if (key != null)
-                key.SetValue(OSAmbientLightingEnabledKey, enabled ? 1 : 0);
+        using (RegistryKey? key = Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Lighting", writable: true))
+            key?.SetValue(OSAmbientLightingEnabledKey, enabled ? 1 : 0);
     }
 
-    private static void MultimediaManager_DisplaySettingsChanged(DesktopScreen desktopScreen, ScreenResolution resolution)
+    private static void MultimediaManager_DisplaySettingsChanged(DesktopScreen desktopScreen, ScreenResolution? resolution)
     {
+        if (resolution is null)
+            return;
+
         // Update the screen width and height values when display changes
         // Get the primary screen dimensions
         screenWidth = resolution.Width;
@@ -268,7 +270,7 @@ public static class DynamicLightingManager
         }
     }
 
-    private static void SettingsManager_SettingValueChanged(string name, object value, bool temporary)
+    private static void SettingsManager_SettingValueChanged(string name, object? value, bool temporary)
     {
         switch (name)
         {
@@ -544,7 +546,7 @@ public static class DynamicLightingManager
 
     #region events
 
-    public static event InitializedEventHandler Initialized;
+    public static event InitializedEventHandler? Initialized;
 
     public delegate void InitializedEventHandler();
 

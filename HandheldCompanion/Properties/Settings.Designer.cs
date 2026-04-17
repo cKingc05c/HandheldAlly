@@ -1309,18 +1309,6 @@ namespace HandheldCompanion.Properties
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("True")]
-        public bool GPUManagerMonitor {
-            get {
-                return ((bool)(this["GPUManagerMonitor"]));
-            }
-            set {
-                this["GPUManagerMonitor"] = value;
-            }
-        }
-        
-        [global::System.Configuration.UserScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("True")]
         public bool ConnectOnPlug {
             get {
                 return ((bool)(this["ConnectOnPlug"]));
@@ -1543,6 +1531,42 @@ namespace HandheldCompanion.Properties
             }
             set {
                 this["LibraryViewMode"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        public bool PerformanceManagerEnabled {
+            get {
+                return ((bool)(this["PerformanceManagerEnabled"]));
+            }
+            set {
+                this["PerformanceManagerEnabled"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        public bool GPUManagementEnabled {
+            get {
+                return ((bool)(this["GPUManagementEnabled"]));
+            }
+            set {
+                this["GPUManagementEnabled"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        public bool LibraryPageEnabled {
+            get {
+                return ((bool)(this["LibraryPageEnabled"]));
+            }
+            set {
+                this["LibraryPageEnabled"] = value;
             }
         }
     }

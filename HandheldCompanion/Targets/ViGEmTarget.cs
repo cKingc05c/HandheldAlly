@@ -12,15 +12,15 @@ namespace HandheldCompanion.Targets
     {
         public HIDmode HID = HIDmode.NoController;
 
-        protected IVirtualGamepad virtualController;
+        protected IVirtualGamepad? virtualController;
 
-        public event ConnectedEventHandler Connected;
+        public event ConnectedEventHandler? Connected;
         public delegate void ConnectedEventHandler(ViGEmTarget target);
 
-        public event DisconnectedEventHandler Disconnected;
+        public event DisconnectedEventHandler? Disconnected;
         public delegate void DisconnectedEventHandler(ViGEmTarget target);
 
-        public event VibratedEventHandler Vibrated;
+        public event VibratedEventHandler? Vibrated;
         public delegate void VibratedEventHandler(byte LargeMotor, byte SmallMotor);
 
         protected void RaiseConnected() => Connected?.Invoke(this);
@@ -50,7 +50,7 @@ namespace HandheldCompanion.Targets
 
             try
             {
-                virtualController.Connect();
+                virtualController?.Connect();
             }
             catch (Exception ex)
             {

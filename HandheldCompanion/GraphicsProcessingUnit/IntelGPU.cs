@@ -12,7 +12,7 @@ namespace HandheldCompanion.GraphicsProcessingUnit
     public class IntelGPU : GPU
     {
         #region events
-        public event EnduranceGamingStateEventHandler EnduranceGamingState;
+        public event EnduranceGamingStateEventHandler? EnduranceGamingState;
         public delegate void EnduranceGamingStateEventHandler(bool Supported, ctl_3d_endurance_gaming_control_t Control, ctl_3d_endurance_gaming_mode_t Mode);
         #endregion
 

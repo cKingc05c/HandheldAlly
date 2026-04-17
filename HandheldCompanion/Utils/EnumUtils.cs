@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
+using System.Reflection;
 
 namespace HandheldCompanion.Utils;
 
@@ -27,12 +28,12 @@ public static class EnumUtils
             return root;
 
         // return description otherwise
-        DescriptionAttribute attribute = null;
+        DescriptionAttribute? attribute = null;
 
         try
         {
             attribute = value.GetType()
-                        .GetField(value.ToString())
+                        .GetField(value.ToString())?
                         .GetCustomAttributes(typeof(DescriptionAttribute), false)
                         .SingleOrDefault() as DescriptionAttribute;
         }
@@ -46,19 +47,5 @@ public static class EnumUtils
             LogManager.LogDebug("No localization for enum: {0}", key);
 
         return value.ToString();
-    }
-
-    public static T GetEnumValueFromDescription<T>(string description)
-    {
-        var type = typeof(T);
-        if (!type.IsEnum)
-            throw new ArgumentException();
-        var fields = type.GetFields();
-        var field = fields
-            .SelectMany(f => f.GetCustomAttributes(
-                typeof(DescriptionAttribute), false), (
-                f, a) => new { Field = f, Att = a }).SingleOrDefault(a => ((DescriptionAttribute)a.Att)
-                .Description == description);
-        return field is null ? default : (T)field.Field.GetRawConstantValue();
     }
 }

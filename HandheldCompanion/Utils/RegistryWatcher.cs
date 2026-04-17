@@ -30,7 +30,7 @@ namespace HandheldCompanion.Utils
         private readonly string _key;
         private readonly string _value;
         private ManagementEventWatcher? _eventWatcher;
-        private readonly WqlEventQuery _query;
+        private readonly WqlEventQuery? _query;
         private bool _disposed;
 
         public RegistryWatcher(WatchedRegistry watchedRegistry, string key, string value)

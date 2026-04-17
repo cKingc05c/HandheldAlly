@@ -1,7 +1,6 @@
 ﻿using GregsStack.InputSimulatorStandard.Native;
 using HandheldCompanion.Actions;
 using HandheldCompanion.Controllers;
-using HandheldCompanion.Extensions;
 using HandheldCompanion.Inputs;
 using HandheldCompanion.Managers;
 using HandheldCompanion.Utils;
@@ -405,7 +404,9 @@ namespace HandheldCompanion.ViewModels
                 ActionType currentActionType = (ActionType)ActionTypeIndex;
                 if (currentActionType == ActionType.Mouse && SelectedTarget != null)
                 {
-                    MouseActionsType mouseAction = (MouseActionsType)SelectedTarget.Tag;
+                    if (SelectedTarget.Tag is not MouseActionsType mouseAction)
+                        return Visibility.Collapsed;
+
                     return mouseAction == MouseActionsType.MoveTo ? Visibility.Visible : Visibility.Collapsed;
                 }
 
@@ -413,7 +414,7 @@ namespace HandheldCompanion.ViewModels
             }
         }
 
-        public override void OnPropertyChanged(string propertyName)
+        public override void OnPropertyChanged(string? propertyName)
         {
             switch (propertyName)
             {
@@ -586,7 +587,7 @@ namespace HandheldCompanion.ViewModels
                     foreach (var t in _keyboardKeysTargets)
                         Targets.Add(t);
                 }
-                SelectedTarget = _keyboardKeysTargets.FirstOrDefault(e => e.Tag.Equals(((KeyboardActions)Action).Key)) ?? _keyboardKeysTargets.First();
+                SelectedTarget = _keyboardKeysTargets.FirstOrDefault(e => Equals(e.Tag, ((KeyboardActions)Action).Key)) ?? _keyboardKeysTargets.First();
             }
             else if (actionType == ActionType.Mouse)
             {
@@ -647,19 +648,23 @@ namespace HandheldCompanion.ViewModels
             switch (Action.actionType)
             {
                 case ActionType.Button:
-                    ((ButtonActions)Action).Button = (ButtonFlags)SelectedTarget.Tag;
+                    if (SelectedTarget.Tag is ButtonFlags buttonFlags)
+                        ((ButtonActions)Action).Button = buttonFlags;
                     break;
 
                 case ActionType.Keyboard:
-                    ((KeyboardActions)Action).Key = (VirtualKeyCode)SelectedTarget.Tag;
+                    if (SelectedTarget.Tag is VirtualKeyCode virtualKeyCode)
+                        ((KeyboardActions)Action).Key = virtualKeyCode;
                     break;
 
                 case ActionType.Joystick:
-                    ((AxisActions)Action).Axis = (AxisLayoutFlags)SelectedTarget.Tag;
+                    if (SelectedTarget.Tag is AxisLayoutFlags axisLayoutFlags)
+                        ((AxisActions)Action).Axis = axisLayoutFlags;
                     break;
 
                 case ActionType.Mouse:
-                    ((MouseActions)Action).MouseType = (MouseActionsType)SelectedTarget.Tag;
+                    if (SelectedTarget.Tag is MouseActionsType mouseActionsType)
+                        ((MouseActions)Action).MouseType = mouseActionsType;
                     break;
             }
         }

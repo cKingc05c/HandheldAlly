@@ -1,5 +1,4 @@
 ﻿using GongSolutions.Wpf.DragDrop;
-using HandheldCompanion.Extensions;
 using HandheldCompanion.Managers;
 using System;
 using System.Collections.ObjectModel;

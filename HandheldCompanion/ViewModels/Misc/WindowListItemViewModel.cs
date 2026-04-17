@@ -14,11 +14,11 @@ namespace HandheldCompanion.ViewModels.Misc
 {
     public class WindowListItemViewModel : BaseViewModel
     {
-        private ProcessWindow _processWindow;       // when live window
-        private ProcessWindowSettings _settings;    // when not live
-        private Screen _currentScreen = Screen.PrimaryScreen;
+        private ProcessWindow? _processWindow;       // when live window
+        private ProcessWindowSettings? _settings;    // when not live
+        private Screen? _currentScreen = Screen.PrimaryScreen;
 
-        public ProcessWindow ProcessWindow
+        public ProcessWindow? ProcessWindow
         {
             get => _processWindow;
             set
@@ -52,7 +52,7 @@ namespace HandheldCompanion.ViewModels.Misc
             }
         }
 
-        private readonly string _savedName;
+        private readonly string? _savedName;
         public string Name => _savedName ?? _processWindow?.Name ?? "Unknown window";
 
         public bool IsPresent => _processWindow != null;
@@ -90,10 +90,14 @@ namespace HandheldCompanion.ViewModels.Misc
                 if (IsPresent)
                 {
                     // Live: move via WindowManager (same as old VM)
-                    Screen screen = Screen.AllScreens.FirstOrDefault(s => s.DeviceName.Equals(device, StringComparison.OrdinalIgnoreCase));
+                    Screen? screen = Screen.AllScreens.FirstOrDefault(s => s.DeviceName.Equals(device, StringComparison.OrdinalIgnoreCase));
                     if (screen != null)
                     {
-                        WindowManager.SetTargetDisplay(_processWindow, screen);
+                        ProcessWindow? processWindow = _processWindow;
+                        if (processWindow is null)
+                            return;
+
+                        WindowManager.SetTargetDisplay(processWindow, screen);
                         OnPropertyChanged(nameof(TargetDisplay));
                         OnPropertyChanged(nameof(DeviceName));
                     }
@@ -127,7 +131,11 @@ namespace HandheldCompanion.ViewModels.Misc
 
                 if (IsPresent)
                 {
-                    WindowManager.SetTargetWindowPosition(_processWindow, newPos);
+                    ProcessWindow? processWindow = _processWindow;
+                    if (processWindow is null)
+                        return;
+
+                    WindowManager.SetTargetWindowPosition(processWindow, newPos);
                     OnPropertyChanged(nameof(TargetWindowPosition));
                 }
                 else
@@ -147,7 +155,11 @@ namespace HandheldCompanion.ViewModels.Misc
 
                 if (IsPresent)
                 {
-                    WindowManager.SetBorderless(_processWindow, value);
+                    ProcessWindow? processWindow = _processWindow;
+                    if (processWindow is null)
+                        return;
+
+                    WindowManager.SetBorderless(processWindow, value);
                     OnPropertyChanged(nameof(Borderless));
                 }
                 else
@@ -158,8 +170,8 @@ namespace HandheldCompanion.ViewModels.Misc
             }
         }
 
-        public ICommand BringProcessCommand { get; private set; }
-        public ICommand SwapScreenCommand { get; private set; }
+        public ICommand BringProcessCommand { get; private set; } = null!;
+        public ICommand SwapScreenCommand { get; private set; } = null!;
 
         public WindowListItemViewModel(ProcessWindow processWindow)
         {
@@ -192,6 +204,10 @@ namespace HandheldCompanion.ViewModels.Misc
             {
                 if (!IsPresent) return;
 
+                ProcessWindow? processWindow = _processWindow;
+                if (processWindow is null)
+                    return;
+
                 OverlayQuickTools qtWindow = OverlayQuickTools.GetCurrent();
                 ContentDialogResult result = await qtWindow.applicationsPage.SnapDialog.ShowAsync(qtWindow);
                 if (result == ContentDialogResult.None)
@@ -200,21 +216,25 @@ namespace HandheldCompanion.ViewModels.Misc
                     return;
                 }
 
-                Screen screen = Screen.FromHandle(_processWindow.Hwnd);
+                Screen screen = Screen.FromHandle(processWindow.Hwnd);
                 if (screen is null) return;
 
                 var viewModel = (QuickApplicationsPageViewModel)OverlayQuickTools.GetCurrent().applicationsPage.DataContext;
-                WindowManager.SetWindowSettings(_processWindow, screen, viewModel.BorderlessEnabled && viewModel.BorderlessToggle, viewModel.windowPositions);
+                WindowManager.SetWindowSettings(processWindow, screen, viewModel.BorderlessEnabled && viewModel.BorderlessToggle, viewModel.windowPositions);
             });
 
             SwapScreenCommand = new DelegateCommand(() =>
             {
                 if (!IsPresent) return;
 
-                Screen next = Screen.AllScreens.FirstOrDefault(s => s.DeviceName != _currentScreen.DeviceName);
+                ProcessWindow? processWindow = _processWindow;
+                if (processWindow is null)
+                    return;
+
+                Screen? next = Screen.AllScreens.FirstOrDefault(s => s.DeviceName != _currentScreen?.DeviceName);
                 if (next is null) return;
 
-                WindowManager.SetWindowSettings(_processWindow, next, false, WindowPositions.Maximize);
+                WindowManager.SetWindowSettings(processWindow, next, false, WindowPositions.Maximize);
                 OnPropertyChanged(nameof(IsPrimaryScreen));
             });
         }
@@ -225,14 +245,14 @@ namespace HandheldCompanion.ViewModels.Misc
             ManagerFactory.multimediaManager.DisplaySettingsChanged += MultimediaManager_DisplaySettingsChanged;
         }
 
-        private void HookLiveEvents(ProcessWindow pw)
+        private void HookLiveEvents(ProcessWindow? pw)
         {
             if (pw == null) return;
             pw.Refreshed += Process_Refreshed;
             pw.Disposed += Process_Disposed;
         }
 
-        private void UnhookLiveEvents(ProcessWindow pw)
+        private void UnhookLiveEvents(ProcessWindow? pw)
         {
             if (pw == null) return;
             pw.Refreshed -= Process_Refreshed;
@@ -292,16 +312,9 @@ namespace HandheldCompanion.ViewModels.Misc
             ManagerFactory.multimediaManager.DisplaySettingsChanged -= MultimediaManager_DisplaySettingsChanged;
             SystemEvents.DisplaySettingsChanged -= SystemEvents_DisplaySettingsChanged;
 
-            BringProcessCommand = null;
-            SwapScreenCommand = null;
-
             _processWindow = null;
 
             base.Dispose();
         }
-
-        // Optional convenience to raise single props
-        protected void OnPropertyChanged([CallerMemberName] string name = null)
-            => base.OnPropertyChanged(name);
     }
 }

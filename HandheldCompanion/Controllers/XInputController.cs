@@ -5,14 +5,13 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.InteropServices;
-using System.Text;
 using System.Windows.Media;
 
 namespace HandheldCompanion.Controllers;
 
 public class XInputController : IController
 {
-    private Controller Controller;
+    private Controller? Controller;
     private Gamepad Gamepad;
 
     private XInputStateSecret State;
@@ -88,6 +87,9 @@ public class XInputController : IController
                     XInputGetStateSecret14(UserIndex, out State);
 
                     // update gamepad state
+                    if (Controller is null)
+                        return;
+
                     Gamepad = Controller.GetState().Gamepad;
 
                     Inputs.ButtonState[ButtonFlags.B1] |= Gamepad.Buttons.HasFlag(GamepadButtonFlags.A);
@@ -154,7 +156,7 @@ public class XInputController : IController
             ushort RightMotorSpeed = (ushort)((double)SmallMotor / byte.MaxValue * ushort.MaxValue * VibrationStrength);
 
             Vibration vibration = new Vibration { LeftMotorSpeed = LeftMotorSpeed, RightMotorSpeed = RightMotorSpeed };
-            Controller.SetVibration(vibration);
+            Controller?.SetVibration(vibration);
         }
         catch { }
     }

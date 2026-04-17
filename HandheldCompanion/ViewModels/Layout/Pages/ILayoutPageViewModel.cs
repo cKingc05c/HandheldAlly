@@ -25,8 +25,8 @@ namespace HandheldCompanion.ViewModels
             ControllerManager.ControllerSelected += UpdateController;
 
             // send events
-            if (ControllerManager.HasTargetController)
-                UpdateController(ControllerManager.GetTarget());
+            if (ControllerManager.GetTarget() is IController controller)
+                UpdateController(controller);
         }
 
         public override void Dispose()

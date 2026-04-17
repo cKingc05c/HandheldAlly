@@ -47,23 +47,23 @@ namespace HandheldCompanion.Views;
 public partial class MainWindow : GamepadWindow
 {
     // devices vars
-    private static IDevice CurrentDevice;
+    private static IDevice CurrentDevice = null!;
 
     // page vars
     private static readonly Dictionary<string, Page> _pages = [];
 
-    public static ControllerPage controllerPage;
-    public static DevicePage devicePage;
-    public static PerformancePage performancePage;
-    public static ProfilesPage profilesPage;
-    public static SettingsPage settingsPage;
-    public static AboutPage aboutPage;
-    public static OverlayPage overlayPage;
-    public static HotkeysPage hotkeysPage;
-    public static LayoutPage layoutPage;
-    public static NotificationsPage notificationsPage;
-    public static LibraryPage libraryPage;
-    public static LayoutItemPage layoutItemPage;
+    public static ControllerPage controllerPage = null!;
+    public static DevicePage devicePage = null!;
+    public static PerformancePage? performancePage = null;
+    public static ProfilesPage profilesPage = null!;
+    public static SettingsPage settingsPage = null!;
+    public static AboutPage aboutPage = null!;
+    public static OverlayPage overlayPage = null!;
+    public static HotkeysPage hotkeysPage = null!;
+    public static LayoutPage layoutPage = null!;
+    public static NotificationsPage notificationsPage = null!;
+    public static LibraryPage? libraryPage = null;
+    public static LayoutItemPage layoutItemPage = null!;
 
     // overlay(s) vars
     public static OverlayModel overlayModel = new();
@@ -86,7 +86,7 @@ public partial class MainWindow : GamepadWindow
 
     // Track tray menu items for liked profiles
     private readonly Dictionary<Guid, ToolStripMenuItem> profileMenuItems = new();
-    private ToolStripSeparator profileSeparator;
+    private ToolStripSeparator profileSeparator = null!;
 
     private WindowState prevWindowState
     {
@@ -105,11 +105,11 @@ public partial class MainWindow : GamepadWindow
     private WindowStyle preFullscreenWindowStyle = WindowStyle.SingleBorderWindow;
     private ResizeMode preFullscreenResizeMode = ResizeMode.CanResize;
     private Rect preFullscreenBounds;
-    private FullScreenExperienceMonitor fullScreenExperienceMonitor;
+    private FullScreenExperienceMonitor fullScreenExperienceMonitor = null!;
 
-    public static SplashScreenHost SplashScreen;
+    public static SplashScreenHost SplashScreen = null!;
 
-    public static UISettings uiSettings;
+    public static UISettings uiSettings = null!;
 
     private const int WM_QUERYENDSESSION = 0x0011;
     private const int WM_DISPLAYCHANGE = 0x007e;
@@ -203,7 +203,7 @@ public partial class MainWindow : GamepadWindow
         // initialize UI sounds board
         UISounds uiSounds = new UISounds();
 
-        // load page(s) BEFORE starting managers (architectural requirement)
+        // load all pages BEFORE starting managers (architectural requirement)
         overlayquickTools.loadPages();
         loadPages();
 
@@ -213,9 +213,8 @@ public partial class MainWindow : GamepadWindow
         MotionManager.Start();
         ManagerFactory.settingsManager.Start();
 
-        // Load MVVM pages after the Models / data have been created.
-        overlayquickTools.LoadPages_MVVM();
-        LoadPages_MVVM();
+        // Subscribe to setting changes for lazy page creation
+        ManagerFactory.settingsManager.SettingValueChanged += MainWindow_SettingValueChanged;
 
         // Now that ALL pages are loaded, start background managers
         // PullSensors, device Initialize, and all manager starts move to background;
@@ -378,7 +377,7 @@ public partial class MainWindow : GamepadWindow
                         GamepadUILike.Visibility = Visibility.Collapsed;
 
                         // To get the first RadioButton in the list, if any
-                        RadioButton firstRadioButton = WPFUtils.FindChildren(control).FirstOrDefault(c => c is RadioButton) as RadioButton;
+                        RadioButton? firstRadioButton = WPFUtils.FindChildren(control).FirstOrDefault(c => c is RadioButton) as RadioButton;
                         if (firstRadioButton is not null)
                         {
                             GamepadUIToggle.Visibility = Visibility.Visible;
@@ -428,7 +427,7 @@ public partial class MainWindow : GamepadWindow
         });
     }
 
-    private void AddNotifyIconItem(string name, object tag = null)
+    private void AddNotifyIconItem(string name, object? tag = null)
     {
         tag ??= string.Concat(name.Where(c => !char.IsWhiteSpace(c)));
 
@@ -479,7 +478,7 @@ public partial class MainWindow : GamepadWindow
         UIHelper.TryInvoke(() =>
         {
             // Extract icon from executable
-            System.Drawing.Icon profileIcon = null;
+            System.Drawing.Icon? profileIcon = null;
             if (!string.IsNullOrEmpty(profile.Path) && File.Exists(profile.Path))
             {
                 try
@@ -553,7 +552,7 @@ public partial class MainWindow : GamepadWindow
 
     public static MainWindow GetCurrent()
     {
-        return CurrentWindow;
+        return CurrentWindow!;
     }
 
     public void UpdateTaskbarState(TaskbarItemProgressState state)
@@ -578,7 +577,7 @@ public partial class MainWindow : GamepadWindow
 
     private void loadPages()
     {
-        // initialize pages
+        // always-created pages
         controllerPage = new ControllerPage("controller");
         devicePage = new DevicePage("device");
         profilesPage = new ProfilesPage("profiles");
@@ -586,7 +585,25 @@ public partial class MainWindow : GamepadWindow
         overlayPage = new OverlayPage("overlay");
         hotkeysPage = new HotkeysPage("hotkeys");
         notificationsPage = new NotificationsPage("notifications");
-        libraryPage = new LibraryPage("library");
+        layoutPage = new LayoutPage("layout", navView);
+        aboutPage = new AboutPage();
+        layoutItemPage = new LayoutItemPage("layoutitem", navView);
+
+        layoutPage.Initialize();
+        layoutItemPage.Initialize();
+
+        // conditionally-created pages
+        if (ManagerFactory.settingsManager.GetBoolean("LibraryPageEnabled"))
+        {
+            libraryPage = new LibraryPage("library");
+            _pages.Add("LibraryPage", libraryPage);
+        }
+
+        if (ManagerFactory.settingsManager.GetBoolean("PerformanceManagerEnabled"))
+        {
+            performancePage = new PerformancePage();
+            _pages.Add("PerformancePage", performancePage);
+        }
 
         // store pages
         _pages.Add("ControllerPage", controllerPage);
@@ -596,22 +613,7 @@ public partial class MainWindow : GamepadWindow
         _pages.Add("SettingsPage", settingsPage);
         _pages.Add("HotkeysPage", hotkeysPage);
         _pages.Add("NotificationsPage", notificationsPage);
-        _pages.Add("LibraryPage", libraryPage);
-    }
-
-    private void LoadPages_MVVM()
-    {
-        layoutPage = new LayoutPage("layout", navView);
-        performancePage = new PerformancePage();
-        aboutPage = new AboutPage();
-        layoutItemPage = new LayoutItemPage("layoutitem", navView);
-
-        layoutPage.Initialize();
-        layoutItemPage.Initialize();
-
-        // storage pages
         _pages.Add("LayoutPage", layoutPage);
-        _pages.Add("PerformancePage", performancePage);
         _pages.Add("AboutPage", aboutPage);
         _pages.Add("LayoutItemPage", layoutItemPage);
     }
@@ -620,46 +622,82 @@ public partial class MainWindow : GamepadWindow
     {
     }
 
+    private void MainWindow_SettingValueChanged(string name, object? value, bool temporary)
+    {
+        switch (name)
+        {
+            case "LibraryPageEnabled":
+                if (Convert.ToBoolean(value))
+                    UIHelper.TryInvoke(EnsureLibraryPage);
+                break;
+            case "PerformanceManagerEnabled":
+                if (Convert.ToBoolean(value))
+                    UIHelper.TryInvoke(EnsurePerformancePage);
+                break;
+        }
+    }
+
+    private void EnsureLibraryPage()
+    {
+        if (libraryPage is not null)
+            return;
+
+        libraryPage = new LibraryPage("library");
+        _pages["LibraryPage"] = libraryPage;
+    }
+
+    private void EnsurePerformancePage()
+    {
+        if (performancePage is not null)
+            return;
+
+        performancePage = new PerformancePage();
+        _pages["PerformancePage"] = performancePage;
+    }
+
     private void MenuItem_Click(object? sender, EventArgs e)
     {
-        string tag = ((ToolStripMenuItem)sender)?.Tag?.ToString() ?? string.Empty;
-
-        // Handle profile launch commands
-        if (tag.StartsWith("LaunchProfile:"))
+        if (sender is ToolStripMenuItem toolStripMenuItem)
         {
-            string guidStr = tag.Substring("LaunchProfile:".Length);
-            if (Guid.TryParse(guidStr, out Guid profileGuid))
+            string tag = toolStripMenuItem.Tag?.ToString() ?? string.Empty;
+
+            // Handle profile launch commands
+            if (tag.StartsWith("LaunchProfile:"))
             {
-                Profile profile = ManagerFactory.profileManager.GetProfileFromGuid(profileGuid);
-                if (profile != null)
+                string guidStr = tag.Substring("LaunchProfile:".Length);
+                if (Guid.TryParse(guidStr, out Guid profileGuid))
                 {
-                    try
+                    Profile profile = ManagerFactory.profileManager.GetProfileFromGuid(profileGuid);
+                    if (profile != null)
                     {
-                        profile.Launch();
-                    }
-                    catch (Exception ex)
-                    {
-                        LogManager.LogError("Failed to launch profile {0}: {1}", profile.Name, ex.Message);
+                        try
+                        {
+                            profile.Launch();
+                        }
+                        catch (Exception ex)
+                        {
+                            LogManager.LogError("Failed to launch profile {0}: {1}", profile.Name, ex.Message);
+                        }
                     }
                 }
+
+                return;
             }
 
-            return;
-        }
-
-        // Handle standard menu items
-        switch (tag)
-        {
-            case "MainWindow":
-                ToggleState();
-                break;
-            case "QuickTools":
-                overlayquickTools.ToggleVisibility();
-                break;
-            case "Exit":
-                appClosing = true;
-                Close();
-                break;
+            // Handle standard menu items
+            switch (tag)
+            {
+                case "MainWindow":
+                    ToggleState();
+                    break;
+                case "QuickTools":
+                    overlayquickTools.ToggleVisibility();
+                    break;
+                case "Exit":
+                    appClosing = true;
+                    Close();
+                    break;
+            }
         }
     }
 
@@ -741,7 +779,7 @@ public partial class MainWindow : GamepadWindow
         // hook focus changes from all input types (mouse, touch, keyboard, gamepad)
         AddHandler(FocusManager.GotFocusEvent, new RoutedEventHandler(GamepadWindow_PreviewGotFocus));
 
-        HwndSource source = PresentationSource.FromVisual(this) as HwndSource;
+        HwndSource source = (HwndSource)PresentationSource.FromVisual(this);
         source.AddHook(WndProc); // Hook into the window's message loop
 
         // restore window state
@@ -947,8 +985,8 @@ public partial class MainWindow : GamepadWindow
 
     public static void NavView_Navigate(Page _page)
     {
-        CurrentWindow.ContentFrame.Navigate(_page);
-        CurrentWindow.scrollViewer.ScrollToTop();
+        CurrentWindow?.ContentFrame.Navigate(_page);
+        CurrentWindow?.scrollViewer.ScrollToTop();
     }
 
     private void navView_BackRequested(NavigationView sender, NavigationViewBackRequestedEventArgs args)
@@ -986,6 +1024,7 @@ public partial class MainWindow : GamepadWindow
         ManagerFactory.notificationManager.Added -= NotificationManagerUpdated;
         ManagerFactory.notificationManager.Discarded -= NotificationManagerUpdated;
         ControllerManager.ControllerSelected -= ControllerManager_ControllerSelected;
+        ManagerFactory.settingsManager.SettingValueChanged -= MainWindow_SettingValueChanged;
 
         // UI thread
         UIHelper.TryInvoke(() =>
@@ -1003,7 +1042,7 @@ public partial class MainWindow : GamepadWindow
             hotkeysPage.Page_Closed();
             layoutPage.Page_Closed();
             notificationsPage.Page_Closed();
-            libraryPage.Page_Closed();
+            libraryPage?.Page_Closed();
         });
 
         // remove all automation event handlers
@@ -1329,6 +1368,9 @@ public partial class MainWindow : GamepadWindow
     }
 
     private const string HomeKey = "LibraryPage";
+    private const string FallbackHomeKey = "ControllerPage";
+    private static string ResolvedHomeKey =>
+        ManagerFactory.settingsManager.GetBoolean("LibraryPageEnabled") ? HomeKey : FallbackHomeKey;
 
     private enum TaskbarEdge
     {
@@ -1342,12 +1384,12 @@ public partial class MainWindow : GamepadWindow
     {
         ContentFrame.Navigated += On_Navigated;
 
-        if (_pages.TryGetValue(HomeKey, out var homePage))
+        if (_pages.TryGetValue(ResolvedHomeKey, out var homePage))
         {
             // The ProgressRing covers the content area while the page renders,
             // so navigate directly — no need for the hidden-frame pre-render step.
             var loadTask = WaitForPageLoadedAsync(homePage);
-            NavigateToPage(HomeKey);
+            NavigateToPage(ResolvedHomeKey);
             await loadTask;
             HomePage_Loaded();
         }

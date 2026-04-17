@@ -12,9 +12,9 @@ namespace HandheldCompanion.Libraries
         public SteamGridDbHero? Hero;
         public SteamGridDbLogo? Logo;
 
-        [JsonIgnore] public SteamGridDbGrid[] Grids;
-        [JsonIgnore] public SteamGridDbHero[] Heroes;
-        [JsonIgnore] public SteamGridDbLogo[] Logos;
+        [JsonIgnore] public SteamGridDbGrid[] Grids = [];
+        [JsonIgnore] public SteamGridDbHero[] Heroes = [];
+        [JsonIgnore] public SteamGridDbLogo[] Logos = [];
 
         public SteamGridEntry(long id, string name, DateTime releaseDate) : base(LibraryFamily.SteamGrid, id, name, releaseDate)
         { }

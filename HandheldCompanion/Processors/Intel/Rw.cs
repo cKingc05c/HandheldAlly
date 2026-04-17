@@ -12,9 +12,9 @@ public class RW
     private const string pnt_clock = "94";
     private const int delay_value = 1000;
 
-    private string mchbar;
+    private string mchbar = string.Empty;
     private readonly string path;
-    private readonly ProcessStartInfo startInfo;
+    private ProcessStartInfo? startInfo;
 
     public RW()
     {
@@ -43,13 +43,16 @@ public class RW
         try
         {
             startInfo.Arguments = "/Min /Nologo /Stdout /command=\"rpci32 0 0 0 0x48;rwexit\"";
-            using (var ProcessOutput = Process.Start(startInfo))
+            using (Process? ProcessOutput = Process.Start(startInfo))
             {
+                if (ProcessOutput is null)
+                    return false;
+
                 while (!ProcessOutput.StandardOutput.EndOfStream)
                 {
-                    var line = ProcessOutput.StandardOutput.ReadLine();
+                    string? line = ProcessOutput.StandardOutput.ReadLine();
 
-                    if (!line.Contains("0x"))
+                    if (string.IsNullOrEmpty(line) || !line.Contains("0x"))
                         continue;
 
                     line = line.Substring(line.Length - 10);
@@ -78,13 +81,16 @@ public class RW
     internal int get_limit(string pointer)
     {
         startInfo.Arguments = $"/Min /Nologo /Stdout /command=\"r16 {mchbar}{pnt_limit}{pointer};rwexit\"";
-        using (var ProcessOutput = Process.Start(startInfo))
+        using (Process? ProcessOutput = Process.Start(startInfo))
         {
+            if (ProcessOutput is null)
+                return 0;
+
             while (!ProcessOutput.StandardOutput.EndOfStream)
             {
-                var line = ProcessOutput.StandardOutput.ReadLine();
+                string? line = ProcessOutput.StandardOutput.ReadLine();
 
-                if (!line.Contains("0x"))
+                if (string.IsNullOrEmpty(line) || !line.Contains("0x"))
                     continue;
 
                 line = line.Substring(line.Length - 6);
@@ -128,11 +134,14 @@ public class RW
         command += $"Delay {delay_value};rwexit\"";
 
         startInfo.Arguments = command;
-        using (var ProcessOutput = Process.Start(startInfo))
+        using (Process? ProcessOutput = Process.Start(startInfo))
         {
+            if (ProcessOutput is null)
+                return;
+
             while (!ProcessOutput.StandardOutput.EndOfStream)
             {
-                var line = ProcessOutput.StandardOutput.ReadLine();
+                string? line = ProcessOutput.StandardOutput.ReadLine();
             }
         }
     }
@@ -153,11 +162,14 @@ public class RW
         command += $"Delay {delay_value};rwexit\"";
 
         startInfo.Arguments = command;
-        using (var ProcessOutput = Process.Start(startInfo))
+        using (Process? ProcessOutput = Process.Start(startInfo))
         {
+            if (ProcessOutput is null)
+                return;
+
             while (!ProcessOutput.StandardOutput.EndOfStream)
             {
-                var line = ProcessOutput.StandardOutput.ReadLine();
+                string? line = ProcessOutput.StandardOutput.ReadLine();
             }
         }
     }
@@ -185,11 +197,14 @@ public class RW
         command += $"Delay {delay_value};rwexit\"";
 
         startInfo.Arguments = command;
-        using (var ProcessOutput = Process.Start(startInfo))
+        using (Process? ProcessOutput = Process.Start(startInfo))
         {
+            if (ProcessOutput is null)
+                return;
+
             while (!ProcessOutput.StandardOutput.EndOfStream)
             {
-                var line = ProcessOutput.StandardOutput.ReadLine();
+                string? line = ProcessOutput.StandardOutput.ReadLine();
             }
         }
     }

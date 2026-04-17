@@ -11,22 +11,11 @@ namespace HandheldCompanion;
 public static class MotherboardInfo
 {
     private static readonly ManagementObjectSearcher baseboardSearcher = new("root\\CIMV2", "SELECT * FROM Win32_BaseBoard");
-    private static ManagementObjectCollection? baseboardCollection;
-
     private static readonly ManagementObjectSearcher motherboardSearcher = new("root\\CIMV2", "SELECT * FROM Win32_MotherboardDevice");
-    private static ManagementObjectCollection? motherboardCollection;
-
     private static readonly ManagementObjectSearcher processorSearcher = new("root\\CIMV2", "SELECT * FROM Win32_Processor");
-    private static ManagementObjectCollection? processorCollection;
-
     private static readonly ManagementObjectSearcher displaySearcher = new("root\\CIMV2", "SELECT * FROM Win32_DisplayConfiguration");
-    private static ManagementObjectCollection? displayCollection;
-
     private static readonly ManagementObjectSearcher videoControllerSearcher = new("root\\CIMV2", "SELECT * FROM Win32_VideoController");
-    private static ManagementObjectCollection? videoControllerCollection;
-
     private static readonly ManagementObjectSearcher computerSearcher = new("root\\CIMV2", "SELECT * FROM Win32_ComputerSystem");
-    private static ManagementObjectCollection? computerCollection;
 
     private static object cacheLock = new();
     private static Dictionary<string, object> cache = [];
@@ -41,153 +30,21 @@ public static class MotherboardInfo
             Directory.CreateDirectory(cacheDirectory);
     }
 
-    private static Dictionary<string, KeyValuePair<ManagementObjectCollection, ManagementObjectSearcher>> collections = new()
+    private static readonly Dictionary<string, ManagementObjectSearcher> collections = new()
     {
-        { "baseboard", new(baseboardCollection, baseboardSearcher) },
-        { "motherboard", new(motherboardCollection, motherboardSearcher) },
-        { "processor", new(processorCollection, processorSearcher) },
-        { "display", new(displayCollection, displaySearcher) },
-        { "video", new(videoControllerCollection, videoControllerSearcher) },
-        { "computer", new(computerCollection, computerSearcher) },
+        { "baseboard", baseboardSearcher },
+        { "motherboard", motherboardSearcher },
+        { "processor", processorSearcher },
+        { "display", displaySearcher },
+        { "video", videoControllerSearcher },
+        { "computer", computerSearcher },
     };
 
-    // unused
-    public static string Availability
-    {
-        get
-        {
-            string result = Convert.ToString(queryCacheValue("motherboard", "Availability"));
-            if (int.TryParse(result, out var value))
-                return GetAvailability(value);
-            else
-                return result;
-        }
-    }
-
-    // unused
-    public static List<string> DisplayDescription
-    {
-        get
-        {
-            return (List<string>)queryCacheValue("display", "Description");
-        }
-    }
-
-    // unused
-    public static bool HostingBoard
-    {
-        get
-        {
-            return Convert.ToBoolean(queryCacheValue("baseboard", "HostingBoard"));
-        }
-    }
-
-    // unused
-    public static string InstallDate
-    {
-        get
-        {
-            string result = Convert.ToString(queryCacheValue("baseboard", "InstallDate"));
-            if (!string.IsNullOrEmpty(result))
-                return ConvertToDateTime(result);
-            else
-                return result;
-        }
-    }
-
-    public static string Manufacturer
-    {
-        get
-        {
-            return Convert.ToString(queryCacheValue("baseboard", "Manufacturer"));
-        }
-    }
-
-    // unused
-    public static string Model
-    {
-        get
-        {
-            return Convert.ToString(queryCacheValue("baseboard", "Model"));
-        }
-    }
-
-    // unused
-    public static string SystemModel
-    {
-        get
-        {
-            return Convert.ToString(queryCacheValue("computer", "Model"));
-        }
-    }
-
-    public static int NumberOfCores
-    {
-        get
-        {
-            return Convert.ToInt32(queryCacheValue("processor", "NumberOfCores"));
-        }
-    }
-
-    // unused
-    public static string PartNumber
-    {
-        get
-        {
-            return Convert.ToString(queryCacheValue("baseboard", "PartNumber"));
-        }
-    }
-
-    // unused
-    public static string PNPDeviceID
-    {
-        get
-        {
-            return Convert.ToString(queryCacheValue("motherboard", "PNPDeviceID"));
-        }
-    }
-
-    // unused
-    public static string PrimaryBusType
-    {
-        get
-        {
-            return Convert.ToString(queryCacheValue("motherboard", "PrimaryBusType"));
-        }
-    }
-
-    public static string ProcessorID
-    {
-        get
-        {
-            return Convert.ToString(queryCacheValue("processor", "processorID")).TrimEnd();
-        }
-    }
-
-    public static string ProcessorName
-    {
-        get
-        {
-            return Convert.ToString(queryCacheValue("processor", "Name")).TrimEnd();
-        }
-    }
-
-    public static string ProcessorManufacturer
-    {
-        get
-        {
-            return Convert.ToString(queryCacheValue("processor", "Manufacturer")).TrimEnd();
-        }
-    }
-
-    // unused
-    public static uint ProcessorMaxClockSpeed
-    {
-        get
-        {
-            return Convert.ToUInt32(queryCacheValue("processor", "MaxClockSpeed"));
-        }
-    }
+    public static string Manufacturer => Convert.ToString(queryCacheValue("baseboard", "Manufacturer")) ?? string.Empty;
+    public static int NumberOfCores => Convert.ToInt32(queryCacheValue("processor", "NumberOfCores"));
+    public static string ProcessorID => (Convert.ToString(queryCacheValue("processor", "processorID")) ?? string.Empty).TrimEnd();
+    public static string ProcessorName => (Convert.ToString(queryCacheValue("processor", "Name")) ?? string.Empty).TrimEnd();
+    public static string ProcessorManufacturer => (Convert.ToString(queryCacheValue("processor", "Manufacturer")) ?? string.Empty).TrimEnd();
 
     private static uint _ProcessorMaxTurboSpeed = 0;
     public static uint ProcessorMaxTurboSpeed
@@ -203,81 +60,49 @@ public static class MotherboardInfo
         }
     }
 
-    public static string Product
+    public static string Product => Convert.ToString(queryCacheValue("baseboard", "Product")) ?? string.Empty;
+    public static string SystemName => Convert.ToString(queryCacheValue("motherboard", "SystemName")) ?? string.Empty;
+    public static string Version => Convert.ToString(queryCacheValue("baseboard", "Version")) ?? string.Empty;
+
+    // unused
+    public static string Availability
     {
         get
         {
-            return Convert.ToString(queryCacheValue("baseboard", "Product"));
+            string result = Convert.ToString(queryCacheValue("motherboard", "Availability")) ?? string.Empty;
+            if (int.TryParse(result, out var value))
+                return GetAvailability(value);
+            else
+                return result;
         }
     }
 
     // unused
-    public static bool Removable
-    {
-        get
-        {
-            return Convert.ToBoolean(queryCacheValue("baseboard", "Removable"));
-        }
-    }
+    public static List<string> DisplayDescription => (List<string>)queryCacheValue("display", "Description");
+    public static bool HostingBoard => Convert.ToBoolean(queryCacheValue("baseboard", "HostingBoard"));
+    public static string Model => Convert.ToString(queryCacheValue("baseboard", "Model")) ?? string.Empty;
+    public static string SystemModel => Convert.ToString(queryCacheValue("computer", "Model")) ?? string.Empty;
+    public static string PartNumber => Convert.ToString(queryCacheValue("baseboard", "PartNumber")) ?? string.Empty;
+    public static string PNPDeviceID => Convert.ToString(queryCacheValue("motherboard", "PNPDeviceID")) ?? string.Empty;
+    public static string PrimaryBusType => Convert.ToString(queryCacheValue("motherboard", "PrimaryBusType")) ?? string.Empty;
+    public static uint ProcessorMaxClockSpeed => Convert.ToUInt32(queryCacheValue("processor", "MaxClockSpeed"));
+    public static bool Removable => Convert.ToBoolean(queryCacheValue("baseboard", "Removable"));
+    public static bool Replaceable => Convert.ToBoolean(queryCacheValue("baseboard", "Replaceable"));
+    public static string RevisionNumber => Convert.ToString(queryCacheValue("motherboard", "RevisionNumber")) ?? string.Empty;
+    public static string SecondaryBusType => Convert.ToString(queryCacheValue("motherboard", "SecondaryBusType")) ?? string.Empty;
+    public static string SerialNumber => Convert.ToString(queryCacheValue("baseboard", "SerialNumber")) ?? string.Empty;
+    public static string Status => Convert.ToString(queryCacheValue("baseboard", "Status")) ?? string.Empty;
 
     // unused
-    public static bool Replaceable
+    public static string InstallDate
     {
         get
         {
-            return Convert.ToBoolean(queryCacheValue("baseboard", "Replaceable"));
-        }
-    }
-
-    // unused
-    public static string RevisionNumber
-    {
-        get
-        {
-            return Convert.ToString(queryCacheValue("motherboard", "RevisionNumber"));
-        }
-    }
-
-    // unused
-    public static string SecondaryBusType
-    {
-        get
-        {
-            return Convert.ToString(queryCacheValue("motherboard", "SecondaryBusType"));
-        }
-    }
-
-    // unused
-    public static string SerialNumber
-    {
-        get
-        {
-            return Convert.ToString(queryCacheValue("baseboard", "SerialNumber"));
-        }
-    }
-
-    // unused
-    public static string Status
-    {
-        get
-        {
-            return Convert.ToString(queryCacheValue("baseboard", "Status"));
-        }
-    }
-
-    public static string SystemName
-    {
-        get
-        {
-            return Convert.ToString(queryCacheValue("motherboard", "SystemName"));
-        }
-    }
-
-    public static string Version
-    {
-        get
-        {
-            return Convert.ToString(queryCacheValue("baseboard", "Version"));
+            string result = Convert.ToString(queryCacheValue("baseboard", "InstallDate")) ?? string.Empty;
+            if (!string.IsNullOrEmpty(result))
+                return ConvertToDateTime(result);
+            else
+                return result;
         }
     }
 
@@ -286,7 +111,8 @@ public static class MotherboardInfo
         bool hasvalue = false;
 
         // pull value if it exsts and check if correct
-        if (cache.TryGetValue($"{collectionName}-{query}", out object? result))
+        object? result = null;
+        if (cache.TryGetValue($"{collectionName}-{query}", out result))
         {
             switch (result)
             {
@@ -303,11 +129,8 @@ public static class MotherboardInfo
 
         if (!hasvalue)
         {
-            ManagementObjectCollection collection = collections[collectionName].Key;
-            ManagementObjectSearcher searcher = collections[collectionName].Value;
-
-            // use searcher if collection is null
-            collection ??= searcher.Get();
+            ManagementObjectSearcher searcher = collections[collectionName];
+            using ManagementObjectCollection collection = searcher.Get();
 
             // set or update result
             result = collection.Cast<ManagementObject>().Select(queryObj => queryObj[query]).FirstOrDefault(result => result != null);
@@ -321,7 +144,7 @@ public static class MotherboardInfo
             else return string.Empty;
         }
 
-        return result;
+        return result ?? string.Empty;
     }
 
     private static string GetAvailability(int availability)

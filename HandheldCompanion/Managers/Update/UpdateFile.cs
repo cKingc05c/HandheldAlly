@@ -8,18 +8,18 @@ namespace HandheldCompanion.Managers;
 public class UpdateFile
 {
     public bool debug;
-    public string filename;
+    public string filename = string.Empty;
     public int filesize;
     public short idx;
 
     // UI vars
-    public Border updateBorder;
-    public Button updateDownload;
-    public TextBlock updateFilename;
-    public Grid updateGrid;
-    public Button updateInstall;
-    public TextBlock updatePercentage;
-    public Uri uri;
+    public Border updateBorder = null!;
+    public Button updateDownload = null!;
+    public TextBlock updateFilename = null!;
+    public Grid updateGrid = null!;
+    public Button updateInstall = null!;
+    public TextBlock updatePercentage = null!;
+    public Uri uri = null!;
 
     public Border Draw()
     {

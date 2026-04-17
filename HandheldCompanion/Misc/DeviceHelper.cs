@@ -187,7 +187,7 @@ namespace HandheldCompanion
         [DllImport(setupapi, CallingConvention = CallingConvention.Winapi, SetLastError = true)]
         [return: MarshalAs(UnmanagedType.Bool)]
         public static extern bool SetupDiCallClassInstaller(DiFunction installFunction, SafeDeviceInfoSetHandle deviceInfoSet, [In()]
-ref DeviceInfoData deviceInfoData);
+        ref DeviceInfoData deviceInfoData);
 
         [DllImport(setupapi, CallingConvention = CallingConvention.Winapi, SetLastError = true)]
         [return: MarshalAs(UnmanagedType.Bool)]
@@ -195,8 +195,9 @@ ref DeviceInfoData deviceInfoData);
 
         [DllImport(setupapi, CallingConvention = CallingConvention.Winapi, CharSet = CharSet.Unicode, SetLastError = true)]
         public static extern SafeDeviceInfoSetHandle SetupDiGetClassDevs([In()]
-ref Guid classGuid, [MarshalAs(UnmanagedType.LPWStr)]
-string enumerator, IntPtr hwndParent, SetupDiGetClassDevsFlags flags);
+            ref Guid classGuid,
+            [MarshalAs(UnmanagedType.LPWStr)] string? enumerator,
+            IntPtr hwndParent, SetupDiGetClassDevsFlags flags);
 
         /*
         [DllImport(setupapi, CallingConvention = CallingConvention.Winapi, CharSet = CharSet.Unicode, SetLastError = true)]
@@ -261,7 +262,7 @@ ref PropertyChangeParameters classInstallParams, int classInstallParamsSize);
         /// <remarks>Will throw an exception if the device is not Disableable.</remarks>
         public static void SetDeviceEnabled(Guid classGuid, string instanceId, bool enable)
         {
-            SafeDeviceInfoSetHandle diSetHandle = null;
+            SafeDeviceInfoSetHandle? diSetHandle = null;
             try
             {
                 // Get the handle to a device information set for all devices matching classGuid that are present on the 
@@ -289,7 +290,7 @@ ref PropertyChangeParameters classInstallParams, int classInstallParamsSize);
 
         public static bool IsDeviceAvailable(Guid classGuid, string instanceId)
         {
-            SafeDeviceInfoSetHandle diSetHandle = null;
+            SafeDeviceInfoSetHandle? diSetHandle = null;
 
             diSetHandle = NativeMethods.SetupDiGetClassDevs(ref classGuid, null, IntPtr.Zero, SetupDiGetClassDevsFlags.Present);
             // Get the device information data for each matching device.

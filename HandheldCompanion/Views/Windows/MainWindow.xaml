@@ -85,7 +85,8 @@
             <ui:NavigationViewItem
                 Name="navLibrary"
                 Content="{l:Static resx:Resources.MainWindow_navLibrary}"
-                Tag="LibraryPage">
+                Tag="LibraryPage"
+                Visibility="{Binding IsNavLibraryVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
                 <ui:NavigationViewItem.Icon>
                     <ui:FontIcon Icon="{x:Static ui:SegoeFluentIcons.Library}" />
                 </ui:NavigationViewItem.Icon>
@@ -105,6 +106,7 @@
             <ui:NavigationViewItem
                 Name="navPerformance"
                 Content="{l:Static resx:Resources.MainWindow_navPerformance}"
+                IsEnabled="{Binding IsNavPerformanceEnabled}"
                 Tag="PerformancePage">
                 <ui:NavigationViewItem.Icon>
                     <ui:FontIcon Icon="{x:Static ui:SegoeFluentIcons.SpeedHigh}" />

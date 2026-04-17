@@ -51,13 +51,13 @@ namespace HandheldCompanion.Utils
             uint nServiceType,
             uint nStartType,
             uint nErrorControl,
-            string lpBinaryPathName,
-            string lpLoadOrderGroup,
+            string? lpBinaryPathName,
+            string? lpLoadOrderGroup,
             IntPtr lpdwTagId,
-            [In] char[] lpDependencies,
-            string lpServiceStartName,
-            string lpPassword,
-            string lpDisplayName);
+            [In] char[]? lpDependencies,
+            string? lpServiceStartName,
+            string? lpPassword,
+            string? lpDisplayName);
 
         [StructLayout(LayoutKind.Sequential)]
         private struct SERVICE_FAILURE_ACTIONS
@@ -75,7 +75,7 @@ namespace HandheldCompanion.Utils
         private static extern IntPtr OpenService(IntPtr hSCManager, string lpServiceName, uint dwDesiredAccess);
 
         [DllImport("advapi32.dll", EntryPoint = "OpenSCManagerW", ExactSpelling = true, CharSet = CharSet.Unicode, SetLastError = true)]
-        private static extern IntPtr OpenSCManager(string machineName, string databaseName, uint dwAccess);
+        private static extern IntPtr OpenSCManager(string? machineName, string? databaseName, uint dwAccess);
 
         [DllImport("advapi32.dll", EntryPoint = "CloseServiceHandle")]
         private static extern int CloseServiceHandle(IntPtr hSCObject);

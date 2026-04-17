@@ -1,3 +1,4 @@
+using HandheldCompanion.Inputs;
 using System;
 using System.ComponentModel;
 
@@ -18,10 +19,14 @@ namespace HandheldCompanion.Actions
     [Serializable]
     public sealed class ShiftActions : ButtonActions
     {
+        // Which shift slot this button activates — distinct from IActions.ShiftSlot (execution gating).
+        // IActions.ShiftSlot intentionally stays as Any so ShiftActions always execute regardless
+        // of the current shift state (they are the buttons that ACTIVATE shifts).
+        public ShiftSlot ActivationSlot = ShiftSlot.ShiftA;
+
         public ShiftActions()
         {
             actionType = ActionType.Shift;
-            ShiftSlot = ShiftSlot.ShiftA;
 
             // Shift keys are not interruptable, toggleable, or turboable
             HasInterruptable = false;
@@ -34,7 +39,14 @@ namespace HandheldCompanion.Actions
 
         public ShiftActions(ShiftSlot slot) : this()
         {
-            ShiftSlot = slot;
+            ActivationSlot = slot;
+        }
+
+        public override void Execute(ButtonFlags button, bool value, ShiftSlot shiftSlot, float delta)
+        {
+            // ShiftActions must always execute regardless of current shift state —
+            // pass Any so that IActions.Execute() never gates this action.
+            base.Execute(button, value, ShiftSlot.Any, delta);
         }
     }
 }

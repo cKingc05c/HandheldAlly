@@ -286,7 +286,7 @@ public class ROGAlly : IDevice
 
     private void Device_Removed()
     {
-        if (hidDevices.TryGetValue(INPUT_HID_ID, out HidDevice device))
+        if (hidDevices.TryGetValue(INPUT_HID_ID, out HidDevice? device))
         {
             device.MonitorDeviceEvents = false;
             device.Removed -= Device_Removed;
@@ -303,7 +303,7 @@ public class ROGAlly : IDevice
         if (reScan)
             await WaitUntilReady();
 
-        if (hidDevices.TryGetValue(INPUT_HID_ID, out HidDevice device))
+        if (hidDevices.TryGetValue(INPUT_HID_ID, out HidDevice? device))
         {
             device.MonitorDeviceEvents = true;
             device.Removed += Device_Removed;
@@ -388,18 +388,22 @@ public class ROGAlly : IDevice
 
         try
         {
-            if (hidDevices.TryGetValue(INPUT_HID_ID, out HidDevice hidDevice))
+            if (hidDevices.TryGetValue(INPUT_HID_ID, out HidDevice? hidDevice))
             {
                 try
                 {
-                    PnPDevice pnpDevice = PnPDevice.GetDeviceByInterfaceId(hidDevice.DevicePath);
-                    string device_parent = pnpDevice.GetProperty<string>(DevicePropertyKey.Device_Parent);
+                    PnPDevice? pnpDevice = PnPDevice.GetDeviceByInterfaceId(hidDevice.DevicePath);
+                    string? device_parent = pnpDevice?.GetProperty<string>(DevicePropertyKey.Device_Parent);
 
-                    PnPDevice pnpParent = PnPDevice.GetDeviceByInstanceId(device_parent);
-                    Guid parent_guid = pnpParent.GetProperty<Guid>(DevicePropertyKey.Device_ClassGuid);
-                    string parent_instanceId = pnpParent.GetProperty<string>(DevicePropertyKey.Device_InstanceId);
+                    if (!string.IsNullOrEmpty(device_parent))
+                    {
+                        PnPDevice? pnpParent = PnPDevice.GetDeviceByInstanceId(device_parent);
+                        Guid? parent_guid = pnpParent?.GetProperty<Guid>(DevicePropertyKey.Device_ClassGuid);
+                        string? parent_instanceId = pnpParent?.GetProperty<string>(DevicePropertyKey.Device_InstanceId);
 
-                    return DeviceHelper.IsDeviceAvailable(parent_guid, parent_instanceId);
+                        if (parent_guid is not null && !string.IsNullOrEmpty(parent_instanceId))
+                            return DeviceHelper.IsDeviceAvailable((Guid)parent_guid, parent_instanceId);
+                    }
                 }
                 catch { }
             }
@@ -478,7 +482,7 @@ public class ROGAlly : IDevice
         //ROG ALly brightness range is: 0 - 3 range, 0 is off, convert from 0 - 100 % range
         brightness = (int)Math.Round(brightness / 33.33);
 
-        if (hidDevices.TryGetValue(AURA_HID_ID, out HidDevice hidDevice))
+        if (hidDevices.TryGetValue(AURA_HID_ID, out HidDevice? hidDevice))
         {
             if (!hidDevice.IsConnected)
                 return false;
@@ -532,7 +536,7 @@ public class ROGAlly : IDevice
 
     private bool ApplyColor(AuraMode mode, Color MainColor, Color SecondaryColor, AuraSpeed speed = AuraSpeed.Slow, AuraDirection direction = AuraDirection.Forward)
     {
-        if (hidDevices.TryGetValue(AURA_HID_ID, out HidDevice hidDevice))
+        if (hidDevices.TryGetValue(AURA_HID_ID, out HidDevice? hidDevice))
         {
             if (!hidDevice.IsConnected)
                 return false;
@@ -549,7 +553,7 @@ public class ROGAlly : IDevice
 
     private bool ApplyColorFast(Color MainColor, Color SecondaryColor)
     {
-        if (hidDevices.TryGetValue(AURA_HID_ID, out HidDevice hidDevice))
+        if (hidDevices.TryGetValue(AURA_HID_ID, out HidDevice? hidDevice))
         {
             if (!hidDevice.IsConnected)
                 return false;
@@ -619,7 +623,7 @@ public class ROGAlly : IDevice
 
     private void ConfigureController(bool Remap)
     {
-        if (hidDevices.TryGetValue(INPUT_HID_ID, out HidDevice device))
+        if (hidDevices.TryGetValue(INPUT_HID_ID, out HidDevice? device))
         {
             if (!device.IsConnected)
                 return;
@@ -645,7 +649,7 @@ public class ROGAlly : IDevice
 
     public bool XBoxController(bool disabled)
     {
-        if (hidDevices.TryGetValue(INPUT_HID_ID, out HidDevice device))
+        if (hidDevices.TryGetValue(INPUT_HID_ID, out HidDevice? device))
         {
             if (!device.IsConnected)
                 return false;
@@ -678,7 +682,7 @@ public class ROGAlly : IDevice
         AsusACPI.DeviceSet(AsusACPI.PPT_APUC1, limit);
     }
 
-    protected override void SettingsManager_SettingValueChanged(string name, object value, bool temporary)
+    protected override void SettingsManager_SettingValueChanged(string name, object? value, bool temporary)
     {
         switch (name)
         {

@@ -121,7 +121,7 @@ internal class Model8BitDoLite2 : IModel
         foreach (ButtonFlags button in Enum.GetValues(typeof(ButtonFlags)))
         {
             var i = 0;
-            Material buttonMaterial = null;
+            Material buttonMaterial;
 
             if (ButtonMap.TryGetValue(button, out var map))
                 foreach (var model3D in map)

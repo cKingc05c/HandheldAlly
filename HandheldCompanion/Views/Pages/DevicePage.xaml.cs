@@ -117,8 +117,8 @@ namespace HandheldCompanion.Views.Pages
             IDevice.GetCurrent().CapabilitiesChanged += OnCapabilitiesChanged;
 
             // raise events
-            if (ControllerManager.HasTargetController)
-                ControllerManager_ControllerSelected(ControllerManager.GetTarget());
+            if (ControllerManager.HasTargetController && ControllerManager.GetTarget() is IController controller)
+                ControllerManager_ControllerSelected(controller);
         }
 
         private void OnCapabilitiesChanged(DeviceCapabilities capabilities)
@@ -170,7 +170,7 @@ namespace HandheldCompanion.Views.Pages
             IDevice.GetCurrent().CapabilitiesChanged -= OnCapabilitiesChanged;
         }
 
-        private void SettingsManager_SettingValueChanged(string? name, object value, bool temporary)
+        private void SettingsManager_SettingValueChanged(string? name, object? value, bool temporary)
         {
             // UI thread
             UIHelper.TryInvoke(() =>
@@ -318,7 +318,7 @@ namespace HandheldCompanion.Views.Pages
             });
         }
 
-        public void UpdateDevice(PnPDevice device = null)
+        public void UpdateDevice(PnPDevice? device = null)
         {
             // UI thread
             UIHelper.TryInvoke(() =>
@@ -681,7 +681,7 @@ namespace HandheldCompanion.Views.Pages
                     break;
 
                 case SensorFamily.Controller:
-                    IController controller = ControllerManager.GetTarget();
+                    IController? controller = ControllerManager.GetTarget();
                     controller?.Calibrate();
                     break;
             }

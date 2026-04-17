@@ -57,7 +57,7 @@ namespace HandheldCompanion.Processors.AMD
             ControlCode dwIoControlCode,
             byte[] lpInBuffer,
             uint nInBufferSize,
-            byte[] lpOutBuffer,
+            byte[]? lpOutBuffer,
             uint nOutBufferSize,
             out uint lpBytesReturned,
             IntPtr lpOverlapped);
@@ -75,7 +75,7 @@ namespace HandheldCompanion.Processors.AMD
             IntPtr overlapped);
 
         private IntPtr _rawHandle = IntPtr.Zero;
-        private SafeFileHandle _safeHandle;
+        private SafeFileHandle? _safeHandle;
         private bool _disposed;
         private bool _moduleLoaded;
 
@@ -155,13 +155,13 @@ namespace HandheldCompanion.Processors.AMD
             //  - HKLM\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*  (32-bit view)
             // and match DisplayName containing "PawnIO".
 
-            if (TryGetInstalledPawnIOVersion(out string versionString))
+            if (TryGetInstalledPawnIOVersion(out string? versionString) && !string.IsNullOrEmpty(versionString))
                 return new Version(versionString);
 
             return new Version();
         }
 
-        private static bool TryGetInstalledPawnIOVersion(out string versionString)
+        private static bool TryGetInstalledPawnIOVersion(out string? versionString)
         {
             versionString = null;
 
@@ -176,35 +176,37 @@ namespace HandheldCompanion.Processors.AMD
             return false;
         }
 
-        private static bool TryGetFromUninstallHive(string hivePath, out string versionString)
+        private static bool TryGetFromUninstallHive(string hivePath, out string? versionString)
         {
             versionString = null;
 
             try
             {
-                using RegistryKey root = Registry.LocalMachine.OpenSubKey(hivePath);
-                if (root is null)
-                    return false;
-
-                foreach (string subKeyName in root.GetSubKeyNames())
+                using (RegistryKey? root = Registry.LocalMachine.OpenSubKey(hivePath))
                 {
-                    // Use our shared registry helpers (mirrors InnoSetup approach of reading uninstall entries).
-                    string fullKeyPath = hivePath + "\\" + subKeyName;
-                    string displayName = RegistryUtils.GetString(fullKeyPath, "DisplayName");
-                    if (string.IsNullOrWhiteSpace(displayName))
-                        continue;
+                    if (root is null)
+                        return false;
 
-                    // Match like Inno: compare against product name.
-                    // We keep it resilient to minor naming variations.
-                    if (!displayName.Contains("PawnIO", StringComparison.InvariantCultureIgnoreCase))
-                        continue;
+                    foreach (string subKeyName in root.GetSubKeyNames())
+                    {
+                        // Use our shared registry helpers (mirrors InnoSetup approach of reading uninstall entries).
+                        string fullKeyPath = hivePath + "\\" + subKeyName;
+                        string displayName = RegistryUtils.GetString(fullKeyPath, "DisplayName");
+                        if (string.IsNullOrWhiteSpace(displayName))
+                            continue;
 
-                    string displayVersion = RegistryUtils.GetString(fullKeyPath, "DisplayVersion");
-                    if (string.IsNullOrWhiteSpace(displayVersion))
-                        continue;
+                        // Match like Inno: compare against product name.
+                        // We keep it resilient to minor naming variations.
+                        if (!displayName.Contains("PawnIO", StringComparison.InvariantCultureIgnoreCase))
+                            continue;
 
-                    versionString = displayVersion.Trim();
-                    return true;
+                        string displayVersion = RegistryUtils.GetString(fullKeyPath, "DisplayVersion");
+                        if (string.IsNullOrWhiteSpace(displayVersion))
+                            continue;
+
+                        versionString = displayVersion.Trim();
+                        return true;
+                    }
                 }
             }
             catch (Exception ex)
@@ -232,14 +234,14 @@ namespace HandheldCompanion.Processors.AMD
 
             try
             {
-                using (Stream stream = assembly.GetManifestResourceStream(resourceName))
+                using (Stream? stream = assembly.GetManifestResourceStream(resourceName))
                 {
-                    if (stream == null)
+                    if (stream is null)
                     {
-                        LogManager.LogError($"Embedded resource not found: {resourceName}");
+                        LogManager.LogError("Embedded resource not found: {0}", resourceName);
                         // List available resources for debugging
                         var available = assembly.GetManifestResourceNames();
-                        LogManager.LogInformation($"Available resources ({available.Length}): {string.Join(", ", available)}");
+                        LogManager.LogInformation("Available resources ({0}): {1}", available.Length, string.Join(", ", available));
                         return false;
                     }
 
@@ -247,14 +249,14 @@ namespace HandheldCompanion.Processors.AMD
                     {
                         stream.CopyTo(memoryStream);
                         byte[] moduleData = memoryStream.ToArray();
-                        LogManager.LogInformation($"Loaded embedded resource {resourceName} ({moduleData.Length} bytes)");
+                        LogManager.LogInformation("Loaded embedded resource {0} ({1} bytes)", resourceName, moduleData.Length);
                         return LoadModuleFromBytes(moduleData, $"embedded:{resourceName}");
                     }
                 }
             }
             catch (Exception ex)
             {
-                LogManager.LogError($"Exception loading module from resource: {ex.Message}");
+                LogManager.LogError("Exception loading module from resource: {0}", ex.Message);
                 return false;
             }
         }
@@ -285,7 +287,7 @@ namespace HandheldCompanion.Processors.AMD
             }
             catch (Exception ex)
             {
-                LogManager.LogError($"Exception loading module: {ex.Message}");
+                LogManager.LogError("Exception loading module: {0}", ex.Message);
                 return false;
             }
         }
@@ -306,7 +308,7 @@ namespace HandheldCompanion.Processors.AMD
 
             try
             {
-                LogManager.LogInformation($"Loading PawnIO module from {sourceName} ({moduleData.Length} bytes)");
+                LogManager.LogInformation("Loading PawnIO module from {0} ({1} bytes)", sourceName, moduleData.Length);
 
                 // Use IntPtr handle for loading (like ZenStates-Core)
                 bool result = DeviceIoControl(
@@ -332,13 +334,13 @@ namespace HandheldCompanion.Processors.AMD
                 {
                     int error = Marshal.GetLastWin32Error();
                     int hr = Marshal.GetHRForLastWin32Error();
-                    LogManager.LogError($"Failed to load module. Win32 error: {error}, HRESULT: 0x{hr:X8}");
+                    LogManager.LogError("Failed to load module. Win32 error: {0}, HRESULT: 0x{1:X8}", error, hr);
                     return false;
                 }
             }
             catch (Exception ex)
             {
-                LogManager.LogError($"Exception loading module: {ex.Message}");
+                LogManager.LogError("Exception loading module: {0}", ex.Message);
                 return false;
             }
         }
@@ -350,7 +352,7 @@ namespace HandheldCompanion.Processors.AMD
         /// <param name="inputArgs">Input arguments (array of UInt64).</param>
         /// <param name="outputArgs">Output buffer for results (array of UInt64).</param>
         /// <returns>True if execution succeeded.</returns>
-        public bool ExecuteFunction(string functionName, ulong[] inputArgs, ulong[] outputArgs)
+        public bool ExecuteFunction(string functionName, ulong[]? inputArgs, ulong[]? outputArgs)
         {
             if (!IsModuleLoaded)
             {
@@ -377,7 +379,10 @@ namespace HandheldCompanion.Processors.AMD
                     Buffer.BlockCopy(inBuffer, 0, totalInput, FN_NAME_LENGTH, inSize * 8);
                 }
 
-                byte[] outBuffer = outSize > 0 ? new byte[outSize * 8] : null;
+                if (outSize == 0)
+                    return false;
+
+                byte[] outBuffer = new byte[outSize * 8];
 
                 // Use SafeFileHandle for execute calls
                 bool result = DeviceIoControl(
@@ -386,13 +391,13 @@ namespace HandheldCompanion.Processors.AMD
                     totalInput,
                     (uint)totalInput.Length,
                     outBuffer,
-                    (uint)(outBuffer?.Length ?? 0),
+                    (uint)(outBuffer.Length),
                     out uint bytesReturned,
                     IntPtr.Zero);
 
                 if (result)
                 {
-                    if (outputArgs != null && outBuffer != null && bytesReturned > 0)
+                    if (outputArgs != null && bytesReturned > 0)
                     {
                         int elementsReturned = (int)Math.Min(bytesReturned / 8, (uint)outSize);
                         Buffer.BlockCopy(outBuffer, 0, outputArgs, 0, elementsReturned * 8);
@@ -430,7 +435,7 @@ namespace HandheldCompanion.Processors.AMD
                 }
                 catch (Exception ex)
                 {
-                    LogManager.LogWarning($"Error closing PawnIO safe handle: {ex.Message}");
+                    LogManager.LogWarning("Error closing PawnIO safe handle: {0}", ex.Message);
                 }
                 _safeHandle = null;
             }

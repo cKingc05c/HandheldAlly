@@ -23,7 +23,7 @@ namespace HandheldCompanion.Misc
         public string CloseButtonText { get; set; } = string.Empty;
         public bool CanClose { get; set; } = true;
 
-        public Dialog(Window owner, ContentDialog dialog = null)
+        public Dialog(Window owner, ContentDialog? dialog = null)
         {
             _owner = owner ?? throw new ArgumentNullException(nameof(owner));
 

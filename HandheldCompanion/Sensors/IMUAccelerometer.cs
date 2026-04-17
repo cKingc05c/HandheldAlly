@@ -62,10 +62,12 @@ public class IMUAccelerometer : IMUSensor
         switch (sensorFamily)
         {
             case SensorFamily.Windows:
-                ((Accelerometer)sensor).ReadingChanged += ReadingChanged;
+                if (sensor is not null)
+                    ((Accelerometer)sensor).ReadingChanged += ReadingChanged;
                 break;
             case SensorFamily.SerialUSBIMU:
-                ((SerialUSBIMU)sensor).ReadingChanged += ReadingChanged;
+                if (sensor is not null)
+                    ((SerialUSBIMU)sensor).ReadingChanged += ReadingChanged;
                 break;
         }
     }
@@ -78,10 +80,12 @@ public class IMUAccelerometer : IMUSensor
         switch (sensorFamily)
         {
             case SensorFamily.Windows:
-                ((Accelerometer)sensor).ReadingChanged -= ReadingChanged;
+                if (sensor is not null)
+                    ((Accelerometer)sensor).ReadingChanged -= ReadingChanged;
                 break;
             case SensorFamily.SerialUSBIMU:
-                ((SerialUSBIMU)sensor).ReadingChanged -= ReadingChanged;
+                if (sensor is not null)
+                    ((SerialUSBIMU)sensor).ReadingChanged -= ReadingChanged;
                 break;
         }
 
@@ -136,7 +140,7 @@ public class IMUAccelerometer : IMUSensor
         // throw new NotImplementedException();
     }
 
-    public new SensorReading GetCurrentReading(bool center = false, bool ratio = false)
+    public SensorReading GetCurrentReading(bool center = false, bool ratio = false)
     {
         return this.reading;
     }

@@ -20,7 +20,7 @@ namespace HandheldCompanion.Commands.Functions.Performance
         public override void Execute(bool IsKeyDown, bool IsKeyUp, bool IsBackground)
         {
             PowerProfile powerProfile = ManagerFactory.powerProfileManager.GetCurrent();
-            if (powerProfile.TDPOverrideEnabled && !powerProfile.DeviceDefault)
+            if (powerProfile.TDPOverrideEnabled && !powerProfile.DeviceDefault && powerProfile.TDPOverrideValues is not null)
             {
                 double TPDMin = PerformanceManager.GetMinimumTDP();
                 for (int idx = (int)PowerType.Slow; idx <= (int)PowerType.Fast; idx++)

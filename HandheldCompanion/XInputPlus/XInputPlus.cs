@@ -44,16 +44,16 @@ public class XInputPlusLoaderSetting
         }
  */
     const int MAX_PATH = 260;
-    [MarshalAs(UnmanagedType.ByValTStr, SizeConst = MAX_PATH)] public string LoaderDLL32;
-    [MarshalAs(UnmanagedType.ByValTStr, SizeConst = MAX_PATH)] public string LoaderDLL64;
-    [MarshalAs(UnmanagedType.ByValTStr, SizeConst = MAX_PATH)] public string XInputDLL32;
-    [MarshalAs(UnmanagedType.ByValTStr, SizeConst = MAX_PATH)] public string DInputDLL32;
-    [MarshalAs(UnmanagedType.ByValTStr, SizeConst = MAX_PATH)] public string DInput8DLL32;
-    [MarshalAs(UnmanagedType.ByValTStr, SizeConst = MAX_PATH)] public string XInputDLL64;
-    [MarshalAs(UnmanagedType.ByValTStr, SizeConst = MAX_PATH)] public string DInputDLL64;
-    [MarshalAs(UnmanagedType.ByValTStr, SizeConst = MAX_PATH)] public string DInput8DLL64;
-    [MarshalAs(UnmanagedType.ByValTStr, SizeConst = MAX_PATH)] public string TargetProgram;
-    [MarshalAs(UnmanagedType.ByValTStr, SizeConst = MAX_PATH)] public string LoaderDir;
+    [MarshalAs(UnmanagedType.ByValTStr, SizeConst = MAX_PATH)] public string LoaderDLL32 = string.Empty;
+    [MarshalAs(UnmanagedType.ByValTStr, SizeConst = MAX_PATH)] public string LoaderDLL64 = string.Empty;
+    [MarshalAs(UnmanagedType.ByValTStr, SizeConst = MAX_PATH)] public string XInputDLL32 = string.Empty;
+    [MarshalAs(UnmanagedType.ByValTStr, SizeConst = MAX_PATH)] public string DInputDLL32 = string.Empty;
+    [MarshalAs(UnmanagedType.ByValTStr, SizeConst = MAX_PATH)] public string DInput8DLL32 = string.Empty;
+    [MarshalAs(UnmanagedType.ByValTStr, SizeConst = MAX_PATH)] public string XInputDLL64 = string.Empty;
+    [MarshalAs(UnmanagedType.ByValTStr, SizeConst = MAX_PATH)] public string DInputDLL64 = string.Empty;
+    [MarshalAs(UnmanagedType.ByValTStr, SizeConst = MAX_PATH)] public string DInput8DLL64 = string.Empty;
+    [MarshalAs(UnmanagedType.ByValTStr, SizeConst = MAX_PATH)] public string TargetProgram = string.Empty;
+    [MarshalAs(UnmanagedType.ByValTStr, SizeConst = MAX_PATH)] public string LoaderDir = string.Empty;
     [MarshalAs(UnmanagedType.U1)] public bool HookChildProcess;
     [MarshalAs(UnmanagedType.U1)] public bool Launched;
 }
@@ -72,7 +72,7 @@ public static class XInputPlus
     };
 
     // XInputPlus main directory
-    private static readonly string XInputPlusDir = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "XInputPlus");
+    private static readonly string XInputPlusDir = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) ?? AppContext.BaseDirectory, "XInputPlus");
 
     // XInputPlus Loader (injector)
     private static readonly string XInputPlus_InjectorDir = Path.Combine(XInputPlusDir, "Loader");
@@ -95,8 +95,8 @@ public static class XInputPlus
     private static void EnsureInjectorFiles()
     {
         Directory.CreateDirectory(XInputPlus_InjectorDir);
-        Directory.CreateDirectory(Path.GetDirectoryName(XInputPlus_XInputx86));
-        Directory.CreateDirectory(Path.GetDirectoryName(XInputPlus_XInputx64));
+        Directory.CreateDirectory(Path.Combine(XInputPlusDir, "x86"));
+        Directory.CreateDirectory(Path.Combine(XInputPlusDir, "x64"));
 
         if (!File.Exists(XInputPlus_Injectorx86))
             File.WriteAllBytes(XInputPlus_Injectorx86, Resources.XInputPlusInjector);
@@ -213,7 +213,7 @@ public static class XInputPlus
 
     public static bool RegisterApplication(Profile profile)
     {
-        string DirectoryPath = Path.GetDirectoryName(profile.Path);
+        string? DirectoryPath = Path.GetDirectoryName(profile.Path);
         if (string.IsNullOrEmpty(DirectoryPath))
             return false;
 
@@ -285,7 +285,7 @@ public static class XInputPlus
 
     public static bool UnregisterApplication(Profile profile)
     {
-        string DirectoryPath = Path.GetDirectoryName(profile.Path);
+        string? DirectoryPath = Path.GetDirectoryName(profile.Path);
         if (string.IsNullOrEmpty(DirectoryPath))
             return false;
 
@@ -363,7 +363,7 @@ public static class XInputPlus
                     IniFile.Write($"Controller{i + 1}", "0", "ControllerNumber");
 
                 // we need to define Controller index overwrite
-                XInputController vController = ControllerManager.GetVirtualControllers<XInputController>().FirstOrDefault();
+                XInputController? vController = ControllerManager.GetVirtualControllers<XInputController>().FirstOrDefault();
                 if (vController is null)
                     return false;
 

@@ -11,19 +11,19 @@ using TaskScheduled = Microsoft.Win32.TaskScheduler.Task;
 
 namespace HandheldCompanion.Watchers
 {
-    public class ISpaceWatcher
+    public class ISpaceWatcher : IDisposable
     {
         protected List<string> serviceNames = new();
         protected List<ServiceController> serviceControllers = new();
         protected List<string> taskNames = new();
         protected List<string> executableNames = new();
 
-        public Notification notification;
+        public Notification? notification;
 
-        protected Timer watchdogTimer;
+        protected Timer? watchdogTimer;
 
         protected bool prevStatus = false;
-        public event StatusChangedHandler StatusChanged;
+        public event StatusChangedHandler? StatusChanged;
         public delegate void StatusChangedHandler(bool enabled);
 
         public virtual void Start()
@@ -56,6 +56,14 @@ namespace HandheldCompanion.Watchers
         protected void UpdateStatus(bool enabled)
         {
             StatusChanged?.Invoke(enabled);
+        }
+
+        public virtual void Dispose()
+        {
+            Stop();
+            watchdogTimer?.Dispose();
+            watchdogTimer = null;
+            GC.SuppressFinalize(this);
         }
 
         #region executables

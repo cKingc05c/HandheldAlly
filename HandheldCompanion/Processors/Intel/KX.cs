@@ -15,7 +15,7 @@ public class KX
     private string[] mchbar_addresses = new string[] { "0xfedc0000", "0xfed10000" };
     private string mchbar = string.Empty;
     private readonly string path;
-    private readonly ProcessStartInfo startInfo;
+    private ProcessStartInfo? startInfo;
 
     public enum IntelUndervoltRail
     {
@@ -56,9 +56,12 @@ public class KX
                 startInfo.Arguments = $"/rdmem32 {address}";
                 using (Process? ProcessOutput = Process.Start(startInfo))
                 {
+                    if (ProcessOutput is null)
+                        continue;
+
                     while (!ProcessOutput.StandardOutput.EndOfStream)
                     {
-                        string line = ProcessOutput.StandardOutput.ReadLine();
+                        string? line = ProcessOutput.StandardOutput.ReadLine();
                         if (string.IsNullOrEmpty(line))
                             continue;
 
@@ -67,6 +70,9 @@ public class KX
 
                         // parse result
                         line = CommonUtils.Between(line, "Return ");
+                        if (string.IsNullOrEmpty(line))
+                            continue;
+
                         long returned = long.Parse(line);
 
                         // check if mchbar is null
@@ -94,8 +100,11 @@ public class KX
         try
         {
             startInfo.Arguments = "/RdPci32 0 0 0 0x48";
-            using (var ProcessOutput = Process.Start(startInfo))
+            using (Process? ProcessOutput = Process.Start(startInfo))
             {
+                if (ProcessOutput is null)
+                    return false;
+
                 while (!ProcessOutput.StandardOutput.EndOfStream)
                 {
                     string? line = ProcessOutput.StandardOutput.ReadLine();
@@ -107,6 +116,9 @@ public class KX
 
                     // parse result
                     line = CommonUtils.Between(line, "Return ");
+                    if (string.IsNullOrEmpty(line))
+                        continue;
+
                     long returned = long.Parse(line);
                     string output = "0x" + returned.ToString("X2").Substring(0, 4);
 
@@ -151,8 +163,11 @@ public class KX
             return -1; // failed
 
         startInfo.Arguments = $"/rdmem16 {mchbar}{pointer}";
-        using (var ProcessOutput = Process.Start(startInfo))
+        using (Process? ProcessOutput = Process.Start(startInfo))
         {
+            if (ProcessOutput is null)
+                return -1;
+
             try
             {
                 while (!ProcessOutput.StandardOutput.EndOfStream)
@@ -166,6 +181,9 @@ public class KX
 
                     // parse result
                     line = CommonUtils.Between(line, "Return ");
+                    if (string.IsNullOrEmpty(line))
+                        continue;
+
                     long returned = long.Parse(line);
                     double output = ((double)returned + short.MinValue) / 8.0d;
 
@@ -184,8 +202,11 @@ public class KX
             return -1; // failed
 
         startInfo.Arguments = "/rdmsr 0x610";
-        using (var ProcessOutput = Process.Start(startInfo))
+        using (Process? ProcessOutput = Process.Start(startInfo))
         {
+            if (ProcessOutput is null)
+                return -1;
+
             try
             {
                 while (!ProcessOutput.StandardOutput.EndOfStream)
@@ -199,6 +220,8 @@ public class KX
 
                     // parse result
                     line = CommonUtils.Between(line, "Msr Data     : ");
+                    if (string.IsNullOrEmpty(line))
+                        continue;
 
                     string[] values = line.Split(" ");
                     string hex = values[pointer];
@@ -243,8 +266,11 @@ public class KX
 
         // register command
         startInfo.Arguments = $"/wrmem16 {mchbar}{pointer1} 0x8{hex.Substring(0, 1)}{hex.Substring(1)}";
-        using (var ProcessOutput = Process.Start(startInfo))
+        using (Process? ProcessOutput = Process.Start(startInfo))
         {
+            if (ProcessOutput is null)
+                return -1;
+
             string? line = ProcessOutput.StandardOutput.ReadLine();
             if (string.IsNullOrEmpty(line))
                 return 0;
@@ -263,8 +289,11 @@ public class KX
 
         // register command
         startInfo.Arguments = $"/wrmsr 0x610 0x00438{hexPL2} 00DD8{hexPL1}";
-        using (var ProcessOutput = Process.Start(startInfo))
+        using (Process? ProcessOutput = Process.Start(startInfo))
         {
+            if (ProcessOutput is null)
+                return -1;
+
             string? line = ProcessOutput.StandardOutput.ReadLine();
             if (string.IsNullOrEmpty(line))
                 return 0; // success
@@ -331,8 +360,11 @@ public class KX
         string hex = ClockToHex(clock);
 
         startInfo.Arguments = $"/wrmem8 {mchbar}{pnt_clock} {hex}";
-        using (var ProcessOutput = Process.Start(startInfo))
+        using (Process? ProcessOutput = Process.Start(startInfo))
         {
+            if (ProcessOutput is null)
+                return -1;
+
             string? line = ProcessOutput.StandardOutput.ReadLine();
             if (string.IsNullOrEmpty(line))
                 return 0;
@@ -347,8 +379,11 @@ public class KX
             return -1; // failed
 
         startInfo.Arguments = $"/rdmem8 {mchbar}{pnt_clock}";
-        using (var ProcessOutput = Process.Start(startInfo))
+        using (Process? ProcessOutput = Process.Start(startInfo))
         {
+            if (ProcessOutput is null)
+                return -1;
+
             try
             {
                 while (!ProcessOutput.StandardOutput.EndOfStream)
@@ -362,6 +397,9 @@ public class KX
 
                     // parse result
                     line = CommonUtils.Between(line, "Return ");
+                    if (line is null)
+                        continue;
+
                     int returned = int.Parse(line);
                     int clock = returned * 50;
 

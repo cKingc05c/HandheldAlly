@@ -1,6 +1,5 @@
 ﻿using HandheldCompanion.Devices;
 using HandheldCompanion.Helpers;
-using HandheldCompanion.Managers;
 using HandheldCompanion.Views;
 using System;
 using System.Windows.Media.Imaging;

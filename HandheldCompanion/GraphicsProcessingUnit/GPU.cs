@@ -14,17 +14,17 @@ namespace HandheldCompanion.GraphicsProcessingUnit
     public class GPU : IDisposable
     {
         #region
-        public event IntegerScalingChangedEvent IntegerScalingChanged;
+        public event IntegerScalingChangedEvent? IntegerScalingChanged;
         public delegate void IntegerScalingChangedEvent(bool Supported, bool Enabled);
 
-        public event ImageSharpeningChangedEvent ImageSharpeningChanged;
+        public event ImageSharpeningChangedEvent? ImageSharpeningChanged;
         public delegate void ImageSharpeningChangedEvent(bool Enabled, int Sharpness);
 
-        public event GPUScalingChangedEvent GPUScalingChanged;
+        public event GPUScalingChangedEvent? GPUScalingChanged;
         public delegate void GPUScalingChangedEvent(bool Supported, bool Enabled, int Mode);
 
         // true: GPU is busy, false: GPU is free
-        public event StatusChangedEvent StatusChanged;
+        public event StatusChangedEvent? StatusChanged;
         public delegate void StatusChangedEvent(bool status);
         #endregion
 
@@ -35,11 +35,10 @@ namespace HandheldCompanion.GraphicsProcessingUnit
         public bool IsInitialized = false;
 
         protected const int UpdateInterval = 5000;
-        protected Timer UpdateTimer;
-        protected bool GPUManagerMonitor => true; // ManagerFactory.settingsManager.GetBoolean("GPUManagerMonitor");
+        protected Timer? UpdateTimer;
 
         protected const int TelemetryInterval = 1000;
-        protected Timer TelemetryTimer;
+        protected Timer? TelemetryTimer;
 
         protected bool prevGPUScalingSupport = false;
         protected bool prevGPUScaling = false;
@@ -57,14 +56,14 @@ namespace HandheldCompanion.GraphicsProcessingUnit
         protected object telemetryLock = new();
         protected object functionLock = new();
 
-        private Timer BusyTimer;
+        private Timer? BusyTimer;
         private bool busyEventRaised = false;
 
         protected static HashSet<string> ProcessTargets = new HashSet<string>();
         private static readonly object processTargetsLock = new object();
 
         public static string serviceName = string.Empty;
-        protected static ServiceController serviceController;
+        protected static ServiceController? serviceController;
 
         public bool IsBusy
         {
@@ -116,14 +115,14 @@ namespace HandheldCompanion.GraphicsProcessingUnit
                         busyEventRaised = false;
 
                         // Reset timer
-                        BusyTimer.Stop();
-                        BusyTimer.Start();
+                        BusyTimer?.Stop();
+                        BusyTimer?.Start();
 
                         // Execute function
                         T result = func();
 
                         // Stop timer since func() has completed
-                        BusyTimer.Stop();
+                        BusyTimer?.Stop();
 
                         // If the busy event was raised, signal that we're now free.
                         if (busyEventRaised)
@@ -157,7 +156,7 @@ namespace HandheldCompanion.GraphicsProcessingUnit
             return adapterInformation.Details.Description;
         }
 
-        protected virtual void BusyTimer_Elapsed(object sender, ElapsedEventArgs e)
+        protected virtual void BusyTimer_Elapsed(object? sender, ElapsedEventArgs e)
         {
             busyEventRaised = true;
             StatusChanged?.Invoke(true);
@@ -168,7 +167,7 @@ namespace HandheldCompanion.GraphicsProcessingUnit
             // release halting flag
             halting = false;
 
-            if (UpdateTimer != null && !UpdateTimer.Enabled && GPUManagerMonitor)
+            if (UpdateTimer != null && !UpdateTimer.Enabled)
                 StartMonitor();
 
             if (TelemetryTimer != null && !TelemetryTimer.Enabled)
@@ -192,12 +191,12 @@ namespace HandheldCompanion.GraphicsProcessingUnit
 
         public virtual void StartMonitor()
         {
-            UpdateTimer.Start();
+            UpdateTimer?.Start();
         }
 
         public virtual void StopMonitor()
         {
-            UpdateTimer.Stop();
+            UpdateTimer?.Stop();
         }
 
         /// <summary>
@@ -400,7 +399,7 @@ namespace HandheldCompanion.GraphicsProcessingUnit
             {
                 foreach (ManagementObject obj in searcher.Get())
                 {
-                    string name = obj["Name"]?.ToString()?.ToLower();
+                    string? name = obj["Name"]?.ToString()?.ToLower();
 
                     if (!string.IsNullOrEmpty(name) && name.Contains(vendorKeyword.ToLower()))
                     {

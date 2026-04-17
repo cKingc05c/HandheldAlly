@@ -173,7 +173,7 @@ public partial class Layout : ICloneable, IDisposable
     }
 
     #region events
-    public event UpdatedEventHandler Updated;
+    public event UpdatedEventHandler? Updated;
     public delegate void UpdatedEventHandler(Layout layout);
     #endregion
 }

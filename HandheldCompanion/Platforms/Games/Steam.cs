@@ -20,7 +20,7 @@ public class Steam : IPlatform
 {
     private readonly RegistryWatcher SteamActiveUserWatcher = new(WatchedRegistry.CurrentUser, @"SOFTWARE\\Valve\\Steam\\ActiveProcess\\", "ActiveUser");
     private FileSystemWatcher SteamActiveUserFileWatcher = new();
-    private Timer debounceTimer;
+    private Timer? debounceTimer;
 
     private readonly int SteamAppsId = 413080;
     private SteamWatcher steamWatcher = new SteamWatcher();
@@ -81,14 +81,15 @@ public class Steam : IPlatform
     {
         SteamActiveUserWatcher.StopWatching();
         steamWatcher.Stop();
+        steamWatcher.Dispose();
 
         SteamActiveUserFileWatcher.Changed -= FileWatcher_Changed;
         SteamActiveUserFileWatcher.Dispose();
 
-        debounceTimer.Stop();
+        debounceTimer?.Stop();
         if (kill)
         {
-            debounceTimer.Dispose();
+            debounceTimer?.Dispose();
             debounceTimer = null;
         }
 
@@ -120,9 +121,13 @@ public class Steam : IPlatform
         }
 
         // update file watcher
+        string? settingsDirectory = Path.GetDirectoryName(SettingsPath);
+        if (string.IsNullOrEmpty(settingsDirectory))
+            return;
+
         SteamActiveUserFileWatcher = new()
         {
-            Path = Path.GetDirectoryName(SettingsPath),
+            Path = settingsDirectory,
             NotifyFilter = NotifyFilters.FileName | NotifyFilters.LastWrite,
             EnableRaisingEvents = true,
             IncludeSubdirectories = true,
@@ -161,21 +166,19 @@ public class Steam : IPlatform
     {
         try
         {
-            using (RegistryKey key = Registry.CurrentUser.OpenSubKey(@"Software\Valve\Steam\ActiveProcess"))
+            using (RegistryKey? key = Registry.CurrentUser.OpenSubKey(@"Software\Valve\Steam\ActiveProcess"))
             {
                 if (key != null)
                 {
-                    object value = key.GetValue("ActiveUser");
-                    if (value != null)
-                    {
-                        return int.Parse(value.ToString());
-                    }
+                    object? value = key.GetValue("ActiveUser");
+                    if (value is int vInt)
+                        return vInt;
                 }
             }
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error reading registry: {ex.Message}");
+            LogManager.LogError("Error reading registry: {0}", ex.Message);
         }
 
         return 0;
@@ -200,7 +203,7 @@ public class Steam : IPlatform
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error reading file {SettingsPath}: {ex.Message}");
+            LogManager.LogError("Error reading file {0}: {1}", SettingsPath, ex.Message);
             return 0;
         }
     }
@@ -228,7 +231,7 @@ public class Steam : IPlatform
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error updating file {SettingsPath}: {ex.Message}");
+            LogManager.LogError("Error updating file {0}: {1}", SettingsPath, ex.Message);
             return false;
         }
     }

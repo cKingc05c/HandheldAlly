@@ -29,7 +29,7 @@ public partial class OverlayModel : OverlayWindow
 
     private readonly Timer UpdateTimer;
 
-    private IModel CurrentModel;
+    private IModel? CurrentModel;
     public Vector3D DesiredAngleDeg = new(0, 0, 0);
     private Quaternion DevicePose;
     private Vector3D DevicePoseDeg;
@@ -113,7 +113,7 @@ public partial class OverlayModel : OverlayWindow
         _modelTransformGroup.Children.Add(_importViewportCorrectionTransform);
     }
 
-    private void SettingsManager_SettingValueChanged(string name, object value, bool temporary)
+    private void SettingsManager_SettingValueChanged(string name, object? value, bool temporary)
     {
         switch (name)
         {
@@ -441,7 +441,7 @@ public partial class OverlayModel : OverlayWindow
         UIHelper.TryInvoke(() =>
         {
             // Snapshot current model to avoid race conditions during model switches
-            IModel model = CurrentModel;
+            IModel? model = CurrentModel;
             if (model is null)
                 return;
 
@@ -796,8 +796,8 @@ public partial class OverlayModel : OverlayWindow
         private readonly RotateTransform3D _rotateTransformX;
         private readonly RotateTransform3D _rotateTransformY;
         private readonly Transform3DGroup _transformGroup = new();
-        private Model3DGroup _thumbRing;
-        private Model3D _thumb;
+        private Model3DGroup? _thumbRing;
+        private Model3D? _thumb;
 
         public JoystickTransformState()
         {
@@ -850,8 +850,8 @@ public partial class OverlayModel : OverlayWindow
         private readonly RotateTransform3D _shoulderTransform;
         private readonly RotateTransform3D _triggerTransform;
         private readonly Transform3DGroup _triggerTransformGroup = new();
-        private Model3DGroup _triggerModel;
-        private Model3DGroup _buttonModel;
+        private Model3DGroup? _triggerModel;
+        private Model3DGroup? _buttonModel;
 
         public ShoulderTransformState()
         {

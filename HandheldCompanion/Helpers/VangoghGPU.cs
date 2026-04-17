@@ -129,7 +129,7 @@ namespace HandheldCompanion.Helpers
         // Messages:
         // drivers/gpu/drm/amd/pm/inc/smu_v11_5_ppsmc.h
 
-        private RyzenSMU smu;
+        private RyzenSMU? smu;
 
         ~VangoghGPU()
         {
@@ -245,10 +245,12 @@ namespace HandheldCompanion.Helpers
             get
             {
                 var dict = new Dictionary<string, uint>();
+                if (smu is null)
+                    return dict;
 
                 foreach (var key in ValuesGetters)
                 {
-                    if (!this.smu.SendMsg(key, 0, out var value))
+                    if (!smu.SendMsg(key, 0, out var value))
                         continue;
 
                     var keyString = key.ToString().Replace("PPSMC_MSG_Get", "");
@@ -270,13 +272,16 @@ namespace HandheldCompanion.Helpers
 
         private uint getValue(Message msg, UInt32 param = 0)
         {
-            this.smu.SendMsg(msg, param, out var value);
+            if (smu is null)
+                return 0;
+
+            smu.SendMsg(msg, param, out var value);
             return value;
         }
 
         private void setValue(Message msg, uint value, uint min = UInt32.MinValue, uint max = UInt32.MaxValue, uint clampMask = uint.MaxValue)
         {
-            this.smu.SendMsg(msg, Math.Clamp(value & clampMask, min, max) | (value & ~clampMask));
+            smu?.SendMsg(msg, Math.Clamp(value & clampMask, min, max) | (value & ~clampMask));
         }
 
         private readonly Message[] ValuesGetters = new Message[]

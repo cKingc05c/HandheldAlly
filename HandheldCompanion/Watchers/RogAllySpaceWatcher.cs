@@ -23,13 +23,13 @@ namespace HandheldCompanion.Watchers
 
         public override void Start()
         {
-            watchdogTimer.Start();
+            watchdogTimer?.Start();
             base.Start();
         }
 
         public override void Stop()
         {
-            watchdogTimer.Stop();
+            watchdogTimer?.Stop();
             base.Stop();
         }
 

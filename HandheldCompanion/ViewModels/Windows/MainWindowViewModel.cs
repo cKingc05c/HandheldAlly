@@ -1,5 +1,7 @@
-﻿using HandheldCompanion.Managers;
+﻿using HandheldCompanion.Helpers;
+using HandheldCompanion.Managers;
 using HandheldCompanion.Notifications;
+using HandheldCompanion.Views;
 using iNKORE.UI.WPF.Modern.Controls;
 using System;
 using System.Threading;
@@ -13,18 +15,19 @@ namespace HandheldCompanion.ViewModels
         public LaunchProfileDialogViewModel LaunchProfileDialog { get; } = new();
 
         private bool _isInfoBarOpen;
-        private string _infoBarMessage;
-        private string _infoBarTitle;
+        private string _infoBarMessage = string.Empty;
+        private string _infoBarTitle = string.Empty;
         private InfoBarSeverity _infoBarSeverity;
 
         private Guid _currentNotification;
-        private CancellationTokenSource _closeCts;
+        private CancellationTokenSource? _closeCts;
 
         public MainWindowViewModel()
         {
             // manage events
             ManagerFactory.notificationManager.Added += NotificationManager_Added;
             ManagerFactory.notificationManager.Discarded += NotificationManager_Discarded;
+            ManagerFactory.settingsManager.SettingValueChanged += SettingsManager_SettingValueChanged;
 
             DismissInfoBarCommand = new DelegateCommand(async () =>
             {
@@ -37,6 +40,20 @@ namespace HandheldCompanion.ViewModels
         {
             get => _isInitializing;
             set => SetProperty(ref _isInitializing, value, null, nameof(IsInitializing));
+        }
+
+        private bool _isNavPerformanceEnabled = true;
+        public bool IsNavPerformanceEnabled
+        {
+            get => _isNavPerformanceEnabled;
+            set => SetProperty(ref _isNavPerformanceEnabled, value, null, nameof(IsNavPerformanceEnabled));
+        }
+
+        private bool _isNavLibraryVisible = true;
+        public bool IsNavLibraryVisible
+        {
+            get => _isNavLibraryVisible;
+            set => SetProperty(ref _isNavLibraryVisible, value, null, nameof(IsNavLibraryVisible));
         }
 
         public bool IsInfoBarOpen
@@ -137,10 +154,35 @@ namespace HandheldCompanion.ViewModels
             }
         }
 
+        private void SettingsManager_SettingValueChanged(string name, object? value, bool temporary)
+        {
+            switch (name)
+            {
+                case "PerformanceManagerEnabled":
+                    {
+                        bool enabled = Convert.ToBoolean(value);
+                        IsNavPerformanceEnabled = enabled;
+                        if (!enabled && MainWindow.CurrentPageName == "PerformancePage")
+                            UIHelper.TryBeginInvoke(() => MainWindow.GetCurrent()?.NavigateToPage("ControllerPage"));
+                    }
+                    break;
+
+                case "LibraryPageEnabled":
+                    {
+                        bool enabled = Convert.ToBoolean(value);
+                        IsNavLibraryVisible = enabled;
+                        if (!enabled && MainWindow.CurrentPageName == "LibraryPage")
+                            UIHelper.TryBeginInvoke(() => MainWindow.GetCurrent()?.NavigateToPage("ControllerPage"));
+                    }
+                    break;
+            }
+        }
+
         public override void Dispose()
         {
             ManagerFactory.notificationManager.Added -= NotificationManager_Added;
             ManagerFactory.notificationManager.Discarded -= NotificationManager_Discarded;
+            ManagerFactory.settingsManager.SettingValueChanged -= SettingsManager_SettingValueChanged;
 
             _closeCts?.Cancel();
             base.Dispose();

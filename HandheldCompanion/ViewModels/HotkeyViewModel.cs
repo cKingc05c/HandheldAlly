@@ -3,7 +3,6 @@ using HandheldCompanion.Commands.Functions.HC;
 using HandheldCompanion.Commands.Functions.Windows;
 using HandheldCompanion.Controllers;
 using HandheldCompanion.Devices;
-using HandheldCompanion.Extensions;
 using HandheldCompanion.Helpers;
 using HandheldCompanion.Inputs;
 using HandheldCompanion.Managers;
@@ -22,7 +21,6 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Controls;
-using System.Windows.Data;
 using System.Windows.Forms;
 using System.Windows.Input;
 using System.Windows.Media;
@@ -35,17 +33,24 @@ namespace HandheldCompanion.ViewModels
     {
         public ObservableCollection<FontIconViewModel> ButtonGlyphs { get; set; } = [];
 
-        private List<Type> _functionTypes;
+        private List<Type> _functionTypes = [];
 
         // Expose shared function items for XAML CollectionViewSource binding
-        public ObservableCollection<ComboBoxItemViewModel> FunctionItems => _sharedFunctionItems;
+        public ObservableCollection<ComboBoxItemViewModel> FunctionItems
+        {
+            get
+            {
+                EnsureSharedFunctionData();
+                return _sharedFunctionItems!;
+            }
+        }
 
         // Shared across all instances – built once to avoid repeated Activator.CreateInstance
         private static readonly object _sharedDataLock = new();
         private static List<Type>? _sharedFunctionTypes;
         private static ObservableCollection<ComboBoxItemViewModel>? _sharedFunctionItems;
 
-        private Hotkey _Hotkey;
+        private Hotkey _Hotkey = null!;
         public Hotkey Hotkey
         {
             get => _Hotkey;
@@ -324,7 +329,11 @@ namespace HandheldCompanion.ViewModels
                 if (value != FunctionIndex)
                 {
                     Type typeToCreate = _functionTypes[value];
-                    Hotkey.command = Activator.CreateInstance(typeToCreate) as ICommands;
+                    ICommands? commands = Activator.CreateInstance(typeToCreate) as ICommands;
+                    if (commands is null)
+                        return;
+
+                    Hotkey.command = commands;
 
                     // reset custom name
                     CustomName = Hotkey.command.Name;
@@ -526,19 +535,19 @@ namespace HandheldCompanion.ViewModels
 
         public ObservableCollection<MappingTargetViewModel> ButtonCommandsValues { get; } = new();
 
-        public MappingTargetViewModel ButtonCommandsButton
+        public MappingTargetViewModel? ButtonCommandsButton
         {
             get
             {
                 if (Hotkey.command is ButtonCommands bc)
-                    return ButtonCommandsValues.FirstOrDefault(vm => (ButtonFlags)vm.Tag == bc.ButtonFlags);
+                    return ButtonCommandsValues.FirstOrDefault(vm => vm.Tag is ButtonFlags buttonFlags && buttonFlags == bc.ButtonFlags);
                 return ButtonCommandsValues.FirstOrDefault();
             }
             set
             {
-                if (Hotkey.command is ButtonCommands bc && value is not null && bc.ButtonFlags != (ButtonFlags)value.Tag)
+                if (Hotkey.command is ButtonCommands bc && value?.Tag is ButtonFlags buttonFlags && bc.ButtonFlags != buttonFlags)
                 {
-                    bc.ButtonFlags = (ButtonFlags)value.Tag;
+                    bc.ButtonFlags = buttonFlags;
                     ManagerFactory.hotkeysManager.UpdateOrCreateHotkey(Hotkey);
                     OnPropertyChanged(nameof(ButtonCommandsButton));
                 }
@@ -732,7 +741,7 @@ namespace HandheldCompanion.ViewModels
                 UpdateController(ControllerManager.GetTarget());
         }
 
-        protected void UpdateController(IController controller)
+        protected void UpdateController(IController? controller)
         {
             var newValues = new List<MappingTargetViewModel>();
 

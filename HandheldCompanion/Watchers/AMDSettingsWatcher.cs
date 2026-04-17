@@ -61,18 +61,18 @@ namespace HandheldCompanion.Watchers
             // set value
             adapterKeyPath = string.Empty;
 
-            using RegistryKey classKey = Registry.LocalMachine.OpenSubKey(DisplayClassKeyPath, writable: false);
+            using RegistryKey? classKey = Registry.LocalMachine.OpenSubKey(DisplayClassKeyPath, writable: false);
             if (classKey is null)
                 return false;
 
             // Subkeys are typically 0000, 0001, ...
             foreach (string subName in classKey.GetSubKeyNames().Where(n => n.Length == 4 && n.All(char.IsDigit)))
             {
-                using RegistryKey adapterKey = classKey.OpenSubKey(subName, writable: false);
+                using RegistryKey? adapterKey = classKey.OpenSubKey(subName, writable: false);
                 if (adapterKey is null)
                     continue;
 
-                string driverDesc = adapterKey.GetValue("DriverDesc") as string;
+                string? driverDesc = adapterKey.GetValue("DriverDesc") as string;
                 if (string.IsNullOrEmpty(driverDesc))
                     continue;
 

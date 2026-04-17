@@ -125,7 +125,7 @@ public partial class AxisState : ICloneable, IDisposable
             _values[i] = other._values[i];
     }
 
-    public override bool Equals(object obj)
+    public override bool Equals(object? obj)
     {
         if (obj is not AxisState other) return false;
         if (ReferenceEquals(this, other)) return true;

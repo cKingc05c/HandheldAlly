@@ -21,16 +21,16 @@ public static class InputsManager
 {
     #region events
     public delegate void InitializedEventHandler();
-    public static event InitializedEventHandler Initialized;
+    public static event InitializedEventHandler? Initialized;
 
     public delegate void StartedListeningEventHandler(ButtonFlags buttonFlags, InputsChordTarget chordTarget);
-    public static event StartedListeningEventHandler StartedListening;
+    public static event StartedListeningEventHandler? StartedListening;
 
     public delegate void StoppedListeningEventHandler(ButtonFlags buttonFlags, InputsChord storedChord);
-    public static event StoppedListeningEventHandler StoppedListening;
+    public static event StoppedListeningEventHandler? StoppedListening;
 
     public delegate void CommandExecutedEventHandler(Hotkey hotkey, ICommands command);
-    public static event CommandExecutedEventHandler CommandExecuted;
+    public static event CommandExecutedEventHandler? CommandExecuted;
     #endregion
 
     private const short TIME_FLUSH = 5;             // default interval between buffer flush
@@ -62,7 +62,7 @@ public static class InputsManager
     public static bool IsInput = false;
 
     // Keyboard vars
-    private static IKeyboardMouseEvents m_GlobalHook;
+    private static IKeyboardMouseEvents? m_GlobalHook = null!;
 
     private static readonly Dictionary<bool, List<KeyEventArgsExt>> BufferKeys = new() { { true, new() }, { false, new() } };
     private static readonly List<KeyboardChord> successkeyChords = [];
@@ -298,7 +298,7 @@ public static class InputsManager
                     BufferKeys[args.IsKeyDown].Add(new KeyEventArgsExt((Keys)keyCode, args.ScanCode, args.Timestamp, args.IsKeyDown, args.IsKeyUp, false, args.Flags));
 
                 // calls current controller (if connected)
-                IController controller = ControllerManager.GetTarget();
+                IController? controller = ControllerManager.GetTarget();
                 controller?.InjectState(chord.state, args.IsKeyDown, args.IsKeyUp);
 
                 // remove chord
@@ -348,7 +348,7 @@ public static class InputsManager
 
         if (args.IsKeyDown)
         {
-            KeyboardChord matchedOEMChord = null;
+            KeyboardChord? matchedOEMChord = null;
             bool hotkeyMatched = false;
 
             // check if key is used by OEM chords
@@ -457,7 +457,7 @@ public static class InputsManager
                                 successkeyChords.Add(chord);
 
                                 // calls current controller (if connected)
-                                IController controller = ControllerManager.GetTarget();
+                                IController? controller = ControllerManager.GetTarget();
                                 controller?.InjectState(chord.state, args.IsKeyDown, args.IsKeyUp);
                             }
 
@@ -489,7 +489,7 @@ public static class InputsManager
                                 // store successful hotkey
                                 successkeyChords.Add(chord);
 
-                                IController controller = ControllerManager.GetTarget();
+                                IController? controller = ControllerManager.GetTarget();
                                 controller?.InjectState(chord.state, args.IsKeyDown, args.IsKeyUp);
 
                                 return;
@@ -601,8 +601,8 @@ public static class InputsManager
             return;
 
         ControllerManager.InputsUpdated += UpdateInputs;
-        m_GlobalHook.KeyDown += M_GlobalHook_KeyEvent;
-        m_GlobalHook.KeyUp += M_GlobalHook_KeyEvent;
+        m_GlobalHook?.KeyDown += M_GlobalHook_KeyEvent;
+        m_GlobalHook?.KeyUp += M_GlobalHook_KeyEvent;
 
         IsInitialized = true;
         Initialized?.Invoke();
@@ -616,8 +616,8 @@ public static class InputsManager
             return;
 
         ControllerManager.InputsUpdated -= UpdateInputs;
-        m_GlobalHook.KeyDown -= M_GlobalHook_KeyEvent;
-        m_GlobalHook.KeyUp -= M_GlobalHook_KeyEvent;
+        m_GlobalHook?.KeyDown -= M_GlobalHook_KeyEvent;
+        m_GlobalHook?.KeyUp -= M_GlobalHook_KeyEvent;
 
         if (OS)
             DisposeGlobalHook();

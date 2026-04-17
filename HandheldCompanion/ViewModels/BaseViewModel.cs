@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using System.Threading.Tasks;
 using System.Windows.Input;
 
 namespace HandheldCompanion.ViewModels
@@ -24,7 +25,7 @@ namespace HandheldCompanion.ViewModels
             Dispose(false);
         }
 
-        protected bool SetProperty<T>(ref T storage, T value, Action onChanged = null, [CallerMemberName] string propertyName = null)
+        protected bool SetProperty<T>(ref T storage, T value, Action? onChanged = null, [CallerMemberName] string? propertyName = null)
         {
             // If the value hasn't changed, do nothing
             if (EqualityComparer<T>.Default.Equals(storage, value))
@@ -56,7 +57,7 @@ namespace HandheldCompanion.ViewModels
             GC.SuppressFinalize(this); // Suppress finalization
         }
 
-        public virtual void OnPropertyChanged(string propertyName) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        public virtual void OnPropertyChanged(string? propertyName) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
     }
 
     class DelegateCommand : ICommand
@@ -68,20 +69,43 @@ namespace HandheldCompanion.ViewModels
             this._action = action;
         }
 
-        public bool CanExecute(object parameter)
+        public bool CanExecute(object? parameter)
         {
             return true;
         }
 
-        public void Execute(object parameter)
+        public void Execute(object? parameter)
         {
             _action();
         }
 
-        public event EventHandler CanExecuteChanged;
+        public event EventHandler? CanExecuteChanged;
         public void OnCanExecuteChanged()
         {
-            CanExecuteChanged(this, EventArgs.Empty);
+            CanExecuteChanged?.Invoke(this, EventArgs.Empty);
+        }
+    }
+
+    class AsyncDelegateCommand : ICommand
+    {
+        private readonly Func<Task> _action;
+
+        public AsyncDelegateCommand(Func<Task> action)
+        {
+            _action = action;
+        }
+
+        public bool CanExecute(object? parameter) => true;
+
+        public async void Execute(object? parameter)
+        {
+            await _action();
+        }
+
+        public event EventHandler? CanExecuteChanged;
+        public void OnCanExecuteChanged()
+        {
+            CanExecuteChanged?.Invoke(this, EventArgs.Empty);
         }
     }
 
@@ -94,20 +118,20 @@ namespace HandheldCompanion.ViewModels
             _action = action;
         }
 
-        public bool CanExecute(object parameter)
+        public bool CanExecute(object? parameter)
         {
             return true;
         }
 
-        public void Execute(object parameter)
+        public void Execute(object? parameter)
         {
             if (parameter is T tParam)
                 _action(tParam);
             else
-                _action(default); // Or throw
+                _action(default!); // Or throw
         }
 
-        public event EventHandler CanExecuteChanged;
+        public event EventHandler? CanExecuteChanged;
         public void OnCanExecuteChanged()
         {
             CanExecuteChanged?.Invoke(this, EventArgs.Empty);

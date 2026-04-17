@@ -19,6 +19,7 @@ namespace HandheldCompanion.Managers
         public static NotificationManager notificationManager;
         public static LibraryManager libraryManager;
         public static PlatformManager platformManager;
+        public static CollectionManager collectionManager;
 
         public static List<IManager> Managers => new()
         {
@@ -33,7 +34,8 @@ namespace HandheldCompanion.Managers
             gpuManager,
             notificationManager,
             libraryManager,
-            platformManager
+            platformManager,
+            collectionManager
         };
 
         static ManagerFactory()
@@ -56,6 +58,7 @@ namespace HandheldCompanion.Managers
             notificationManager = new();
             libraryManager = new();
             platformManager = new();
+            collectionManager = new();
         }
 
         public static void Resume()

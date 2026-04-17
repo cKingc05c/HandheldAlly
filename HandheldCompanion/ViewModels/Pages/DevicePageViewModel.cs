@@ -155,7 +155,7 @@ namespace HandheldCompanion.ViewModels
         {
             get
             {
-                return coreIsolationWatcher.VulnerableDriverBlocklistEnable || coreIsolationWatcher.HypervisorEnforcedCodeIntegrityEnabled;
+                return coreIsolationWatcher.VulnerableDriverBlocklistEnable || coreIsolationWatcher.HypervisorEnforcedCodeIntegrityEnabled || coreIsolationWatcher.SmartAppControlEnabled;
             }
             set
             {
@@ -165,7 +165,7 @@ namespace HandheldCompanion.ViewModels
         #endregion
 
         #region Manufacturer application
-        private ISpaceWatcher manufacturerWatcher;
+        private ISpaceWatcher? manufacturerWatcher;
 
         private bool _ManufacturerAppBusy;
         public bool ManufacturerAppBusy
@@ -252,12 +252,10 @@ namespace HandheldCompanion.ViewModels
 
         public DevicePageViewModel()
         {
-            // settings watcher
-            if (PerformanceManager.GetProcessor() is IntelProcessor)
-            {
-                coreIsolationWatcher.StatusChanged += CoreIsolationWatcher_StatusChanged;
-                coreIsolationWatcher.Start();
-            }
+            // raise events
+            PerformanceManager.Initialized += PerformanceManager_Initialized;
+            if (PerformanceManager.GetProcessor() is not null)
+                QueryProcessor();
 
             // manufacturer watcher
             IDevice device = IDevice.GetCurrent();
@@ -277,19 +275,63 @@ namespace HandheldCompanion.ViewModels
                 manufacturerWatcher.Start();
             }
 
-            // manage events
+            // raise events
+            switch (ManagerFactory.settingsManager.Status)
+            {
+                default:
+                case ManagerStatus.Initializing:
+                    ManagerFactory.settingsManager.Initialized += SettingsManager_Initialized;
+                    break;
+                case ManagerStatus.Initialized:
+                    QuerySettings();
+                    break;
+            }
+        }
+
+        private void PerformanceManager_Initialized(bool canChangeTDP, bool canChangeGPU)
+        {
+            QueryProcessor();
+        }
+
+        private void QueryProcessor()
+        {
+            if (PerformanceManager.GetProcessor() is IntelProcessor)
+            {
+                coreIsolationWatcher.StatusChanged += CoreIsolationWatcher_StatusChanged;
+                coreIsolationWatcher.Start();
+            }
+
+            OnPropertyChanged(nameof(IsIntel));
+            OnPropertyChanged(nameof(IsAMD));
+            OnPropertyChanged(nameof(HasCoreCurve));
+            OnPropertyChanged(nameof(HasGPUCurve));
+        }
+
+        private void SettingsManager_Initialized()
+        {
+            QuerySettings();
+        }
+
+        private void QuerySettings()
+        {
             ManagerFactory.settingsManager.SettingValueChanged += SettingsManager_SettingValueChanged;
+            SettingsManager_SettingValueChanged("BatteryChargeLimit", ManagerFactory.settingsManager.GetBoolean("BatteryChargeLimit"), false);
+            SettingsManager_SettingValueChanged("BatteryChargeLimitPercent", ManagerFactory.settingsManager.GetDouble("BatteryChargeLimitPercent"), false);
         }
 
         private void CoreIsolationWatcher_StatusChanged(bool enabled)
         {
+            var notification = coreIsolationWatcher.notification;
+            if (notification is null)
+                return;
+
             switch (enabled)
             {
                 case true:
-                    ManagerFactory.notificationManager.Add(coreIsolationWatcher.notification);
+                    ManagerFactory.notificationManager.Add(notification);
                     break;
                 case false:
-                    ManagerFactory.notificationManager.Discard(coreIsolationWatcher.notification);
+                    ManagerFactory.notificationManager.Discard(notification);
                     break;
             }
 
@@ -298,13 +340,17 @@ namespace HandheldCompanion.ViewModels
 
         private void ManufacturerWatcher_StatusChanged(bool enabled)
         {
+            var notification = manufacturerWatcher?.notification;
+            if (notification is null)
+                return;
+
             switch (enabled)
             {
                 case true:
-                    ManagerFactory.notificationManager.Add(manufacturerWatcher.notification);
+                    ManagerFactory.notificationManager.Add(notification);
                     break;
                 case false:
-                    ManagerFactory.notificationManager.Discard(manufacturerWatcher.notification);
+                    ManagerFactory.notificationManager.Discard(notification);
                     break;
             }
 
@@ -313,7 +359,7 @@ namespace HandheldCompanion.ViewModels
             OnPropertyChanged(nameof(ManufacturerAppStatus));
         }
 
-        private void SettingsManager_SettingValueChanged(string name, object value, bool temporary)
+        private void SettingsManager_SettingValueChanged(string name, object? value, bool temporary)
         {
             switch (name)
             {
@@ -328,16 +374,21 @@ namespace HandheldCompanion.ViewModels
 
         public override void Dispose()
         {
+            PerformanceManager.Initialized -= PerformanceManager_Initialized;
+
             coreIsolationWatcher.StatusChanged -= CoreIsolationWatcher_StatusChanged;
             coreIsolationWatcher.Stop();
+            coreIsolationWatcher.Dispose();
 
             if (manufacturerWatcher is not null)
             {
                 manufacturerWatcher.StatusChanged -= ManufacturerWatcher_StatusChanged;
                 manufacturerWatcher.Stop();
+                manufacturerWatcher.Dispose();
             }
 
             // manage events
+            ManagerFactory.settingsManager.Initialized -= SettingsManager_Initialized;
             ManagerFactory.settingsManager.SettingValueChanged -= SettingsManager_SettingValueChanged;
 
             base.Dispose();

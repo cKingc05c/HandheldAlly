@@ -113,7 +113,7 @@ namespace HandheldCompanion.Managers
         private static readonly ConcurrentQueue<ToastRequest> ToastQueue = new();
         private static volatile int _isProcessing; // 0 = idle, 1 = processing
 
-        private static ToastNotification CurrentToastNotification;
+        private static ToastNotification? CurrentToastNotification;
 
         public static bool IsEnabled => ManagerFactory.settingsManager.GetBoolean("ToastEnable");
 
@@ -221,7 +221,7 @@ namespace HandheldCompanion.Managers
         private static void DisplayToast(ToastRequest request)
         {
             // Build image URI if present
-            Uri imageUri = null;
+            Uri? imageUri = null;
             string imagePath = $"{AppDomain.CurrentDomain.BaseDirectory}Resources\\{request.Img}.png";
             if (File.Exists(imagePath))
                 imageUri = new Uri($"file:///{imagePath}");

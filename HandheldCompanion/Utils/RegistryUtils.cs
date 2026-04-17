@@ -7,7 +7,7 @@ public static class RegistryUtils
 {
     private const string HKLM = @"HKEY_LOCAL_MACHINE";
 
-    private static object GetValue(string key, string valueName)
+    private static object? GetValue(string key, string valueName)
     {
         var keyName = HKLM + "\\" + key;
         return Registry.GetValue(keyName, valueName, null);
@@ -38,7 +38,7 @@ public static class RegistryUtils
 
     public static string GetString(string key, string valueName)
     {
-        return Convert.ToString(GetValue(key, valueName));
+        return Convert.ToString(GetValue(key, valueName)) ?? string.Empty;
     }
 
     public static int GetInt(string key, string valueName)
@@ -66,7 +66,7 @@ public static class RegistryUtils
     public static bool SearchForKeyValue(string key, string valueName, string value)
     {
         // Open the root registry key for reading
-        RegistryKey root = Registry.LocalMachine.OpenSubKey(key);
+        RegistryKey? root = Registry.LocalMachine.OpenSubKey(key);
 
         // Check if the root key exists
         if (root != null)
@@ -78,16 +78,16 @@ public static class RegistryUtils
             foreach (string subkey in subkeys)
             {
                 // Open the subkey for reading
-                RegistryKey subKey = root.OpenSubKey(subkey);
+                RegistryKey? subKey = root.OpenSubKey(subkey);
 
                 // Check if the subkey exists and has a value named DeviceDesc
                 if (subKey != null && subKey.GetValue(valueName) != null)
                 {
                     // Get the value of DeviceDesc as a string
-                    string subKeyDesc = subKey.GetValue(valueName).ToString();
+                    string? subKeyDesc = subKey.GetValue(valueName)?.ToString();
 
                     // Check if the value contains the target strings
-                    if (subKeyDesc.Contains(value, StringComparison.InvariantCultureIgnoreCase))
+                    if (!string.IsNullOrEmpty(subKeyDesc) && subKeyDesc.Contains(value, StringComparison.InvariantCultureIgnoreCase))
                         return true;
                 }
             }

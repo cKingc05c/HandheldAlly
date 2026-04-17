@@ -150,7 +150,7 @@ public class OneXPlayerX1 : OneXAOKZOE
         {
             List<USBDeviceInfo> devices = GetSerialDevices();
 
-            USBDeviceInfo deviceInfo = devices.FirstOrDefault(a => a.Name.Contains(SerialPortDeviceName));
+            USBDeviceInfo? deviceInfo = devices.FirstOrDefault(device => device.Name.Contains(SerialPortDeviceName));
             if (deviceInfo is null)
             {
                 LogManager.LogInformation("Failed to retrieve serial device with name: {0}", SerialPortDeviceName);
@@ -231,7 +231,7 @@ public class OneXPlayerX1 : OneXAOKZOE
         base.Close();
     }
 
-    protected override void SettingsManager_SettingValueChanged(string name, object value, bool temporary)
+    protected override void SettingsManager_SettingValueChanged(string name, object? value, bool temporary)
     {
         switch (name)
         {
@@ -253,10 +253,12 @@ public class OneXPlayerX1 : OneXAOKZOE
                 LEDCurrentLevel = (LEDLevel)Convert.ToInt32(value);
                 break;
             case "LEDMainColor":
-                LEDControllerColor = ManagerFactory.settingsManager.GetColor(Convert.ToString(value));
+                if (Convert.ToString(value) is string ledMainColorName && !string.IsNullOrEmpty(ledMainColorName))
+                    LEDControllerColor = ManagerFactory.settingsManager.GetColor(ledMainColorName);
                 break;
             case "LEDSecondColor":
-                LEDBackColor = ManagerFactory.settingsManager.GetColor(Convert.ToString(value));
+                if (Convert.ToString(value) is string ledSecondColorName && !string.IsNullOrEmpty(ledSecondColorName))
+                    LEDBackColor = ManagerFactory.settingsManager.GetColor(ledSecondColorName);
                 break;
             case "LEDPresetIndex":
                 int selectedIndex = Convert.ToInt32(value);

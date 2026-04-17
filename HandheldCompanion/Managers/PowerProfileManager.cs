@@ -17,7 +17,7 @@ namespace HandheldCompanion.Managers
     public class PowerProfileManager : IManager
     {
         private object profileLock = new();
-        private PowerProfile currentProfile;
+        private PowerProfile? currentProfile;
 
         public ConcurrentDictionary<Guid, PowerProfile> profiles = [];
 
@@ -145,10 +145,13 @@ namespace HandheldCompanion.Managers
             base.Stop();
         }
 
-        private void SettingsManager_SettingValueChanged(string name, object value, bool temporary)
+        private void SettingsManager_SettingValueChanged(string name, object? value, bool temporary)
         {
             // Only process relevant setting names.
             if (name != "ConfigurableTDPOverrideDown" && name != "ConfigurableTDPOverrideUp")
+                return;
+
+            if (value is null)
                 return;
 
             double threshold = Convert.ToDouble(value);
@@ -263,7 +266,7 @@ namespace HandheldCompanion.Managers
 
         private void ProcessProfile(string fileName)
         {
-            PowerProfile profile = null;
+            PowerProfile? profile = null;
 
             try
             {
@@ -399,7 +402,8 @@ namespace HandheldCompanion.Managers
         public PowerProfile GetDefault()
         {
             if (HasDefault())
-                return profiles.Values.FirstOrDefault(a => a.Default && a.Guid == Guid.Empty);
+                return profiles.Values.FirstOrDefault(a => a.Default && a.Guid == Guid.Empty) ?? new PowerProfile();
+
             return new PowerProfile();
         }
 
@@ -479,16 +483,16 @@ namespace HandheldCompanion.Managers
         }
 
         #region events
-        public event DeletedEventHandler Deleted;
+        public event DeletedEventHandler? Deleted;
         public delegate void DeletedEventHandler(PowerProfile profile);
 
-        public event UpdatedEventHandler Updated;
+        public event UpdatedEventHandler? Updated;
         public delegate void UpdatedEventHandler(PowerProfile profile, UpdateSource source);
 
-        public event AppliedEventHandler Applied;
+        public event AppliedEventHandler? Applied;
         public delegate void AppliedEventHandler(PowerProfile profile, UpdateSource source);
 
-        public event DiscardedEventHandler Discarded;
+        public event DiscardedEventHandler? Discarded;
         public delegate void DiscardedEventHandler(PowerProfile profile, bool swapped);
         #endregion
     }

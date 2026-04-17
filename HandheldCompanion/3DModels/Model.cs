@@ -30,7 +30,7 @@ public abstract class IModel : IDisposable
     public Model3DGroup LeftShoulderTrigger;
 
     // Common groups
-    public Model3DGroup LeftThumb;
+    public Model3DGroup LeftThumb = null!;
     public Model3DGroup LeftThumbRing;
 
     public Model3DGroup MainBody;
@@ -41,7 +41,7 @@ public abstract class IModel : IDisposable
     public string ModelName;
     public Model3DGroup RightMotor;
     public Model3DGroup RightShoulderTrigger;
-    public Model3DGroup RightThumb;
+    public Model3DGroup RightThumb = null!;
     public Model3DGroup RightThumbRing;
     public Vector3D ShoulderTriggerRotationPointCenterLeftMillimeter;
     public Vector3D ShoulderTriggerRotationPointCenterRightMillimeter;

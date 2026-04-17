@@ -18,7 +18,7 @@ public partial class SettingsMode1 : Page
     private CrossThreadLock updateLock = new();
 
     private readonly int SteeringArraySize = 30;
-    private readonly ChartValues<ObservablePoint> SteeringLinearityPoints;
+    private readonly ChartValues<ObservablePoint> SteeringLinearityPoints = [];
 
     public SettingsMode1()
     {
@@ -33,7 +33,6 @@ public partial class SettingsMode1 : Page
 
         MotionManager.SettingsMode1Update += MotionManager_SettingsMode1Update;
 
-        SteeringLinearityPoints = [];
         for (var i = 0; i < SteeringArraySize; i++)
         {
             var value = i / (double)(SteeringArraySize - 1);
@@ -52,11 +51,15 @@ public partial class SettingsMode1 : Page
                 // UI thread
                 UIHelper.TryInvoke(() =>
                 {
-                    SliderDeadzoneAngle.Value = ProfilesPage.selectedProfile.SteeringDeadzone;
-                    SliderPower.Value = ProfilesPage.selectedProfile.SteeringPower;
-                    SliderSteeringAngle.Value = ProfilesPage.selectedProfile.SteeringMaxAngle;
+                    Profile? selectedProfile = ProfilesPage.selectedProfile;
+                    if (selectedProfile is null)
+                        return;
 
-                    lvLineSeriesValues.Values = GeneratePoints(ProfilesPage.selectedProfile.SteeringPower);
+                    SliderDeadzoneAngle.Value = selectedProfile.SteeringDeadzone;
+                    SliderPower.Value = selectedProfile.SteeringPower;
+                    SliderSteeringAngle.Value = selectedProfile.SteeringMaxAngle;
+
+                    lvLineSeriesValues.Values = GeneratePoints(selectedProfile.SteeringPower);
                 });
             }
             catch { }

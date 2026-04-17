@@ -105,7 +105,7 @@ namespace HandheldCompanion.Views.QuickPages
         private void Page_Unloaded(object s, RoutedEventArgs e) => _timer.Stop();
 
         // Poll Windows HKL changes
-        private void Timer_Tick(object sender, EventArgs e)
+        private void Timer_Tick(object? sender, EventArgs e)
         {
             nint _targetHwnd = GetForegroundWindow();
             if (_targetHwnd == IntPtr.Zero) return;

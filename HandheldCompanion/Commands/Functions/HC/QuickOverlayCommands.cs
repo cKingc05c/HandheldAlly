@@ -21,13 +21,13 @@ namespace HandheldCompanion.Commands.Functions.HC
             ManagerFactory.settingsManager.SettingValueChanged += SettingsManager_SettingValueChanged;
         }
 
-        private void SettingsManager_SettingValueChanged(string name, object value, bool temporary)
+        private void SettingsManager_SettingValueChanged(string name, object? value, bool temporary)
         {
             switch (name)
             {
                 case SettingsName:
                     {
-                        if (!temporary)
+                        if (!temporary && value is not null)
                             prevDisplaylevel = Convert.ToInt16(value);
                         Update();
                     }

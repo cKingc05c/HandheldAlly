@@ -22,15 +22,15 @@ namespace HandheldCompanion.Managers
         // Allows fast movements to spread across multiple frames without losing precision
         private static Vector2 accumulatedDisplacement = Vector2.Zero;
 
-        public static event SettingsMode0EventHandler SettingsMode0Update;
+        public static event SettingsMode0EventHandler? SettingsMode0Update;
         public delegate void SettingsMode0EventHandler(Vector3 gyrometer);
 
-        public static event SettingsMode1EventHandler SettingsMode1Update;
+        public static event SettingsMode1EventHandler? SettingsMode1Update;
         public delegate void SettingsMode1EventHandler(Vector2 deviceAngle);
 
         public static bool IsInitialized;
 
-        public static event InitializedEventHandler Initialized;
+        public static event InitializedEventHandler? Initialized;
         public delegate void InitializedEventHandler();
 
         static MotionManager()
@@ -158,7 +158,7 @@ namespace HandheldCompanion.Managers
         private static void ProcessMotion(ControllerState controllerState, GamepadMotion gamepadMotion, float delta)
         {
             // TODO: handle this race condition gracefully. LayoutManager might be updating currentlayout as we land here
-            Layout currentLayout = ManagerFactory.layoutManager.GetCurrent();
+            Layout? currentLayout = ManagerFactory.layoutManager.GetCurrent();
             if (currentLayout is null)
                 return;
 
@@ -166,9 +166,9 @@ namespace HandheldCompanion.Managers
             GyroState gyroState = controllerState.GyroState;
             string currentPageName = MainWindow.CurrentPageName;
 
-            if (currentLayout.GyroLayout.TryGetValue(AxisLayoutFlags.Gyroscope, out IActions action))
+            if (currentLayout.GyroLayout.TryGetValue(AxisLayoutFlags.Gyroscope, out IActions? action))
                 if (action is not null)
-                    gyroAction = action as GyroActions;
+                    gyroAction = (GyroActions)action;
 
             MotionMode motionMode = gyroAction.MotionMode;
             MotionInput motionInput = gyroAction.MotionInput;

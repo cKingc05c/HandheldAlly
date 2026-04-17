@@ -74,7 +74,7 @@ namespace HandheldCompanion.Commands
                 OnKeyDown = this.OnKeyDown,
 
                 // specific
-                outputChord = this.outputChord.Clone() as InputsChord
+                outputChord = this.outputChord.Clone() as InputsChord ?? new InputsChord()
             };
 
             return commands;

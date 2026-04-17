@@ -44,7 +44,7 @@ public class ProcessManager : IManager
     #endregion
 
     // Declare the WinEventDelegate
-    private WinEventDelegate winDelegate = null;
+    private WinEventDelegate winDelegate = null!;
     private IntPtr m_hhook = IntPtr.Zero;
 
     // Define the WinEventDelegate
@@ -61,10 +61,10 @@ public class ProcessManager : IManager
 
     private static readonly ConcurrentDictionary<int, ProcessEx> Processes = new();
 
-    private static ProcessEx currentProcess;
+    private static ProcessEx currentProcess = null!;
     private IntPtr currenthWnd;
 
-    private AutomationEventHandler _windowOpenedHandler;
+    private AutomationEventHandler _windowOpenedHandler = null!;
 
     public ProcessManager()
     {
@@ -285,7 +285,7 @@ public class ProcessManager : IManager
             try
             {
                 // Run the call to AutomationElement.FromHandle in a separate task
-                AutomationElement element = null;
+                AutomationElement? element = null;
                 Task<AutomationElement> task = Task.Run(() => AutomationElement.FromHandle(hWnd));
                 if (!task.Wait(TimeSpan.FromSeconds(5)))
                     return false;
@@ -320,7 +320,7 @@ public class ProcessManager : IManager
         return GetClassName(hWnd, buffer, nChars) > 0 ? buffer.ToString() : string.Empty;
     }
 
-    private static bool TryGetAutomationElement(IntPtr hWnd, out AutomationElement element)
+    private static bool TryGetAutomationElement(IntPtr hWnd, out AutomationElement? element)
     {
         element = null;
 
@@ -346,12 +346,12 @@ public class ProcessManager : IManager
         }
     }
 
-    public static ProcessEx GetCurrent()
+    public static ProcessEx? GetCurrent()
     {
         return currentProcess;
     }
 
-    public static ProcessEx GetProcess(int processId)
+    public static ProcessEx? GetProcess(int processId)
     {
         if (Processes.TryGetValue(processId, out var process))
             return process;
@@ -394,7 +394,7 @@ public class ProcessManager : IManager
 
         if (className == "ApplicationFrameWindow")
         {
-            ProcessDiagnosticInfo processInfo = new ProcessUtils.FindHostedProcess(hWnd)._realProcess;
+            ProcessDiagnosticInfo? processInfo = new ProcessUtils.FindHostedProcess(hWnd)._realProcess;
             if (processInfo is not null)
                 processId = (int)processInfo.ProcessId;
         }
@@ -407,7 +407,7 @@ public class ProcessManager : IManager
         {
             if (!Processes.TryGetValue(processId, out ProcessEx? process))
             {
-                if (!TryGetAutomationElement(hWnd, out element))
+                if (!TryGetAutomationElement(hWnd, out element) || element is null)
                     return;
 
                 if (!CreateOrUpdateProcess(processId, element))
@@ -451,12 +451,16 @@ public class ProcessManager : IManager
     private void ProcessHalted(object? sender, EventArgs e)
     {
         // Get the processId
-        int processId = ((Process)sender).Id;
+        Process? process = sender as Process;
+        if (process is null)
+            return;
+
+        int processId = process.Id;
 
         object lockObject = processLocks.GetOrAdd(processId, id => new object());
         lock (lockObject)
         {
-            if (!Processes.TryGetValue(processId, out ProcessEx processEx))
+            if (!Processes.TryGetValue(processId, out ProcessEx? processEx))
                 return;
 
             // If the halted process had foreground, log and raise event.
@@ -498,7 +502,7 @@ public class ProcessManager : IManager
                 if (proc.HasExited)
                     return false;
 
-                if (!Processes.TryGetValue(proc.Id, out ProcessEx processEx))
+                if (!Processes.TryGetValue(proc.Id, out ProcessEx? processEx))
                 {
                     // Hook exited event
                     try
@@ -513,7 +517,7 @@ public class ProcessManager : IManager
                     }
 
                     // Check process path
-                    string path = ProcessUtils.GetPathToApp(proc.Id);
+                    string? path = ProcessUtils.GetPathToApp(proc.Id);
                     if (string.IsNullOrEmpty(path))
                         return false;
 
@@ -665,8 +669,12 @@ public class ProcessManager : IManager
 
     public static async Task<bool> ResumeProcess(ProcessEx processEx, bool restoreWindow = true)
     {
+        Process? process = processEx.Process;
+        if (process is null)
+            return false;
+
         // process has exited
-        if (processEx.Process.HasExited)
+        if (process.HasExited)
             return false;
 
         // suspend main handle
@@ -719,8 +727,12 @@ public class ProcessManager : IManager
 
     public static async Task<bool> SuspendProcess(ProcessEx processEx, bool hideWindow = true)
     {
+        Process? process = processEx.Process;
+        if (process is null)
+            return false;
+
         // process has exited
-        if (processEx.Process.HasExited)
+        if (process.HasExited)
             return false;
 
         if (hideWindow)
@@ -773,16 +785,16 @@ public class ProcessManager : IManager
 
     #region events
 
-    public event RawForegroundEventHandler RawForeground;
+    public event RawForegroundEventHandler? RawForeground;
     public delegate void RawForegroundEventHandler(IntPtr hWnd);
 
-    public event ForegroundChangedEventHandler ForegroundChanged;
+    public event ForegroundChangedEventHandler? ForegroundChanged;
     public delegate void ForegroundChangedEventHandler(ProcessEx? processEx, ProcessEx? backgroundEx, ProcessFilter filter);
 
-    public event ProcessStartedEventHandler ProcessStarted;
+    public event ProcessStartedEventHandler? ProcessStarted;
     public delegate void ProcessStartedEventHandler(ProcessEx processEx, bool OnStartup);
 
-    public event ProcessStoppedEventHandler ProcessStopped;
+    public event ProcessStoppedEventHandler? ProcessStopped;
     public delegate void ProcessStoppedEventHandler(ProcessEx processEx);
 
     #endregion

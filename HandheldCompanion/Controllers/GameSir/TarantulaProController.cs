@@ -8,7 +8,7 @@ namespace HandheldCompanion.Controllers.GameSir
     public class TarantulaProController : XInputController
     {
         #region events
-        public event OnLayoutChangedEventHandler OnLayoutChanged;
+        public event OnLayoutChangedEventHandler? OnLayoutChanged;
         public delegate void OnLayoutChangedEventHandler(ButtonLayout buttonLayout);
         #endregion
 
@@ -241,7 +241,7 @@ namespace HandheldCompanion.Controllers.GameSir
             Inputs.GyroState.SetAccelerometer(aX, aY, aZ);
 
             // compute motion from controller
-            if (gamepadMotions.TryGetValue(gamepadIndex, out GamepadMotion gamepadMotion))
+            if (gamepadMotions.TryGetValue(gamepadIndex, out GamepadMotion? gamepadMotion))
                 gamepadMotion.ProcessMotion(gX, gY, gZ, aX, aY, aZ, delta);
 
             base.Tick(ticks, delta, true);

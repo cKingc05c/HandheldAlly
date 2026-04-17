@@ -29,9 +29,9 @@ namespace HandheldCompanion.Controllers
         {
             return new ControllerState()
             {
-                ButtonState = this.ButtonState?.Clone() as ButtonState,
-                AxisState = this.AxisState?.Clone() as AxisState,
-                GyroState = this.GyroState?.Clone() as GyroState,
+                ButtonState = this.ButtonState.Clone() as ButtonState ?? new ButtonState(),
+                AxisState = this.AxisState.Clone() as AxisState ?? new AxisState(),
+                GyroState = this.GyroState.Clone() as GyroState ?? new GyroState(),
             };
         }
 
@@ -48,9 +48,9 @@ namespace HandheldCompanion.Controllers
             if (disposing)
             {
                 // Free managed resources
-                ButtonState = null;
-                AxisState = null;
-                GyroState = null;
+                ButtonState = new ButtonState();
+                AxisState = new AxisState();
+                GyroState = new GyroState();
             }
 
             _disposed = true;

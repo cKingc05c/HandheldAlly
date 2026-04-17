@@ -13,7 +13,7 @@ namespace HandheldCompanion.Utils
 {
     static class FileUtils
     {
-        public static CommonFileDialogResult CommonFileDialog(out string path, out string arguments, out string name, string initialPath = null)
+        public static CommonFileDialogResult CommonFileDialog(out string? path, out string arguments, out string name, string? initialPath = null)
         {
             path = string.Empty;
             arguments = string.Empty;
@@ -25,9 +25,12 @@ namespace HandheldCompanion.Utils
             openFileDialog.Filters.Add(new CommonFileDialogFilter("UWP manifest", "*AppxManifest.xml"));
             openFileDialog.NavigateToShortcut = false;
 
-            string? dir = Path.GetDirectoryName(initialPath);
-            if (File.Exists(initialPath) && !string.IsNullOrEmpty(dir) && Directory.Exists(dir))
-                openFileDialog.InitialDirectory = dir;
+            if (!string.IsNullOrEmpty(initialPath))
+            {
+                string? dir = Path.GetDirectoryName(initialPath);
+                if (File.Exists(initialPath) && !string.IsNullOrEmpty(dir) && Directory.Exists(dir))
+                    openFileDialog.InitialDirectory = dir;
+            }
 
             CommonFileDialogResult errorCode = openFileDialog.ShowDialog();
             if (errorCode != CommonFileDialogResult.Ok)
@@ -37,7 +40,7 @@ namespace HandheldCompanion.Utils
             if (string.IsNullOrEmpty(path))
                 return errorCode;
 
-            string folder = Path.GetDirectoryName(path);
+            string folder = Path.GetDirectoryName(path) ?? string.Empty;
             string file = Path.GetFileName(path);
             string ext = Path.GetExtension(file);
             name = file.Replace(ext, string.Empty);
@@ -48,13 +51,13 @@ namespace HandheldCompanion.Utils
                 IWshShortcut link = (IWshShortcut)wsh.CreateShortcut(path);
 
                 // get real path
-                path = link.TargetPath;
+                path = link.TargetPath ?? string.Empty;
 
                 // get arguments
-                arguments = link.Arguments;
+                arguments = link.Arguments ?? string.Empty;
 
-                folder = Path.GetDirectoryName(path);
-                file = Path.GetFileName(link.TargetPath);
+                folder = Path.GetDirectoryName(path) ?? string.Empty;
+                file = Path.GetFileName(path);
                 ext = Path.GetExtension(file);
             }
 
@@ -141,7 +144,7 @@ namespace HandheldCompanion.Utils
                     }
                 }
 
-                string dirPath = Path.GetDirectoryName(fileName);
+                string? dirPath = Path.GetDirectoryName(fileName);
                 return IsDirectoryWritable(dirPath);
             }
             catch { }
@@ -149,11 +152,11 @@ namespace HandheldCompanion.Utils
             return false;
         }
 
-        public static bool IsDirectoryWritable(string dirPath)
+        public static bool IsDirectoryWritable(string? dirPath)
         {
             try
             {
-                if (Directory.Exists(dirPath))
+                if (!string.IsNullOrEmpty(dirPath) && Directory.Exists(dirPath))
                 {
                     using (var fs = File.Create(Path.Combine(dirPath, Path.GetRandomFileName()), 1, FileOptions.DeleteOnClose))
                     {

@@ -16,6 +16,7 @@
     d:DataContext="{d:DesignInstance Type=viewmodels:PerformancePageViewModel}"
     d:DesignHeight="1500"
     d:DesignWidth="640"
+    IsEnabled="{Binding PerformanceManagerEnabled}"
     KeepAlive="True"
     mc:Ignorable="d">
 

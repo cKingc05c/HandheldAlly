@@ -71,7 +71,7 @@ namespace HandheldCompanion.Devices
             if (reScan)
                 await WaitUntilReady();
 
-            if (hidDevices.TryGetValue(INPUT_HID_ID, out HidDevice device))
+            if (hidDevices.TryGetValue(INPUT_HID_ID, out HidDevice? device))
             {
                 device.MonitorDeviceEvents = true;
                 device.Removed += Device_Removed;
@@ -118,7 +118,7 @@ namespace HandheldCompanion.Devices
 #if USE_SAPIENTIAUSB
             SetTouchPadStatus(enabled ? 0 : 1);
 #else
-            if (hidDevices.TryGetValue(INPUT_HID_ID, out HidDevice device))
+            if (hidDevices.TryGetValue(INPUT_HID_ID, out HidDevice? device))
             {
                 device.Write(WithReportID([0x04, 0x08, (enabled ? (byte)0x00 : (byte)0x01)])); // touchpad
                 device.Write(WithReportID([0x08, 0x03, (enabled ? (byte)0x00 : (byte)0x01)])); // touchpad vibration
@@ -129,7 +129,7 @@ namespace HandheldCompanion.Devices
 
         public override void SetControllerSwap(bool enabled)
         {
-            if (hidDevices.TryGetValue(INPUT_HID_ID, out HidDevice device))
+            if (hidDevices.TryGetValue(INPUT_HID_ID, out HidDevice? device))
                 device.Write(WithReportID([0x05, 0x06, 0x69, 0x04, 0x01, (byte)(enabled ? 0x02 : 0x01), 0x01]));
 
             base.SetControllerSwap(enabled);
@@ -162,7 +162,7 @@ namespace HandheldCompanion.Devices
 #if USE_SAPIENTIAUSB
             return SetLightingEffectProfileID(3, lightProfile);
 #else
-            if (hidDevices.TryGetValue(INPUT_HID_ID, out HidDevice device))
+            if (hidDevices.TryGetValue(INPUT_HID_ID, out HidDevice? device))
             {
                 byte[] cmd = RgbSetProfile((byte)lightProfile.profile, (byte)lightProfile.effect, (byte)lightProfile.r, (byte)lightProfile.g, (byte)lightProfile.b, lightProfile.brightness, lightProfile.speed);
                 return device.Write(WithReportID(cmd));
@@ -176,7 +176,7 @@ namespace HandheldCompanion.Devices
 #if USE_SAPIENTIAUSB
             return SetLightingEnable(3, status);
 #else
-            if (hidDevices.TryGetValue(INPUT_HID_ID, out HidDevice device))
+            if (hidDevices.TryGetValue(INPUT_HID_ID, out HidDevice? device))
                 return device.Write(WithReportID(RgbEnable(status)));
 #endif
             return false;
@@ -215,7 +215,7 @@ namespace HandheldCompanion.Devices
 #if USE_SAPIENTIAUSB
             return SetLightingEffectProfileID(3, lightProfile);
 #else
-            if (hidDevices.TryGetValue(INPUT_HID_ID, out HidDevice device))
+            if (hidDevices.TryGetValue(INPUT_HID_ID, out HidDevice? device))
             {
                 byte[] cmd = RgbSetProfile((byte)lightProfile.profile, (byte)lightProfile.effect, (byte)lightProfile.r, (byte)lightProfile.g, (byte)lightProfile.b, lightProfile.brightness, lightProfile.speed);
                 return device.Write(WithReportID(cmd));

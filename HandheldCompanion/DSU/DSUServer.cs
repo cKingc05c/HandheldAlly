@@ -69,16 +69,16 @@ public static class DSUServer
     private const int serverPort = 26760;
     private static uint serverId;
     private static int udpPacketCount;
-    private static Socket udpSock;
+    private static Socket? udpSock;
 
     public static bool IsInitialized;
 
     #region events
     public delegate void StartedEventHandler();
-    public static event StartedEventHandler Started;
+    public static event StartedEventHandler? Started;
 
     public delegate void StoppedEventHandler();
-    public static event StoppedEventHandler Stopped;
+    public static event StoppedEventHandler? Stopped;
     #endregion
 
     static DSUServer()
@@ -114,7 +114,7 @@ public static class DSUServer
         meta = padMetas[padIdx];
     }
 
-    private static void SocketEvent_AsyncCompleted(object sender, SocketAsyncEventArgs e)
+    private static void SocketEvent_AsyncCompleted(object? sender, SocketAsyncEventArgs e)
     {
         _pool.Release();
         e.Dispose();
@@ -179,12 +179,18 @@ public static class DSUServer
         poolLock.ExitWriteLock();
 
         _pool.Wait();
+        if (args.Buffer is null)
+        {
+            CompletedSynchronousSocketEvent(args);
+            return;
+        }
+
         Array.Copy(packetData, args.Buffer, packetData.Length);
         //args.SetBuffer(packetData, 0, packetData.Length);
         bool sentAsync = false;
         try
         {
-            sentAsync = udpSock.SendToAsync(args);
+            sentAsync = udpSock!.SendToAsync(args);
             //if (!sentAsync) CompletedSynchronousSocketEvent();
         }
         catch { }
@@ -286,7 +292,7 @@ public static class DSUServer
                     outputData[outIdx++] = (byte)padData.Model;
                     outputData[outIdx++] = (byte)padData.ConnectionType;
 
-                    byte[] addressBytes = null;
+                    byte[] addressBytes = new byte[0];
                     if (padData.PadMacAddress is not null)
                         addressBytes = padData.PadMacAddress.GetAddressBytes();
 
@@ -343,17 +349,19 @@ public static class DSUServer
 
     private static void ReceiveCallback(IAsyncResult iar)
     {
-        byte[] localMsg = null;
+        byte[] localMsg = new byte[0];
         EndPoint clientEP = new IPEndPoint(IPAddress.Any, 0);
 
         try
         {
-            //Get the received message.
-            Socket recvSock = (Socket)iar.AsyncState;
-            int msgLen = recvSock.EndReceiveFrom(iar, ref clientEP);
-
-            localMsg = new byte[msgLen];
-            Array.Copy(recvBuffer, localMsg, msgLen);
+            // Get the received message
+            Socket? recvSock = iar.AsyncState as Socket;
+            if (recvSock is not null)
+            {
+                int msgLen = recvSock.EndReceiveFrom(iar, ref clientEP);
+                localMsg = new byte[msgLen];
+                Array.Copy(recvBuffer, localMsg, msgLen);
+            }
         }
         catch (SocketException)
         {
@@ -364,10 +372,10 @@ public static class DSUServer
         }
         catch (Exception /*e*/) { }
 
-        //Start another receive as soon as we copied the data
+        // Start another receive as soon as we copied the data
         StartReceive();
 
-        //Process the data if its valid
+        // Process the data if its valid
         if (localMsg != null)
             ProcessIncoming(localMsg, (IPEndPoint)clientEP);
     }
@@ -380,7 +388,7 @@ public static class DSUServer
             {
                 //Start listening for a new message.
                 EndPoint newClientEP = new IPEndPoint(IPAddress.Any, 0);
-                udpSock.BeginReceiveFrom(recvBuffer, 0, recvBuffer.Length, SocketFlags.None, ref newClientEP, ReceiveCallback, udpSock);
+                udpSock!.BeginReceiveFrom(recvBuffer, 0, recvBuffer.Length, SocketFlags.None, ref newClientEP, ReceiveCallback, udpSock);
             }
         }
         catch (SocketException /*ex*/)
@@ -581,7 +589,7 @@ public static class DSUServer
                 case 1:
                 case 2:
                     byte gamepadMotionIdx = (byte)(padIdx - 1);
-                    if (GamepadMotions.TryGetValue(gamepadMotionIdx, out GamepadMotion gamepadMotion))
+                    if (GamepadMotions.TryGetValue(gamepadMotionIdx, out GamepadMotion? gamepadMotion))
                     {
                         gamepadMotion.GetRawGyro(out gyroX, out gyroY, out gyroZ);
                         gamepadMotion.GetRawAcceleration(out accelX, out accelY, out accelZ);
@@ -756,11 +764,17 @@ public static class DSUServer
                     poolLock.ExitWriteLock();
 
                     _pool.Wait();
+                    if (args.Buffer is null)
+                    {
+                        CompletedSynchronousSocketEvent(args);
+                        continue;
+                    }
+
                     Array.Copy(outputData, args.Buffer, outputData.Length);
                     bool sentAsync = false;
                     try
                     {
-                        bool sendAsync = udpSock.SendToAsync(args);
+                        sentAsync = udpSock!.SendToAsync(args);
                     }
                     catch { }
                     finally

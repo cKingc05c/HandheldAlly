@@ -9,7 +9,7 @@ namespace HandheldCompanion.Misc
         private static string _key =
             "Software\\Microsoft\\Windows\\CurrentVersion\\CloudStore\\Store\\DefaultAccount\\Current\\default$windows.data.bluelightreduction.bluelightreductionstate\\windows.data.bluelightreduction.bluelightreductionstate";
 
-        private static RegistryKey _registryKey;
+        private static RegistryKey? _registryKey;
 
         private static readonly RegistryWatcher _nightLightStateWatcher = new(WatchedRegistry.CurrentUser,
         @"SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\CloudStore\\" +
@@ -22,7 +22,7 @@ namespace HandheldCompanion.Misc
             {
                 if (!Supported) return false;
 
-                byte[] registry = _registryKey?.GetValue("Data") as byte[];
+                byte[]? registry = _registryKey?.GetValue("Data") as byte[];
                 if (registry == null || registry.Length < 19) return false;
 
                 byte[] data = new byte[registry.Length];
@@ -88,6 +88,10 @@ namespace HandheldCompanion.Misc
 
         private static void InitializeDefaultData()
         {
+            RegistryKey? registryKey = _registryKey;
+            if (registryKey is null)
+                return;
+
             // Default Night Light disabled state
             // This is the minimal binary data structure for a disabled Night Light state
             byte[] defaultData = new byte[41]
@@ -99,8 +103,8 @@ namespace HandheldCompanion.Misc
 
             try
             {
-                _registryKey.SetValue("Data", defaultData, RegistryValueKind.Binary);
-                _registryKey.Flush();
+                registryKey.SetValue("Data", defaultData, RegistryValueKind.Binary);
+                registryKey.Flush();
             }
             catch (Exception)
             {
@@ -113,17 +117,21 @@ namespace HandheldCompanion.Misc
             Toggled?.Invoke(Enabled);
         }
 
-        public static event ToggledEventHandler Toggled;
+        public static event ToggledEventHandler? Toggled;
         public delegate void ToggledEventHandler(bool enabled);
 
         private static void Toggle()
         {
-            byte[] registry = _registryKey?.GetValue("Data") as byte[];
+            RegistryKey? registryKey = _registryKey;
+            if (registryKey is null)
+                return;
+
+            byte[]? registry = registryKey.GetValue("Data") as byte[];
             if (registry == null || registry.Length < 23)
             {
                 // If registry data is invalid or incomplete, initialize with defaults
                 InitializeDefaultData();
-                registry = _registryKey?.GetValue("Data") as byte[];
+                registry = registryKey.GetValue("Data") as byte[];
                 if (registry == null)
                     return;
             }
@@ -160,8 +168,8 @@ namespace HandheldCompanion.Misc
                 }
             }
 
-            _registryKey.SetValue("Data", newData, RegistryValueKind.Binary);
-            _registryKey.Flush();
+            registryKey.SetValue("Data", newData, RegistryValueKind.Binary);
+            registryKey.Flush();
         }
     }
 }

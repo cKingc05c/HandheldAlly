@@ -116,7 +116,7 @@ namespace HandheldCompanion.Processors.AMD
         /// </summary>
         /// <param name="ryzenSmuModulePath">Path to the RyzenSMU.amx module file.</param>
         /// <returns>True if initialization successful.</returns>
-        public bool Initialize(string ryzenSmuModulePath = null)
+        public bool Initialize(string? ryzenSmuModulePath = null)
         {
             if (_initialized)
                 return true;

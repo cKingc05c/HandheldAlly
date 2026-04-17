@@ -8,8 +8,8 @@ namespace HandheldCompanion.Commands.Functions.Windows
     [Serializable]
     public class CopilotVoiceCommands : FunctionCommands
     {
-        private AutomationElement desktop = null;
-        private AutomationElement copilot = null;
+        private AutomationElement? desktop = null;
+        private AutomationElement? copilot = null;
 
         private bool IsLoading = false;
         public CopilotVoiceCommands()

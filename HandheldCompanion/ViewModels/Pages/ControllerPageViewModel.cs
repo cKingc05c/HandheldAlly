@@ -1,11 +1,8 @@
 ﻿using HandheldCompanion.Controllers;
-using System;
-using HandheldCompanion.Extensions;
 using HandheldCompanion.Managers;
-using static HandheldCompanion.Managers.ControllerManager;
-using HandheldCompanion.Misc;
 using HandheldCompanion.Shared;
 using HandheldCompanion.Utils;
+using System;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Linq;
@@ -14,6 +11,7 @@ using System.Windows;
 using System.Windows.Data;
 using System.Windows.Input;
 using System.Windows.Media.Imaging;
+using static HandheldCompanion.Managers.ControllerManager;
 
 namespace HandheldCompanion.ViewModels
 {
@@ -291,8 +289,8 @@ namespace HandheldCompanion.ViewModels
             }
 
             // send events
-            if (ControllerManager.HasTargetController)
-                ControllerManager_ControllerSelected(ControllerManager.GetTarget());
+            if (ControllerManager.HasTargetController && ControllerManager.GetTarget() is IController controller)
+                ControllerManager_ControllerSelected(controller);
             else
                 Refresh();
 
@@ -391,7 +389,7 @@ namespace HandheldCompanion.ViewModels
 
             lock (lockObj)
             {
-                ControllerViewModel? foundController = controllers.FirstOrDefault(controller => controller.Controller.GetInstanceId() == Controller.GetInstanceId());
+                ControllerViewModel? foundController = controllers.FirstOrDefault(controller => controller.Controller?.GetInstanceId() == Controller.GetInstanceId());
                 if (foundController is null)
                 {
                     controllers.Add(new ControllerViewModel(Controller));
@@ -413,7 +411,7 @@ namespace HandheldCompanion.ViewModels
 
             lock (lockObj)
             {
-                ControllerViewModel? foundController = controllers.FirstOrDefault(controller => controller.Controller.GetInstanceId() == Controller.GetInstanceId());
+                ControllerViewModel? foundController = controllers.FirstOrDefault(controller => controller.Controller?.GetInstanceId() == Controller.GetInstanceId());
                 if (foundController is not null && !IsPowerCycling)
                 {
                     controllers.Remove(foundController);
@@ -429,8 +427,11 @@ namespace HandheldCompanion.ViewModels
             Refresh();
         }
 
-        private void ControllerManager_ControllerSelected(IController Controller)
+        private void ControllerManager_ControllerSelected(IController? Controller)
         {
+            if (Controller is null)
+                return;
+
             lock (_collectionLock)
             {
                 foreach (ControllerViewModel controller in PhysicalControllers)
@@ -446,16 +447,18 @@ namespace HandheldCompanion.ViewModels
 
         public void Refresh()
         {
-            IController targetController = ControllerManager.GetTarget();
+            IController? targetController = ControllerManager.GetTarget();
 
             bool hasPhysical, hasVirtual, hasTarget;
             lock (_collectionLock)
             {
                 hasPhysical = PhysicalControllers.Any();
-                hasTarget = targetController != null &&
-                            PhysicalControllers.Any(c => c.Controller.GetInstanceId() == targetController.GetInstanceId());
+                hasTarget = targetController != null && PhysicalControllers.Any(c => c.Controller?.GetInstanceId() == targetController.GetInstanceId());
             }
-            lock (_collectionLock2) { hasVirtual = VirtualControllers.Any(); }
+            lock (_collectionLock2)
+            {
+                hasVirtual = VirtualControllers.Any();
+            }
 
             bool isHidden = hasTarget && targetController!.IsHidden();
             bool isPlugged = hasPhysical && hasTarget;
@@ -469,7 +472,7 @@ namespace HandheldCompanion.ViewModels
             HintsNotMutedVisibility = hasDualInput ? Visibility.Visible : Visibility.Collapsed;
         }
 
-        private void SettingsManager_SettingValueChanged(string name, object value, bool temporary)
+        private void SettingsManager_SettingValueChanged(string name, object? value, bool temporary)
         {
             switch (name)
             {

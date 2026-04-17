@@ -16,7 +16,7 @@ namespace HandheldCompanion.UI
     {
         private static string appFolder = string.Empty;
         private static Timer soundTimer;
-        private static string audioFilePath;
+        private static string audioFilePath = string.Empty;
 
         public const string Expanded = "drop_001";
         public const string Collapse = "drop_002";
@@ -83,7 +83,7 @@ namespace HandheldCompanion.UI
             }
         }
 
-        private static UIElement prevElement;
+        private static UIElement? prevElement;
         private static void OnFocus(object sender, RoutedEventArgs e)
         {
             UIElement uIElement = (UIElement)sender;

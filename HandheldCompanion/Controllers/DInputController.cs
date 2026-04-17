@@ -9,9 +9,9 @@ namespace HandheldCompanion.Controllers;
 
 public class DInputController : IController
 {
-    public Joystick joystick;
+    public Joystick? joystick;
     protected JoystickState State = new();
-    protected GenericController controller;
+    protected GenericController? controller;
 
     public DInputController()
     { }
@@ -33,8 +33,9 @@ public class DInputController : IController
     {
         Unplug();
 
-        joystick.Dispose();
+        joystick?.Dispose();
         joystick = null;
+        controller = null;
 
         base.Dispose();
     }

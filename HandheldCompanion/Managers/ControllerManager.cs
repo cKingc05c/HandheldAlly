@@ -60,18 +60,18 @@ public static class ControllerManager
     /// </summary>
     private static readonly TimeSpan CrossWaitTimeout = TimeSpan.FromSeconds(5);
 
-    private static Thread watchdogThread;
+    private static Thread? watchdogThread = null!;
     private static bool watchdogThreadRunning;
     private static readonly object watchdogLock = new();
     private static int watchdogStarted;
     private static volatile bool watchdogSettling;
-    private static Thread pumpThread;
+    private static Thread? pumpThread = null;
     private static bool pumpThreadRunning;
 
     // Slot monitor runs independently from the actual slot manipulation logic.
     // It is intentionally always running (light polling) so HC can detect slot issues
     // and either auto-fix (Automatic) or prompt the user (Manual).
-    private static Thread slotMonitorThread;
+    private static Thread? slotMonitorThread = null!;
     private static bool slotMonitorThreadRunning;
     private static readonly object slotMonitorLock = new();
     private static int slotMonitorStarted;
@@ -307,7 +307,7 @@ public static class ControllerManager
 
         // get main motion safely
         byte gamepadIndex = tc.gamepadIndex;
-        if (!motions.TryGetValue(gamepadIndex, out GamepadMotion gamepadMotion) || gamepadMotion is null)
+        if (!motions.TryGetValue(gamepadIndex, out GamepadMotion? gamepadMotion) || gamepadMotion is null)
             return;
 
         // sensor override
@@ -462,7 +462,7 @@ public static class ControllerManager
 
                     try
                     {
-                        Controllers.TryGetValue(details.baseContainerDeviceInstanceId, out IController controller);
+                        Controllers.TryGetValue(details.baseContainerDeviceInstanceId, out IController? controller);
                         PowerCyclers.TryGetValue(details.baseContainerDeviceInstanceId, out bool IsPowerCycling);
 
                         if (controller != null)
@@ -572,7 +572,7 @@ public static class ControllerManager
 
             try
             {
-                if (SDLControllers.TryGetValue(deviceIndex, out SDLController controller))
+                if (SDLControllers.TryGetValue(deviceIndex, out SDLController? controller))
                 {
                     string path = controller.GetContainerInstanceId();
 
@@ -632,7 +632,7 @@ public static class ControllerManager
 
                 try
                 {
-                    Controllers.TryGetValue(details.baseContainerDeviceInstanceId, out IController controller);
+                    Controllers.TryGetValue(details.baseContainerDeviceInstanceId, out IController? controller);
                     PowerCyclers.TryGetValue(details.baseContainerDeviceInstanceId, out bool IsPowerCycling);
 
                     if (controller is not null)
@@ -766,7 +766,7 @@ public static class ControllerManager
             {
                 try
                 {
-                    IController controller = null;
+                    IController? controller = null;
 
                     Task timeout = Task.Delay(TimeSpan.FromSeconds(10));
                     while (!timeout.IsCompleted && controller == null)
@@ -830,7 +830,7 @@ public static class ControllerManager
             {
                 try
                 {
-                    Controllers.TryGetValue(details.baseContainerDeviceInstanceId, out IController controller);
+                    Controllers.TryGetValue(details.baseContainerDeviceInstanceId, out IController? controller);
                     PowerCyclers.TryGetValue(details.baseContainerDeviceInstanceId, out bool IsPowerCycling);
 
                     if (controller != null)
@@ -922,12 +922,12 @@ public static class ControllerManager
                     }
 
                     if (controller is null)
-                    {                        
-                        try 
-                        { 
-                            controller = new XInputController(details); 
+                    {
+                        try
+                        {
+                            controller = new XInputController(details);
                         }
-                        catch 
+                        catch
                         {
                             LogManager.LogWarning("Unsupported XInput controller: VID:{0} and PID:{1}", details.GetVendorID(), details.GetProductID());
                             return;
@@ -985,7 +985,7 @@ public static class ControllerManager
             {
                 try
                 {
-                    IController controller = null;
+                    IController? controller = null;
 
                     Task timeout = Task.Delay(TimeSpan.FromSeconds(10));
                     while (!timeout.IsCompleted && controller == null)
@@ -1216,7 +1216,7 @@ public static class ControllerManager
         scenarioTimer.Start();
     }
 
-    private static void SettingsManager_SettingValueChanged(string name, object value, bool temporary)
+    private static void SettingsManager_SettingValueChanged(string name, object? value, bool temporary)
     {
         switch (name)
         {
@@ -1288,9 +1288,12 @@ public static class ControllerManager
         ManagerFactory.deviceManager.RefreshXInputAsync().ConfigureAwait(false).GetAwaiter().GetResult();
 
         // Reopen all SDL gamepads
-        uint[] gamepads = SDL.GetGamepads(out int count);
-        foreach (uint gamepad in gamepads)
-            SDL_GamepadAdded(gamepad);
+        uint[]? gamepads = SDL.GetGamepads(out int count);
+        if (gamepads != null)
+        {
+            foreach (uint gamepad in gamepads)
+                SDL_GamepadAdded(gamepad);
+        }
     }
 
     private static void ProcessManager_Initialized()
@@ -1582,7 +1585,7 @@ public static class ControllerManager
                 .Select(async controller =>
                 {
                     byte index = await DeviceManager.GetXInputIndexAsync(controller.GetContainerPath()).ConfigureAwait(false);
-                    if (index == byte.MaxValue)
+                    if (index == byte.MaxValue && controller.Details is not null)
                         index = (byte)XInputController.TryGetUserIndex(controller.Details);
 
                     // Skip controllers whose slot could not be determined —
@@ -2084,7 +2087,7 @@ public static class ControllerManager
         // (IsBusy == false) or whose entry is orphaned (no longer in Controllers).
         foreach (string key in PowerCyclers.Keys)
         {
-            if (!Controllers.TryGetValue(key, out IController controller) || !controller.IsBusy)
+            if (!Controllers.TryGetValue(key, out IController? controller) || !controller.IsBusy)
                 PowerCyclers.TryRemove(key, out _);
         }
 
@@ -2147,7 +2150,7 @@ public static class ControllerManager
         lock (targetLock)
         {
             // look for new controller
-            if (!Controllers.TryGetValue(baseContainerDeviceInstanceId, out IController controller))
+            if (!Controllers.TryGetValue(baseContainerDeviceInstanceId, out IController? controller))
                 return;
 
             // already self
@@ -2235,7 +2238,7 @@ public static class ControllerManager
     {
         try
         {
-            PnPDevice pnPDevice = null;
+            PnPDevice? pnPDevice = null;
 
             Task timeout = Task.Delay(TimeSpan.FromSeconds(3));
             while (!timeout.IsCompleted && pnPDevice is null)
@@ -2247,7 +2250,7 @@ public static class ControllerManager
             if (pnPDevice is null)
                 return false;
 
-            DriverMeta pnPDriver = null;
+            DriverMeta? pnPDriver = null;
             try
             {
                 // get current driver
@@ -2256,7 +2259,7 @@ public static class ControllerManager
             catch { }
 
             // get controller
-            if (Controllers.TryGetValue(baseContainerDeviceInstanceId, out IController controller))
+            if (Controllers.TryGetValue(baseContainerDeviceInstanceId, out IController? controller))
             {
                 // Mark as power-cycling BEFORE installing null driver or cycling the port.
                 // InstallNullDriver can trigger PnP removal events; without this flag the
@@ -2305,7 +2308,7 @@ public static class ControllerManager
     {
         try
         {
-            PnPDevice pnPDevice = null;
+            PnPDevice? pnPDevice = null;
 
             Task timeout = Task.Delay(TimeSpan.FromSeconds(3));
             while (!timeout.IsCompleted && pnPDevice is null)
@@ -2317,7 +2320,7 @@ public static class ControllerManager
             if (pnPDevice is null)
                 return false;
 
-            DriverMeta pnPDriver = null;
+            DriverMeta? pnPDriver = null;
             try
             {
                 // get current driver
@@ -2325,7 +2328,7 @@ public static class ControllerManager
             }
             catch { }
 
-            string enumerator = pnPDevice.GetProperty<string>(DevicePropertyKey.Device_EnumeratorName);
+            string? enumerator = pnPDevice.GetProperty<string>(DevicePropertyKey.Device_EnumeratorName);
             switch (enumerator)
             {
                 case "USB":
@@ -2471,29 +2474,29 @@ public static class ControllerManager
 
     #region events
 
-    public static event ControllerPluggedEventHandler ControllerPlugged;
+    public static event ControllerPluggedEventHandler? ControllerPlugged;
     public delegate void ControllerPluggedEventHandler(IController Controller, bool WasPowerCycling);
 
-    public static event ControllerUnpluggedEventHandler ControllerUnplugged;
+    public static event ControllerUnpluggedEventHandler? ControllerUnplugged;
     public delegate void ControllerUnpluggedEventHandler(IController Controller, bool IsPowerCycling, bool WasTarget);
 
-    public static event ControllerSelectedEventHandler ControllerSelected;
+    public static event ControllerSelectedEventHandler? ControllerSelected;
     public delegate void ControllerSelectedEventHandler(IController Controller);
 
     /// <summary>
     /// Controller state has changed, before layout manager
     /// </summary>
     /// <param name="Inputs">The updated controller state.</param>
-    public static event InputsUpdatedEventHandler InputsUpdated;
+    public static event InputsUpdatedEventHandler? InputsUpdated;
     public delegate void InputsUpdatedEventHandler(ControllerState Inputs, bool IsMapped);
 
-    public static event StatusChangedEventHandler StatusChanged;
+    public static event StatusChangedEventHandler? StatusChanged;
     public delegate void StatusChangedEventHandler(ControllerManagerStatus status, int attempts);
 
-    public static event SlotIssueChangedEventHandler SlotIssueChanged;
+    public static event SlotIssueChangedEventHandler? SlotIssueChanged;
     public delegate void SlotIssueChangedEventHandler(bool hasIssue, string reason);
 
-    public static event InitializedEventHandler Initialized;
+    public static event InitializedEventHandler? Initialized;
     public delegate void InitializedEventHandler();
 
     #endregion

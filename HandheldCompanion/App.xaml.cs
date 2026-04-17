@@ -42,7 +42,7 @@ public partial class App : Application
     private static extern bool PostMessage(IntPtr hWnd, uint Msg, IntPtr wParam, IntPtr lParam);
 
     [DllImport("user32.dll", SetLastError = true)]
-    private static extern IntPtr FindWindow(string lpClassName, string lpWindowName);
+    private static extern IntPtr FindWindow(string? lpClassName, string lpWindowName);
 
     [DllImport("kernel32.dll", SetLastError = true)]
     public static extern bool AllocConsole();
@@ -169,7 +169,7 @@ public partial class App : Application
     private void InjectResource()
     {
         Type resourcesType = typeof(Resources);
-        var customManager = new ResilientResourceManager(resourcesType.FullName, resourcesType.Assembly);
+        var customManager = new ResilientResourceManager(resourcesType.FullName ?? resourcesType.Name, resourcesType.Assembly);
         FieldInfo? field = resourcesType.GetField("resourceMan", BindingFlags.Static | BindingFlags.NonPublic);
         if (field == null) return;
         field.SetValue(null, customManager);
@@ -194,7 +194,7 @@ public partial class App : Application
 
             // initialize log
             LogManager.Initialize(ApplicationName);
-            LogManager.LogInformation("{0} ({1})", CurrentAssembly.GetName(), fileVersionInfo.FileVersion);
+            LogManager.LogInformation("{0} ({1})", CurrentAssembly.GetName().ToString(), fileVersionInfo.FileVersion ?? string.Empty);
 
             using (Process process = Process.GetCurrentProcess())
             {
@@ -271,9 +271,9 @@ public partial class App : Application
             // Critical startup exception - log and show error before crashing
             try
             {
-                LogManager.LogCritical("Fatal startup exception: {0}\t{1}", ex.Message, ex.StackTrace);
+                LogManager.LogCritical("Fatal startup exception: {0}\t{1}", ex.Message, ex.StackTrace ?? string.Empty);
                 if (ex.InnerException != null)
-                    LogManager.LogCritical("Inner exception: {0}\t{1}", ex.InnerException.Message, ex.InnerException.StackTrace);
+                    LogManager.LogCritical("Inner exception: {0}\t{1}", ex.InnerException.Message, ex.InnerException.StackTrace ?? string.Empty);
             }
             catch { /* ignore logging errors */ }
 
@@ -405,12 +405,12 @@ public partial class App : Application
         {
             foreach (var innerEx in aggEx.InnerExceptions)
             {
-                LogManager.LogCritical("Unobserved Task Exception: {0}\t{1}", innerEx.Message, innerEx.StackTrace);
+                LogManager.LogCritical("Unobserved Task Exception: {0}\t{1}", innerEx.Message, innerEx.StackTrace ?? string.Empty);
             }
         }
         else
         {
-            LogManager.LogCritical("Unobserved Task Exception: {0}\t{1}", ex.Message, ex.StackTrace);
+            LogManager.LogCritical("Unobserved Task Exception: {0}\t{1}", ex.Message, ex.StackTrace ?? string.Empty);
         }
 
         // Mark the exception as observed to prevent app crash

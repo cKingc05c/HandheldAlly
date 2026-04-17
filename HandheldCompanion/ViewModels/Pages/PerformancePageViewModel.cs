@@ -124,6 +124,8 @@ namespace HandheldCompanion.ViewModels
 
         public bool SupportsGPUFreq => PerformanceManager.GetProcessor()?.CanChangeGPU ?? false;
 
+        public bool PerformanceManagerEnabled => ManagerFactory.settingsManager.GetBoolean("PerformanceManagerEnabled");
+
         public bool CanChangePreset => true; // !SelectedPreset.DeviceDefault;
         public bool CanDeletePreset => !SelectedPreset.Default && !SelectedPreset.DeviceDefault;
 
@@ -232,8 +234,17 @@ namespace HandheldCompanion.ViewModels
                 double clamped = Math.Max(ConfigurableTDPOverrideDown,
                                   Math.Min(value, ConfigurableTDPOverrideUp));
 
-                SelectedPreset.TDPOverrideValues[(int)PowerType.Slow] = clamped;
-                SelectedPreset.TDPOverrideValues[(int)PowerType.Stapm] = clamped;
+                if (SelectedPreset is null)
+                    return;
+
+                var selectedPreset = SelectedPreset;
+                if (selectedPreset is null)
+                    return;
+
+                double[] tdpOverrideValues = selectedPreset.TDPOverrideValues ??= (double[])IDevice.GetCurrent().nTDP.Clone();
+
+                tdpOverrideValues[(int)PowerType.Slow] = clamped;
+                tdpOverrideValues[(int)PowerType.Stapm] = clamped;
 
                 // If PL1 crosses PL2, bump PL2 up to maintain PL2 >= PL1 + Δ
                 double minPl2 = clamped + RequiredDelta;
@@ -243,7 +254,7 @@ namespace HandheldCompanion.ViewModels
                     try
                     {
                         _coerceGuard = true;
-                        SelectedPreset.TDPOverrideValues[(int)PowerType.Fast] = Math.Min(ConfigurableTDPOverrideUp, minPl2);
+                        tdpOverrideValues[(int)PowerType.Fast] = Math.Min(ConfigurableTDPOverrideUp, minPl2);
                         OnPropertyChanged(nameof(PL2OverrideValue));
                     }
                     finally { _coerceGuard = false; }
@@ -268,9 +279,15 @@ namespace HandheldCompanion.ViewModels
                 double minPl2 = PL1OverrideValue + RequiredDelta;
                 double clamped = Math.Max(minPl2, Math.Min(value, ConfigurableTDPOverrideUp));
 
-                if (SelectedPreset.TDPOverrideValues[(int)PowerType.Fast] != clamped)
+                var selectedPreset = SelectedPreset;
+                if (selectedPreset is null)
+                    return;
+
+                double[] tdpOverrideValues = selectedPreset.TDPOverrideValues ??= (double[])IDevice.GetCurrent().nTDP.Clone();
+
+                if (tdpOverrideValues[(int)PowerType.Fast] != clamped)
                 {
-                    SelectedPreset.TDPOverrideValues[(int)PowerType.Fast] = clamped;
+                    tdpOverrideValues[(int)PowerType.Fast] = clamped;
                     OnPropertyChanged(nameof(PL2OverrideValue));
                 }
             }
@@ -574,8 +591,8 @@ namespace HandheldCompanion.ViewModels
 
         private int _selectedPresetIndex;
 
-        private ProfilesPickerViewModel _selectedPresetPicker;
-        public ProfilesPickerViewModel SelectedPresetPicker
+        private ProfilesPickerViewModel? _selectedPresetPicker;
+        public ProfilesPickerViewModel? SelectedPresetPicker
         {
             get => _selectedPresetPicker;
             set
@@ -589,7 +606,7 @@ namespace HandheldCompanion.ViewModels
             }
         }
 
-        private string _modifyPresetName;
+        private string _modifyPresetName = string.Empty;
         public string ModifyPresetName
         {
             get => _modifyPresetName;
@@ -603,7 +620,7 @@ namespace HandheldCompanion.ViewModels
             }
         }
 
-        private string _modifyPresetDescription;
+        private string _modifyPresetDescription = string.Empty;
         public string ModifyPresetDescription
         {
             get => _modifyPresetDescription;
@@ -619,19 +636,19 @@ namespace HandheldCompanion.ViewModels
 
         private ObservableCollection<ProfilesPickerViewModel> _profilePickerItems = [];
         public ObservableCollection<ProfilesPickerViewModel> ProfilePickerItems => _profilePickerItems;
-        public ICommand OpenModifyDialogCommand { get; private set; }
-        public ICommand ConfirmModifyCommand { get; private set; }
-        public ICommand CreatePresetCommand { get; private set; }
-        public ICommand FanPresetSilentCommand { get; private set; }
-        public ICommand FanPresetPerformanceCommand { get; private set; }
-        public ICommand FanPresetTurboCommand { get; private set; }
+        public ICommand OpenModifyDialogCommand { get; private set; } = new DelegateCommand(() => { });
+        public ICommand ConfirmModifyCommand { get; private set; } = new DelegateCommand(() => { });
+        public ICommand CreatePresetCommand { get; private set; } = new DelegateCommand(() => { });
+        public ICommand FanPresetSilentCommand { get; private set; } = new DelegateCommand(() => { });
+        public ICommand FanPresetPerformanceCommand { get; private set; } = new DelegateCommand(() => { });
+        public ICommand FanPresetTurboCommand { get; private set; } = new DelegateCommand(() => { });
 
         #endregion
 
         private ChartPoint? _storedChartPoint;
-        private CartesianChart _fanGraph;
-        private LineSeries _fanGraphLineSeries;
-        private ContentDialog _modifyDialog;
+        private CartesianChart? _fanGraph;
+        private LineSeries? _fanGraphLineSeries;
+        private ContentDialog? _modifyDialog;
 
         private bool _updatingFanCurveUI;
 
@@ -661,7 +678,7 @@ namespace HandheldCompanion.ViewModels
             string.Empty,
         ];
 
-        private ContentDialog contentDialog;
+        private ContentDialog? contentDialog;
 
         public PerformancePageViewModel(bool isQuickTools)
         {
@@ -678,8 +695,12 @@ namespace HandheldCompanion.ViewModels
             #region General Setup
 
             // manage events
-            PerformanceManager.Initialized += PerformanceManager_Initialized;
             PerformanceManager.EPPChanged += PerformanceManager_EPPChanged;
+
+            if (PerformanceManager.IsInitialized && PerformanceManager.GetProcessor() is Processor processor)
+                PerformanceManager_Initialized(processor.CanChangeTDP, processor.CanChangeGPU);
+            else
+                PerformanceManager.Initialized += PerformanceManager_Initialized;
 
             // raise events
             switch (ManagerFactory.powerProfileManager.Status)
@@ -766,7 +787,7 @@ namespace HandheldCompanion.ViewModels
                 }
 
                 // No need to update 
-                if (_skipPropertyChangedUpdate.Contains(e.PropertyName))
+                if (e.PropertyName is not null && _skipPropertyChangedUpdate.Contains(e.PropertyName))
                     return;
 
                 // trigger power profile update but don't freeze UI
@@ -859,6 +880,9 @@ namespace HandheldCompanion.ViewModels
 
                 FanPresetSilentCommand = new DelegateCommand(() =>
                 {
+                    if (_fanGraphLineSeries is null)
+                        return;
+
                     // update charts
                     for (int idx = 0; idx < _fanGraphLineSeries.ActualValues.Count; idx++)
                         _fanGraphLineSeries.ActualValues[idx] = IDevice.GetCurrent().fanPresets[0][idx];
@@ -869,6 +893,9 @@ namespace HandheldCompanion.ViewModels
 
                 FanPresetPerformanceCommand = new DelegateCommand(() =>
                 {
+                    if (_fanGraphLineSeries is null)
+                        return;
+
                     // update charts
                     for (int idx = 0; idx < _fanGraphLineSeries.ActualValues.Count; idx++)
                         _fanGraphLineSeries.ActualValues[idx] = IDevice.GetCurrent().fanPresets[1][idx];
@@ -879,6 +906,9 @@ namespace HandheldCompanion.ViewModels
 
                 FanPresetTurboCommand = new DelegateCommand(() =>
                 {
+                    if (_fanGraphLineSeries is null)
+                        return;
+
                     // update charts
                     for (int idx = 0; idx < _fanGraphLineSeries.ActualValues.Count; idx++)
                         _fanGraphLineSeries.ActualValues[idx] = IDevice.GetCurrent().fanPresets[2][idx];
@@ -921,7 +951,7 @@ namespace HandheldCompanion.ViewModels
             ManagerFactory.gpuManager.Hooked += GPUManager_Hooked;
             ManagerFactory.gpuManager.Unhooked += GpuManager_Unhooked;
 
-            GPU gpu = GPUManager.GetCurrent();
+            GPU? gpu = GPUManager.GetCurrent();
             if (gpu is not null)
                 GPUManager_Hooked(gpu);
         }
@@ -983,6 +1013,7 @@ namespace HandheldCompanion.ViewModels
             OnPropertyChanged("ConfigurableTDPOverride");
             OnPropertyChanged("ConfigurableTDPOverrideDown");
             OnPropertyChanged("ConfigurableTDPOverrideUp");
+            OnPropertyChanged(nameof(PerformanceManagerEnabled));
         }
 
         private void QueryPowerProfile()
@@ -997,7 +1028,7 @@ namespace HandheldCompanion.ViewModels
                     PowerProfileManager_Updated(powerProfile, UpdateSource.Creation);
 
                 // Reset to Default
-                ProfilesPickerViewModel profile = _profilePickerItems.FirstOrDefault(p => p.LinkedPresetId == Guid.Empty);
+                ProfilesPickerViewModel? profile = _profilePickerItems.FirstOrDefault(p => p.LinkedPresetId == Guid.Empty);
                 if (profile is not null)
                     SelectedPresetPicker = profile;
             }
@@ -1027,7 +1058,7 @@ namespace HandheldCompanion.ViewModels
             ManagerFactory.settingsManager.Initialized -= SettingsManager_Initialized;
             ManagerFactory.multimediaManager.PrimaryScreenChanged -= MultimediaManager_PrimaryScreenChanged;
             ManagerFactory.multimediaManager.Initialized -= MultimediaManager_Initialized;
-            PerformanceManager.EPPChanged += PerformanceManager_EPPChanged;
+            PerformanceManager.EPPChanged -= PerformanceManager_EPPChanged;
             PerformanceManager.Initialized -= PerformanceManager_Initialized;
             ManagerFactory.powerProfileManager.Updated -= PowerProfileManager_Updated;
             ManagerFactory.powerProfileManager.Deleted -= PowerProfileManager_Deleted;
@@ -1040,12 +1071,17 @@ namespace HandheldCompanion.ViewModels
 
             if (IsMainPage)
             {
-                _fanGraphLineSeries.ActualValues.CollectionChanged -= ActualValues_CollectionChanged;
-                _fanGraph.DataClick -= ChartOnDataClick;
-                _fanGraph.MouseLeave -= ChartMouseLeave;
-                _fanGraph.MouseMove -= ChartMouseMove;
-                _fanGraph.MouseUp -= ChartMouseUp;
-                _fanGraph.TouchMove -= ChartTouchMove;
+                if (_fanGraphLineSeries is not null)
+                    _fanGraphLineSeries.ActualValues.CollectionChanged -= ActualValues_CollectionChanged;
+
+                if (_fanGraph is not null)
+                {
+                    _fanGraph.DataClick -= ChartOnDataClick;
+                    _fanGraph.MouseLeave -= ChartMouseLeave;
+                    _fanGraph.MouseMove -= ChartMouseMove;
+                    _fanGraph.MouseUp -= ChartMouseUp;
+                    _fanGraph.TouchMove -= ChartTouchMove;
+                }
             }
 
             base.Dispose();
@@ -1053,8 +1089,11 @@ namespace HandheldCompanion.ViewModels
 
         #region Events
 
-        private void SettingsManager_SettingValueChanged(string name, object value, bool temporary)
+        private void SettingsManager_SettingValueChanged(string name, object? value, bool temporary)
         {
+            if (value is null)
+                return;
+
             switch (name)
             {
                 case "ConfigurableTDPOverride":
@@ -1062,10 +1101,13 @@ namespace HandheldCompanion.ViewModels
                 case "ConfigurableTDPOverrideUp":
                     OnPropertyChanged(name);
                     break;
+                case "PerformanceManagerEnabled":
+                    OnPropertyChanged(nameof(PerformanceManagerEnabled));
+                    break;
             }
         }
 
-        private void MultimediaManager_PrimaryScreenChanged(DesktopScreen screen)
+        private void MultimediaManager_PrimaryScreenChanged(DesktopScreen? screen)
         {
             OnPropertyChanged(nameof(AutoTDPMaximum));
         }
@@ -1132,7 +1174,7 @@ namespace HandheldCompanion.ViewModels
 
                 if (SelectedPreset?.Guid == preset.Guid)
                 {
-                    ProfilesPickerViewModel defaultPicker = _profilePickerItems.FirstOrDefault(p => p.LinkedPresetId == Guid.Empty);
+                    ProfilesPickerViewModel? defaultPicker = _profilePickerItems.FirstOrDefault(p => p.LinkedPresetId == Guid.Empty);
                     if (defaultPicker is not null)
                         SelectedPresetPicker = defaultPicker;
                 }
@@ -1165,14 +1207,17 @@ namespace HandheldCompanion.ViewModels
 
         private void ActualValues_CollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
         {
-            if (_updatingFanCurveUI) return;
+            if (_updatingFanCurveUI || _fanGraphLineSeries is null) return;
 
             for (int idx = 0; idx < _fanGraphLineSeries.ActualValues.Count; idx++)
-                SelectedPreset.FanProfile.fanSpeeds[idx] = (double)_fanGraphLineSeries.ActualValues[idx];
+                SelectedPreset.FanProfile.fanSpeeds[idx] = Convert.ToDouble(_fanGraphLineSeries.ActualValues[idx] ?? 0.0d);
         }
 
         private void ChartMovePoint(Point p)
         {
+            if (_fanGraphLineSeries is null)
+                return;
+
             int idx = ClampIndex(p.X);
             XPointer = idx;
             YPointer = Clamp01_100(p.Y);
@@ -1180,7 +1225,7 @@ namespace HandheldCompanion.ViewModels
             if (!_isDragging || _dragIndex < 0) return;
 
             double newY = Clamp01_100(p.Y);
-            double currentY = (double)_fanGraphLineSeries.ActualValues[_dragIndex];
+            double currentY = Convert.ToDouble(_fanGraphLineSeries.ActualValues[_dragIndex] ?? 0.0d);
             if (Math.Abs(newY - currentY) < Epsilon) return;
 
             // NO _updatingFanCurveUI here — we WANT CollectionChanged to sync into SelectedPreset
@@ -1190,7 +1235,7 @@ namespace HandheldCompanion.ViewModels
             double carry = newY;
             for (int i = _dragIndex + 1; i < _fanGraphLineSeries.ActualValues.Count; i++)
             {
-                double yi = (double)_fanGraphLineSeries.ActualValues[i];
+                double yi = Convert.ToDouble(_fanGraphLineSeries.ActualValues[i] ?? 0.0d);
                 if (yi + Epsilon < carry) _fanGraphLineSeries.ActualValues[i] = carry;
                 else carry = yi;
             }
@@ -1198,7 +1243,7 @@ namespace HandheldCompanion.ViewModels
             carry = newY;
             for (int i = _dragIndex - 1; i >= 0; i--)
             {
-                double yi = (double)_fanGraphLineSeries.ActualValues[i];
+                double yi = Convert.ToDouble(_fanGraphLineSeries.ActualValues[i] ?? 0.0d);
                 if (yi - Epsilon > carry) _fanGraphLineSeries.ActualValues[i] = carry;
                 else carry = yi;
             }
@@ -1206,12 +1251,18 @@ namespace HandheldCompanion.ViewModels
 
         private void ChartMouseMove(object sender, MouseEventArgs e)
         {
+            if (_fanGraph is null)
+                return;
+
             ChartMovePoint(_fanGraph.ConvertToChartValues(e.GetPosition(_fanGraph)));
             e.Handled = true;
         }
 
         private void ChartTouchMove(object? sender, TouchEventArgs e)
         {
+            if (_fanGraph is null)
+                return;
+
             ChartMovePoint(_fanGraph.ConvertToChartValues(e.GetTouchPoint(_fanGraph).Position));
             e.Handled = true;
         }
@@ -1228,6 +1279,9 @@ namespace HandheldCompanion.ViewModels
 
         private void EndDrag()
         {
+            if (_fanGraph is null)
+                return;
+
             if (!_isDragging) return;
 
             _isDragging = false;
@@ -1241,7 +1295,7 @@ namespace HandheldCompanion.ViewModels
 
         private void ChartOnDataClick(object sender, ChartPoint chartPoint)
         {
-            if (chartPoint == null) return;
+            if (chartPoint == null || _fanGraph is null) return;
 
             // Convert the click position; cheaper than ClosestPointTo for your gridlike series
             Point p = _fanGraph.ConvertToChartValues(Mouse.GetPosition(_fanGraph));

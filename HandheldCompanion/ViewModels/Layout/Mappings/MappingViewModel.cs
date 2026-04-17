@@ -15,8 +15,8 @@ namespace HandheldCompanion.ViewModels
     // ViewModel used to fill Target ComboBox on Mappings
     public class MappingTargetViewModel : BaseViewModel
     {
-        public object Tag { get; set; }
-        public string Content { get; set; }
+        public object? Tag { get; set; }
+        public string Content { get; set; } = string.Empty;
 
         public override string ToString()
         {
@@ -36,8 +36,7 @@ namespace HandheldCompanion.ViewModels
             {
                 if (value != ActionTypeIndex)
                 {
-                    if (Action is not null)
-                        Action.actionType = (ActionType)value;
+                    Action?.actionType = (ActionType)value;
 
                     ActionTypeChanged((ActionType)value);
                     OnPropertyChanged(nameof(ActionTypeIndex));
@@ -171,7 +170,9 @@ namespace HandheldCompanion.ViewModels
                     return Visibility.Collapsed;
 
                 // Only show if the mouse action is Scroll or Move
-                MouseActionsType mouseAction = (MouseActionsType)SelectedTarget.Tag;
+                if (SelectedTarget.Tag is not MouseActionsType mouseAction)
+                    return Visibility.Collapsed;
+
                 return (mouseAction == MouseActionsType.Scroll || mouseAction == MouseActionsType.Move)
                     ? Visibility.Visible
                     : Visibility.Collapsed;
@@ -191,7 +192,9 @@ namespace HandheldCompanion.ViewModels
                 // For Mouse actions, ensure a target exists and check its action type
                 if (currentActionType == ActionType.Mouse && SelectedTarget != null)
                 {
-                    MouseActionsType mouseAction = (MouseActionsType)SelectedTarget.Tag;
+                    if (SelectedTarget.Tag is not MouseActionsType mouseAction)
+                        return Visibility.Collapsed;
+
                     if (mouseAction != MouseActionsType.Scroll && mouseAction != MouseActionsType.Move)
                         return Visibility.Visible;
                 }

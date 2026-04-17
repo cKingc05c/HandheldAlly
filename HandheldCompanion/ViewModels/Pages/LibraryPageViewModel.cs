@@ -7,7 +7,6 @@ using GameLib.Plugin.Origin.Model;
 using GameLib.Plugin.Rockstar.Model;
 using GameLib.Plugin.Steam.Model;
 using GameLib.Plugin.Ubisoft.Model;
-using HandheldCompanion.Extensions;
 using HandheldCompanion.Managers;
 using HandheldCompanion.Misc;
 using HandheldCompanion.Platforms;
@@ -20,6 +19,7 @@ using System.ComponentModel;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Windows;
 using System.Windows.Data;
 using System.Windows.Input;
 using System.Windows.Media;
@@ -31,6 +31,9 @@ namespace HandheldCompanion.ViewModels
     {
         public ObservableCollection<ProfileViewModel> Profiles { get; set; } = [];
         public ListCollectionView ProfilesView { get; }
+
+        public ObservableCollection<CollectionGroupViewModel> CollectionGroups { get; } = [];
+        private volatile bool _rebuildCollectionGroupsPending;
 
         private bool _sortAscending => ManagerFactory.settingsManager.GetBoolean("LibrarySortAscending");
         public bool SortAscending
@@ -122,7 +125,7 @@ namespace HandheldCompanion.ViewModels
             }
         }
 
-        private BitmapImage _Artwork;
+        private BitmapImage _Artwork = null!;
         public BitmapImage Artwork
         {
             get => _Artwork;
@@ -284,7 +287,7 @@ namespace HandheldCompanion.ViewModels
 
                             foreach (IGame game in games)
                             {
-                                Profile profile = null;
+                                Profile? profile = null;
                                 bool isCreation;
 
                                 // Try to find an existing profile
@@ -373,6 +376,17 @@ namespace HandheldCompanion.ViewModels
                     QueryLibrary();
                     break;
             }
+
+            switch (ManagerFactory.collectionManager.Status)
+            {
+                default:
+                case ManagerStatus.Initializing:
+                    ManagerFactory.collectionManager.Initialized += CollectionManager_Initialized;
+                    break;
+                case ManagerStatus.Initialized:
+                    QueryCollections();
+                    break;
+            }
         }
 
         private void QueryLibrary()
@@ -397,6 +411,83 @@ namespace HandheldCompanion.ViewModels
             OnPropertyChanged(nameof(IsLibraryConnected));
         }
 
+        private void QueryCollections()
+        {
+            ManagerFactory.collectionManager.CollectionAdded += CollectionManager_CollectionAdded;
+            ManagerFactory.collectionManager.CollectionRemoved += CollectionManager_CollectionRemoved;
+            ManagerFactory.collectionManager.CollectionUpdated += CollectionManager_CollectionUpdated;
+            ScheduleRebuildCollectionGroups();
+        }
+
+        private void CollectionManager_Initialized()
+        {
+            QueryCollections();
+        }
+
+        private void CollectionManager_CollectionAdded(GameCollection collection)
+        {
+            ScheduleRebuildCollectionGroups();
+        }
+
+        private void CollectionManager_CollectionRemoved(GameCollection collection)
+        {
+            ScheduleRebuildCollectionGroups();
+        }
+
+        private void CollectionManager_CollectionUpdated(GameCollection collection)
+        {
+            _uiContext.Post(_ =>
+            {
+                CollectionGroupViewModel? group = CollectionGroups.FirstOrDefault(g => g.Collection?.Id == collection.Id);
+                group?.RefreshName();
+            }, null);
+        }
+
+        private void ScheduleRebuildCollectionGroups()
+        {
+            if (_rebuildCollectionGroupsPending)
+                return;
+            _rebuildCollectionGroupsPending = true;
+            _uiContext.Post(_ => { _rebuildCollectionGroupsPending = false; RebuildCollectionGroups(); }, null);
+        }
+
+        private void RebuildCollectionGroups()
+        {
+            CollectionGroups.Clear();
+
+            // Use the sorted+filtered view so profiles within each group respect the user's chosen sort order
+            List<ProfileViewModel> displayProfiles = ProfilesView.Cast<ProfileViewModel>().ToList();
+
+            // Favorites
+            var favGroup = new CollectionGroupViewModel("Favorites");
+            foreach (ProfileViewModel pvm in displayProfiles.Where(p => p.IsLiked))
+                favGroup.Profiles.Add(pvm);
+            if (favGroup.Profiles.Count > 0)
+                CollectionGroups.Add(favGroup);
+
+            // User collections — a profile may appear in more than one
+            IReadOnlyList<GameCollection> userCollections = ManagerFactory.collectionManager.GetCollections();
+            List<CollectionGroupViewModel> pending = [];
+            foreach (GameCollection col in userCollections)
+            {
+                CollectionGroupViewModel group = new(col);
+                foreach (ProfileViewModel pvm in displayProfiles.Where(p => p.Profile.Collections.Contains(col.Id)))
+                    group.Profiles.Add(pvm);
+                if (group.Profiles.Count > 0)
+                    pending.Add(group);
+            }
+            foreach (CollectionGroupViewModel group in pending.OrderBy(g => g.Name, StringComparer.OrdinalIgnoreCase))
+                CollectionGroups.Add(group);
+
+            // Other: not liked and not in any user collection
+            HashSet<Guid> allColIds = userCollections.Select(c => c.Id).ToHashSet();
+            CollectionGroupViewModel otherGroup = new("Other");
+            foreach (ProfileViewModel pvm in displayProfiles.Where(p => !p.IsLiked && !p.Profile.Collections.Any(id => allColIds.Contains(id))))
+                otherGroup.Profiles.Add(pvm);
+            if (otherGroup.Profiles.Count > 0)
+                CollectionGroups.Add(otherGroup);
+        }
+
         private void LibraryManager_Initialized()
         {
             QueryLibrary();
@@ -406,8 +497,7 @@ namespace HandheldCompanion.ViewModels
         {
             ProfileViewModel? profileViewModel = Profiles.FirstOrDefault(p => p.Profile.Guid == profile.Guid);
 
-            if (profileViewModel is not null)
-                profileViewModel.IsBusy = status.HasFlag(ManagerStatus.Busy);
+            profileViewModel?.IsBusy = status.HasFlag(ManagerStatus.Busy);
         }
 
         private void QueryProfile()
@@ -429,6 +519,8 @@ namespace HandheldCompanion.ViewModels
 
             // Hide the spinner once every card has been dispatched to the UI
             IsInitializing = false;
+
+            ScheduleRebuildCollectionGroups();
         }
 
         private void ProfileManager_Initialized()
@@ -448,29 +540,35 @@ namespace HandheldCompanion.ViewModels
             ProfilesView.LiveSortingProperties.Add(nameof(ProfileViewModel.IsLiked));
 
             // Then apply secondary sort based on user selection
+            SortDescription secondary;
+            string secondaryProperty;
             switch (SortTarget)
             {
                 default:
                 case 0:
-                    ProfilesView.SortDescriptions.Add(new SortDescription(nameof(ProfileViewModel.Name), direction));
-                    ProfilesView.LiveSortingProperties.Add(nameof(ProfileViewModel.Name));
+                    secondary = new SortDescription(nameof(ProfileViewModel.Name), direction);
+                    secondaryProperty = nameof(ProfileViewModel.Name);
                     break;
                 case 1:
-                    ProfilesView.SortDescriptions.Add(new SortDescription(nameof(ProfileViewModel.PlatformType), direction));
-                    ProfilesView.LiveSortingProperties.Add(nameof(ProfileViewModel.PlatformType));
+                    secondary = new SortDescription(nameof(ProfileViewModel.PlatformType), direction);
+                    secondaryProperty = nameof(ProfileViewModel.PlatformType);
                     break;
                 case 2:
-                    ProfilesView.SortDescriptions.Add(new SortDescription(nameof(ProfileViewModel.DateCreated), direction));
-                    ProfilesView.LiveSortingProperties.Add(nameof(ProfileViewModel.DateCreated));
+                    secondary = new SortDescription(nameof(ProfileViewModel.DateCreated), direction);
+                    secondaryProperty = nameof(ProfileViewModel.DateCreated);
                     break;
                 case 3:
-                    ProfilesView.SortDescriptions.Add(new SortDescription(nameof(ProfileViewModel.LastUsed), direction));
-                    ProfilesView.LiveSortingProperties.Add(nameof(ProfileViewModel.LastUsed));
+                    secondary = new SortDescription(nameof(ProfileViewModel.LastUsed), direction);
+                    secondaryProperty = nameof(ProfileViewModel.LastUsed);
                     break;
             }
+            ProfilesView.SortDescriptions.Add(secondary);
+            ProfilesView.LiveSortingProperties.Add(secondaryProperty);
 
             // Workaround for iNKORE ItemsRepeater not observing ICollectionView changes
             ItemsSourceRefreshRequested?.Invoke();
+
+            ScheduleRebuildCollectionGroups();
 
             OnPropertyChanged(nameof(HasLiked));
         }
@@ -490,6 +588,8 @@ namespace HandheldCompanion.ViewModels
                     foundProfile.Dispose();
                 }
             }
+
+            ScheduleRebuildCollectionGroups();
         }
 
         private void ProfileManager_Updated(Profile profile, UpdateSource source, bool isCurrent)
@@ -528,6 +628,9 @@ namespace HandheldCompanion.ViewModels
                     }
                 }
             }
+
+            if (!IsInitializing)
+                ScheduleRebuildCollectionGroups();
         }
 
         public override void Dispose()
@@ -537,6 +640,10 @@ namespace HandheldCompanion.ViewModels
             ManagerFactory.profileManager.Deleted -= ProfileManager_Deleted;
             ManagerFactory.libraryManager.ProfileStatusChanged -= LibraryManager_ProfileStatusChanged;
             ManagerFactory.libraryManager.NetworkAvailabilityChanged -= LibraryManager_NetworkAvailabilityChanged;
+            ManagerFactory.collectionManager.CollectionAdded -= CollectionManager_CollectionAdded;
+            ManagerFactory.collectionManager.CollectionRemoved -= CollectionManager_CollectionRemoved;
+            ManagerFactory.collectionManager.CollectionUpdated -= CollectionManager_CollectionUpdated;
+            ManagerFactory.collectionManager.Initialized -= CollectionManager_Initialized;
 
             base.Dispose();
         }
@@ -547,6 +654,8 @@ namespace HandheldCompanion.ViewModels
 
             // Workaround for iNKORE ItemsRepeater not observing ICollectionView changes
             ItemsSourceRefreshRequested?.Invoke();
+
+            ScheduleRebuildCollectionGroups();
         }
 
         private bool MatchesSearchFilter(ProfileViewModel profile)

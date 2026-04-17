@@ -859,8 +859,14 @@
                     </ikw:SimpleStackPanel>
 
                     <!--  Power settings  -->
-                    <TextBlock Style="{StaticResource BaseTextBlockStyle}" Text="Power settings" />
-                    <ikw:SimpleStackPanel Name="PowerSettings" Spacing="3">
+                    <TextBlock
+                        Style="{StaticResource BaseTextBlockStyle}"
+                        Text="Power settings"
+                        Visibility="{Binding PerformanceManagerEnabled, Mode=OneWay, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                    <ikw:SimpleStackPanel
+                        Name="PowerSettings"
+                        Spacing="3"
+                        Visibility="{Binding PerformanceManagerEnabled, Mode=OneWay, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource BooleanToVisibilityConverter}}">
 
                         <ui:SettingsExpander
                             Description="{l:Static resx:Resources.ProfilesPage_PowerPresetDesc}"
@@ -935,8 +941,14 @@
                     </ikw:SimpleStackPanel>
 
                     <!--  Graphics settings  -->
-                    <TextBlock Style="{StaticResource BaseTextBlockStyle}" Text="Graphics settings" />
-                    <ikw:SimpleStackPanel Name="GraphicsSettings" Spacing="3">
+                    <TextBlock
+                        Style="{StaticResource BaseTextBlockStyle}"
+                        Text="Graphics settings"
+                        Visibility="{Binding GPUManagementEnabled, Mode=OneWay, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                    <ikw:SimpleStackPanel
+                        Name="GraphicsSettings"
+                        Spacing="3"
+                        Visibility="{Binding GPUManagementEnabled, Mode=OneWay, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource BooleanToVisibilityConverter}}">
 
                         <!--  GPU Scaling  -->
                         <ui:SettingsExpander

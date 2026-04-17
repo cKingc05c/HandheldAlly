@@ -71,7 +71,7 @@ public class OverlayWindow : Window
 
     private void OverlayWindow_Loaded(object sender, RoutedEventArgs e)
     {
-        var source = PresentationSource.FromVisual(this) as HwndSource;
+        HwndSource source = (HwndSource)PresentationSource.FromVisual(this);
         source.AddHook(WndProc);
 
         //Set the window style to noactivate.

@@ -51,6 +51,8 @@ public static class PerformanceManager
     private const int COUNTER_DEFAULT = 3; // default counter value
     private const int COUNTER_AUTO = 5; // default counter value for AutoTDP
 
+    private static bool _performanceManagerEnabled = true;
+
     public static readonly Guid[] PowerModes = { OSPowerMode.BetterBattery, OSPowerMode.BetterPerformance, OSPowerMode.BestPerformance };
 
     private static readonly Timer autotdpWatchdog;
@@ -98,8 +100,8 @@ public static class PerformanceManager
 
     private const string dllName = "WinRing0x64.dll";
 
-    private static bool IsInitialized;
-    public static event InitializedEventHandler Initialized;
+    public static bool IsInitialized;
+    public static event InitializedEventHandler? Initialized;
     public delegate void InitializedEventHandler(bool CanChangeTDP, bool CanChangeGPU);
 
     static PerformanceManager()
@@ -126,9 +128,6 @@ public static class PerformanceManager
         // temporary values
         TDPMin = IDevice.GetCurrent().cTDP[0];
         TDPMax = IDevice.GetCurrent().cTDP[1];
-
-        // initialize watchdog(s)
-        cpuWatchdog.Start();
 
         // initialize processor
         processor = Processor.GetCurrent();
@@ -187,6 +186,7 @@ public static class PerformanceManager
         ManagerFactory.settingsManager.SettingValueChanged += SettingsManager_SettingValueChanged;
 
         // raise events
+        SettingsManager_SettingValueChanged("PerformanceManagerEnabled", ManagerFactory.settingsManager.GetString("PerformanceManagerEnabled"), false);
         SettingsManager_SettingValueChanged("ConfigurableTDPOverrideDown", ManagerFactory.settingsManager.GetString("ConfigurableTDPOverrideDown"), false);
         SettingsManager_SettingValueChanged("ConfigurableTDPOverrideUp", ManagerFactory.settingsManager.GetString("ConfigurableTDPOverrideUp"), false);
         // AMD
@@ -240,10 +240,37 @@ public static class PerformanceManager
         return TDPMax;
     }
 
-    private static void SettingsManager_SettingValueChanged(string name, object value, bool temporary)
+    private static void SettingsManager_SettingValueChanged(string name, object? value, bool temporary)
     {
         switch (name)
         {
+            case "PerformanceManagerEnabled":
+                {
+                    _performanceManagerEnabled = Convert.ToBoolean(value);
+                    if (!_performanceManagerEnabled)
+                    {
+                        // stop all watchdogs and restore defaults
+                        cpuWatchdog.Stop();
+                        StopAutoTDPWatchdog(true);
+                        StopTDPWatchdog(true);
+                        StopGPUWatchdog(true);
+                        RestoreTDP(true);
+                        RestoreCPUClock();
+                        RestoreGPUClock(true);
+                        RequestCoreParkingMode(CoreParkingMode.AllCoresAuto);
+                        RequestCPUCoreCount(MotherboardInfo.NumberOfCores);
+                        RequestPerfBoostMode((uint)PerfBoostMode.Disabled);
+                        RequestPowerMode(OSPowerMode.BetterPerformance);
+                    }
+                    else
+                    {
+                        // start the CPU watchdog and re-apply the current power profile
+                        cpuWatchdog.Start();
+                        if (currentProfile is not null)
+                            PowerProfileManager_Applied(currentProfile, UpdateSource.Background);
+                    }
+                }
+                break;
             case "ConfigurableTDPOverrideDown":
                 {
                     double TDPmin = Convert.ToDouble(value);
@@ -322,7 +349,9 @@ public static class PerformanceManager
     {
         currentProfile = profile;
 
-        // apply profile defined TDP
+        if (!_performanceManagerEnabled)
+            return;
+
         if (profile.TDPOverrideEnabled)
         {
             if (!profile.AutoTDPEnabled)
@@ -525,6 +554,9 @@ public static class PerformanceManager
 
     private static void autotdpWatchdog_Elapsed(object? sender, ElapsedEventArgs e)
     {
+        if (!_performanceManagerEnabled)
+            return;
+
         if (processor is null || !processor.IsInitialized)
             return;
 
@@ -722,6 +754,9 @@ public static class PerformanceManager
 
     private static void cpuWatchdog_Elapsed(object? sender, ElapsedEventArgs e)
     {
+        if (!_performanceManagerEnabled)
+            return;
+
         if (cpuLock.TryEnter())
         {
             try
@@ -757,6 +792,9 @@ public static class PerformanceManager
 
     private static void tdpWatchdog_Elapsed(object? sender, ElapsedEventArgs e)
     {
+        if (!_performanceManagerEnabled)
+            return;
+
         if (processor is null || !processor.IsInitialized)
             return;
 
@@ -835,10 +873,13 @@ public static class PerformanceManager
 
     private static void gfxWatchdog_Elapsed(object? sender, ElapsedEventArgs e)
     {
+        if (!_performanceManagerEnabled)
+            return;
+
         if (processor is null || !processor.IsInitialized)
             return;
 
-        GPU GPU = GPUManager.GetCurrent();
+        GPU? GPU = GPUManager.GetCurrent();
         if (GPU is null || !GPU.IsInitialized)
             return;
 
@@ -855,7 +896,11 @@ public static class PerformanceManager
                 if (StoredGfxClock == 0)
                     return;
 
-                float CurrentGfxClock = GPUManager.GetCurrent().GetClock();
+                GPU? currentGpu = GPUManager.GetCurrent();
+                if (currentGpu is null)
+                    return;
+
+                float CurrentGfxClock = currentGpu.GetClock();
 
                 if (CurrentGfxClock != 0)
                     gfxWatchdog.Interval = INTERVAL_DEFAULT;
@@ -1093,11 +1138,11 @@ public static class PerformanceManager
         // Are the values already correct?
         uint[] curPolicy = PowerScheme.ReadPowerCfg(PowerSubGroup.SUB_PROCESSOR, PowerSetting.HETEROGENEOUS_POLICY);
         uint[] curThread = PowerScheme.ReadPowerCfg(PowerSubGroup.SUB_PROCESSOR, PowerSetting.HETEROGENEOUS_THREAD_SCHEDULING_POLICY);
-        uint[] curShort  = PowerScheme.ReadPowerCfg(PowerSubGroup.SUB_PROCESSOR, PowerSetting.HETEROGENEOUS_SHORT_THREAD_SCHEDULING_POLICY);
+        uint[] curShort = PowerScheme.ReadPowerCfg(PowerSubGroup.SUB_PROCESSOR, PowerSetting.HETEROGENEOUS_SHORT_THREAD_SCHEDULING_POLICY);
 
         if (curPolicy[0] == policyAC && curPolicy[1] == policyDC &&
             curThread[0] == threadAC && curThread[1] == threadDC &&
-            curShort[0]  == shortAC  && curShort[1]  == shortDC)
+            curShort[0] == shortAC && curShort[1] == shortDC)
             return;
 
         PowerScheme.WritePowerCfg(PowerSubGroup.SUB_PROCESSOR, PowerSetting.HETEROGENEOUS_POLICY, policyAC, policyDC);
@@ -1255,19 +1300,19 @@ public static class PerformanceManager
 
     #region events
 
-    public static event LimitChangedHandler PowerLimitChanged;
+    public static event LimitChangedHandler? PowerLimitChanged;
     public delegate void LimitChangedHandler(PowerType type, int limit);
 
-    public static event ValueChangedHandler PowerValueChanged;
+    public static event ValueChangedHandler? PowerValueChanged;
     public delegate void ValueChangedHandler(PowerType type, float value);
 
-    public static event PowerModeChangedEventHandler PowerModeChanged;
+    public static event PowerModeChangedEventHandler? PowerModeChanged;
     public delegate void PowerModeChangedEventHandler(int idx);
 
-    public static event PerfBoostModeChangedEventHandler PerfBoostModeChanged;
+    public static event PerfBoostModeChangedEventHandler? PerfBoostModeChanged;
     public delegate void PerfBoostModeChangedEventHandler(uint value);
 
-    public static event EPPChangedEventHandler EPPChanged;
+    public static event EPPChangedEventHandler? EPPChanged;
     public delegate void EPPChangedEventHandler(uint EPP);
 
     #endregion

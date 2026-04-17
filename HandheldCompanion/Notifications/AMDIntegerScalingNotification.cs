@@ -8,7 +8,7 @@ namespace HandheldCompanion.Notifications
 {
     public class AMDIntegerScalingNotification : Notification
     {
-        private string targetRegistryPath;
+        private string targetRegistryPath = string.Empty;
 
         public AMDIntegerScalingNotification() : base(
             Properties.Resources.Hint_AMD_IntegerScalingCheck,

@@ -16,27 +16,28 @@ using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
-using System.Windows.Threading;
 using static HandheldCompanion.Managers.LibraryManager;
 
 namespace HandheldCompanion.ViewModels
 {
     public class ProfileViewModel : BaseViewModel
     {
-        public ICommand StartProcessCommand { get; private set; }
+        public ICommand? StartProcessCommand { get; private set; }
         public ICommand ToggleProcessCommand { get; private set; }
         public ICommand ToggleFavoriteCommand { get; private set; }
         public ICommand Navigate { get; private set; }
-        public ICommand OpenLayout { get; private set; }
-        public ICommand OpenExecutableLocation { get; private set; }
+        public ICommand? OpenLayout { get; private set; }
+        public ICommand? OpenExecutableLocation { get; private set; }
 
         public readonly bool IsQuickTools;
         public bool IsMainPage => !IsQuickTools;
         private readonly bool deferVisualLoading;
         private bool areVisualsVisible = true;
         private CancellationTokenSource? visualsLoadCancellationTokenSource;
+        private CancellationTokenSource? visualsUnloadCancellationTokenSource;
         private ImageRequestKey? currentImageRequestKey;
         private bool visualsLoaded;
+        private const int VisualUnloadDelayMs = 3000;
 
         private readonly record struct ImageRequestKey(
             long Id,
@@ -248,7 +249,60 @@ namespace HandheldCompanion.ViewModels
                 return;
 
             areVisualsVisible = isVisible;
-            RefreshImages();
+
+            if (!isVisible)
+            {
+                // Cancel any in-flight image load immediately to avoid wasted work.
+                CancelPendingVisualLoad();
+
+                // Delay the actual placeholder/memory clear so that normal scrolling
+                // (cards passing briefly through the viewport edge) never triggers a
+                // reload cycle.  Only cards that stay off-screen for the full delay
+                // will have their images released.
+                CancelPendingVisualUnload();
+                CancellationTokenSource cts = new();
+                visualsUnloadCancellationTokenSource = cts;
+                _ = DelayedUnloadAsync(cts);
+            }
+            else
+            {
+                // Card is back on screen — cancel any pending unload and reload.
+                CancelPendingVisualUnload();
+                RefreshImages();
+            }
+        }
+
+        private async Task DelayedUnloadAsync(CancellationTokenSource cts)
+        {
+            try
+            {
+                await Task.Delay(VisualUnloadDelayMs, cts.Token).ConfigureAwait(false);
+
+                if (cts.IsCancellationRequested)
+                    return;
+
+                await Application.Current.Dispatcher.InvokeAsync(() =>
+                {
+                    if (!areVisualsVisible)
+                        ApplyPlaceholderImages();
+                });
+            }
+            catch (OperationCanceledException)
+            {
+            }
+            finally
+            {
+                cts.Dispose();
+            }
+        }
+
+        private void CancelPendingVisualUnload()
+        {
+            CancellationTokenSource? cts = visualsUnloadCancellationTokenSource;
+            visualsUnloadCancellationTokenSource = null;
+            if (cts is null)
+                return;
+            try { cts.Cancel(); } catch { }
         }
 
         public override string ToString()
@@ -264,6 +318,63 @@ namespace HandheldCompanion.ViewModels
         public DateTime DateModified => _Profile.DateModified;
         public DateTime LastUsed => _Profile.LastUsed;
         public bool IsLiked => _Profile.IsLiked;
+
+        public IReadOnlyList<CollectionMenuItemViewModel> CollectionMenuItems
+        {
+            get
+            {
+                var items = new List<CollectionMenuItemViewModel>();
+
+                // Favorites is always first
+                items.Add(new CollectionMenuItemViewModel("Favorites", Profile.IsLiked,
+                    new DelegateCommand(() =>
+                    {
+                        Profile.IsLiked = !Profile.IsLiked;
+                        OnPropertyChanged(nameof(IsLiked));
+                        OnPropertyChanged(nameof(CollectionMenuItems));
+                        ManagerFactory.profileManager.UpdateOrCreateProfile(Profile);
+                    })));
+
+                // User collections
+                foreach (GameCollection col in ManagerFactory.collectionManager.GetCollections())
+                {
+                    Guid colId = col.Id;
+                    items.Add(new CollectionMenuItemViewModel(col.Name, Profile.Collections.Contains(colId),
+                        new DelegateCommand(() =>
+                        {
+                            if (Profile.Collections.Contains(colId))
+                                Profile.Collections.Remove(colId);
+                            else
+                                Profile.Collections.Add(colId);
+                            OnPropertyChanged(nameof(CollectionMenuItems));
+                            ManagerFactory.profileManager.UpdateOrCreateProfile(Profile);
+                        })));
+                        }
+
+                        items.Add(CollectionMenuItemViewModel.Separator);
+                        items.Add(new CollectionMenuItemViewModel("New collection", false,
+                            new AsyncDelegateCommand(async () =>
+                            {
+                                var textBox = new System.Windows.Controls.TextBox { MinWidth = 280 };
+                                Window owner = IsQuickTools ? (Window)OverlayQuickTools.GetCurrent() : MainWindow.GetCurrent();
+                                ContentDialogResult result = await new Dialog(owner)
+                                {
+                                    Title = "New collection",
+                                    Content = textBox,
+                                    PrimaryButtonText = Properties.Resources.ProfilesPage_Yes,
+                                    CloseButtonText = Properties.Resources.ProfilesPage_Cancel,
+                                }.ShowAsync();
+                                if (result != ContentDialogResult.Primary || string.IsNullOrWhiteSpace(textBox.Text))
+                                    return;
+                                GameCollection newCol = ManagerFactory.collectionManager.CreateCollection(textBox.Text.Trim());
+                                Profile.Collections.Add(newCol.Id);
+                                OnPropertyChanged(nameof(CollectionMenuItems));
+                                ManagerFactory.profileManager.UpdateOrCreateProfile(Profile);
+                            }), isCheckable: false));
+
+                        return items;
+            }
+        }
 
         public GamePlatform PlatformType => _Profile.PlatformType;
 
@@ -289,7 +400,7 @@ namespace HandheldCompanion.ViewModels
 
         public ImageSource? Icon => _Profile.Icon;
 
-        public Image Platform
+        public Image? Platform
         {
             get
             {
@@ -299,23 +410,23 @@ namespace HandheldCompanion.ViewModels
                     case GamePlatform.Generic:
                         return null;
                     case GamePlatform.Steam:
-                        return PlatformManager.Steam.GetLogo();
+                        return PlatformManager.Steam?.GetLogo();
                     case GamePlatform.Origin:
-                        return PlatformManager.Origin.GetLogo();
+                        return PlatformManager.Origin?.GetLogo();
                     case GamePlatform.EADesktop:
-                        return PlatformManager.EADesktop.GetLogo();
+                        return PlatformManager.EADesktop?.GetLogo();
                     case GamePlatform.UbisoftConnect:
-                        return PlatformManager.UbisoftConnect.GetLogo();
+                        return PlatformManager.UbisoftConnect?.GetLogo();
                     case GamePlatform.GOG:
-                        return PlatformManager.GOGGalaxy.GetLogo();
+                        return PlatformManager.GOGGalaxy?.GetLogo();
                     case GamePlatform.BattleNet:
-                        return PlatformManager.BattleNet.GetLogo();
+                        return PlatformManager.BattleNet?.GetLogo();
                     case GamePlatform.Epic:
-                        return PlatformManager.Epic.GetLogo();
+                        return PlatformManager.Epic?.GetLogo();
                     case GamePlatform.RiotGames:
-                        return PlatformManager.RiotGames.GetLogo();
+                        return PlatformManager.RiotGames?.GetLogo();
                     case GamePlatform.Rockstar:
-                        return PlatformManager.Rockstar.GetLogo();
+                        return PlatformManager.Rockstar?.GetLogo();
                 }
             }
         }
@@ -367,6 +478,7 @@ namespace HandheldCompanion.ViewModels
             IsQuickTools = isQuickTools;
             this.deferVisualLoading = deferVisualLoading;
             areVisualsVisible = !deferVisualLoading;
+            _Profile = profile;
             Profile = profile;
 
             ManagerFactory.processManager.ProcessStarted += ProcessManager_ProcessStarted;
@@ -464,7 +576,7 @@ namespace HandheldCompanion.ViewModels
                         ProcessExViewModel processViewModel = new(processEx, IsQuickTools);
                         try
                         {
-                            processViewModel.KillProcessCommand.Execute(null);
+                            processViewModel.KillProcessCommand?.Execute(null);
                         }
                         finally
                         {
@@ -477,7 +589,7 @@ namespace HandheldCompanion.ViewModels
                 }
 
                 if (IsAvailable)
-                    StartProcessCommand.Execute(false);
+            StartProcessCommand?.Execute(false);
             });
 
             ToggleFavoriteCommand = new DelegateCommand(() =>
@@ -572,7 +684,6 @@ namespace HandheldCompanion.ViewModels
             ManagerFactory.processManager.ProcessStarted -= ProcessManager_ProcessStarted;
             ManagerFactory.processManager.ProcessStopped -= ProcessManager_ProcessStopped;
 
-            // dispose commands
             StartProcessCommand = null;
             OpenLayout = null;
             OpenExecutableLocation = null;

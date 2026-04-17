@@ -70,7 +70,7 @@ namespace HandheldCompanion.Platforms.Misc
             };
         }
 
-        private void SettingsManager_SettingValueChanged(string name, object value, bool temporary)
+        private void SettingsManager_SettingValueChanged(string name, object? value, bool temporary)
         {
             switch (name)
             {
@@ -272,9 +272,13 @@ namespace HandheldCompanion.Platforms.Misc
 
         private void HandleGPU_Data(ISensor sensor)
         {
+            float? sensorValue = sensor.Value;
+            if (!sensorValue.HasValue)
+                return;
+
             if (sensor.Name == "GPU Memory Used")
             {
-                float value = (float)sensor.Value / 1024.0f; // MB to GB
+                float value = sensorValue.Value / 1024.0f; // MB to GB
                 if (GPUMemory != value)
                 {
                     GPUMemory = value;
@@ -283,7 +287,7 @@ namespace HandheldCompanion.Platforms.Misc
             }
             else if (sensor.Name == "D3D Dedicated Memory Used")
             {
-                float value = (float)sensor.Value / 1024.0f; // MB to GB
+                float value = sensorValue.Value / 1024.0f; // MB to GB
                 if (GPUMemoryDedicated != value)
                 {
                     GPUMemoryDedicated = value;
@@ -292,7 +296,7 @@ namespace HandheldCompanion.Platforms.Misc
             }
             else if (sensor.Name == "D3D Shared Memory Used")
             {
-                float value = (float)sensor.Value / 1024.0f; // MB to GB
+                float value = sensorValue.Value / 1024.0f; // MB to GB
                 if (GPUMemoryShared != value)
                 {
                     GPUMemoryShared = value;
@@ -301,19 +305,19 @@ namespace HandheldCompanion.Platforms.Misc
             }
             else if (sensor.Name == "GPU Memory Total")
             {
-                float value = (float)sensor.Value / 1024.0f; // MB to GB
+                float value = sensorValue.Value / 1024.0f; // MB to GB
                 if (GPUMemoryTotal != value)
                     GPUMemoryTotal = value;
             }
             else if (sensor.Name == "D3D Dedicated Memory Total")
             {
-                float value = (float)sensor.Value / 1024.0f; // MB to GB
+                float value = sensorValue.Value / 1024.0f; // MB to GB
                 if (GPUMemoryDedicatedTotal != value)
                     GPUMemoryDedicatedTotal = value;
             }
             else if (sensor.Name == "D3D Shared Memory Total")
             {
-                float value = (float)sensor.Value / 1024.0f; // MB to GB
+                float value = sensorValue.Value / 1024.0f; // MB to GB
                 if (GPUMemorySharedTotal != value)
                     GPUMemorySharedTotal = value;
             }
@@ -321,9 +325,13 @@ namespace HandheldCompanion.Platforms.Misc
 
         private void HandleGPU_Load(ISensor sensor)
         {
+            float? sensorValue = sensor.Value;
+            if (!sensorValue.HasValue)
+                return;
+
             if (sensor.Name == "D3D 3D")
             {
-                float value = (float)sensor.Value;
+                float value = sensorValue.Value;
                 if (GPULoad != value)
                 {
                     GPULoad = value;
@@ -334,9 +342,13 @@ namespace HandheldCompanion.Platforms.Misc
 
         private float HandleGPU_Clock(ISensor sensor, float currentHighest)
         {
+            float? sensorValue = sensor.Value;
+            if (!sensorValue.HasValue)
+                return currentHighest;
+
             if (sensor.Name == "GPU Core")
             {
-                float value = (float)sensor.Value;
+                float value = sensorValue.Value;
                 if (value > currentHighest)
                 {
                     if (GPUClock != value)
@@ -352,12 +364,16 @@ namespace HandheldCompanion.Platforms.Misc
 
         private void HandleGPU_Power(ISensor sensor)
         {
+            float? sensorValue = sensor.Value;
+            if (!sensorValue.HasValue)
+                return;
+
             switch (sensor.Name)
             {
                 case "GPU SoC":
                     //case "GPU Package":
                     {
-                        float value = (float)sensor.Value;
+                        float value = sensorValue.Value;
                         if (GPUPower != value)
                         {
                             GPUPower = value;
@@ -370,9 +386,13 @@ namespace HandheldCompanion.Platforms.Misc
 
         private void HandleGPU_Temperature(ISensor sensor)
         {
+            float? sensorValue = sensor.Value;
+            if (!sensorValue.HasValue)
+                return;
+
             if (sensor.Name == "GPU Core")
             {
-                float value = (float)sensor.Value;
+                float value = sensorValue.Value;
                 if (GPUTemperature != value)
                 {
                     GPUTemperature = value;
@@ -416,9 +436,13 @@ namespace HandheldCompanion.Platforms.Misc
 
         private void HandleCPU_Load(ISensor sensor)
         {
+            float? sensorValue = sensor.Value;
+            if (!sensorValue.HasValue)
+                return;
+
             if (sensor.Name == "CPU Total")
             {
-                float value = (float)sensor.Value;
+                float value = sensorValue.Value;
                 if (CPULoad != value)
                 {
                     CPULoad = value;
@@ -429,9 +453,13 @@ namespace HandheldCompanion.Platforms.Misc
 
         private float HandleCPU_Clock(ISensor sensor, float currentHighest)
         {
+            float? sensorValue = sensor.Value;
+            if (!sensorValue.HasValue)
+                return currentHighest;
+
             if (sensor.Name.StartsWith("CPU Core #", StringComparison.Ordinal) || sensor.Name.StartsWith("Core #", StringComparison.Ordinal))
             {
-                float value = (float)sensor.Value;
+                float value = sensorValue.Value;
                 if (value > currentHighest)
                 {
                     if (CPUClock != value)
@@ -447,12 +475,16 @@ namespace HandheldCompanion.Platforms.Misc
 
         private void HandleCPU_Power(ISensor sensor)
         {
+            float? sensorValue = sensor.Value;
+            if (!sensorValue.HasValue)
+                return;
+
             switch (sensor.Name)
             {
                 case "Package":
                 case "CPU Package":
                     {
-                        float value = (float)sensor.Value;
+                        float value = sensorValue.Value;
                         if (CPUPower != value)
                         {
                             CPUPower = value;
@@ -465,9 +497,13 @@ namespace HandheldCompanion.Platforms.Misc
 
         private void HandleCPU_Temperature(ISensor sensor)
         {
+            float? sensorValue = sensor.Value;
+            if (!sensorValue.HasValue)
+                return;
+
             if (sensor.Name == "CPU Package" || sensor.Name == "Core (Tctl/Tdie)")
             {
-                float value = (float)sensor.Value;
+                float value = sensorValue.Value;
                 if (CPUTemperature != value)
                 {
                     CPUTemperature = value;
@@ -506,9 +542,13 @@ namespace HandheldCompanion.Platforms.Misc
 
         private void HandleMemory_Data(ISensor sensor)
         {
+            float? sensorValue = sensor.Value;
+            if (!sensorValue.HasValue)
+                return;
+
             if (sensor.Name == "Memory Used")
             {
-                float value = (float)sensor.Value;
+                float value = sensorValue.Value;
                 if (MemoryUsage != value)
                 {
                     MemoryUsage = value;
@@ -517,7 +557,7 @@ namespace HandheldCompanion.Platforms.Misc
             }
             else if (sensor.Name == "Memory Available")
             {
-                float value = (float)sensor.Value;
+                float value = sensorValue.Value;
                 if (MemoryAvailable != value)
                 {
                     MemoryAvailable = value;
@@ -557,9 +597,13 @@ namespace HandheldCompanion.Platforms.Misc
 
         private void HandleBattery_Level(ISensor sensor)
         {
+            float? sensorValue = sensor.Value;
+            if (!sensorValue.HasValue)
+                return;
+
             if (sensor.Name == "Charge Level")
             {
-                float value = (float)sensor.Value;
+                float value = sensorValue.Value;
                 if (BatteryLevel != value)
                 {
                     BatteryLevel = value;
@@ -570,9 +614,13 @@ namespace HandheldCompanion.Platforms.Misc
 
         private void HandleBattery_Power(ISensor sensor)
         {
+            float? sensorValue = sensor.Value;
+            if (!sensorValue.HasValue)
+                return;
+
             if (sensor.Name == "Charge Rate")
             {
-                float value = (float)sensor.Value;
+                float value = sensorValue.Value;
                 if (BatteryPower != value)
                 {
                     BatteryPower = value;
@@ -581,7 +629,7 @@ namespace HandheldCompanion.Platforms.Misc
             }
             if (sensor.Name == "Discharge Rate")
             {
-                float value = -(float)sensor.Value;
+                float value = -sensorValue.Value;
                 if (BatteryPower != value)
                 {
                     BatteryPower = value;
@@ -592,9 +640,13 @@ namespace HandheldCompanion.Platforms.Misc
 
         private void HandleBattery_TimeSpan(ISensor sensor)
         {
+            float? sensorValue = sensor.Value;
+            if (!sensorValue.HasValue)
+                return;
+
             if (sensor.Name == "Remaining Time (Estimated)")
             {
-                float value = (float)sensor.Value / 60.0f;
+                float value = sensorValue.Value / 60.0f;
                 if (BatteryTimeSpan != value)
                 {
                     BatteryTimeSpan = value;
@@ -607,25 +659,25 @@ namespace HandheldCompanion.Platforms.Misc
         #region events
         public delegate void ChangedHandler(float? value);
 
-        public event ChangedHandler CPULoadChanged;
-        public event ChangedHandler CPUPowerChanged;
-        public event ChangedHandler CPUClockChanged;
-        public event ChangedHandler CPUTemperatureChanged;
+        public event ChangedHandler? CPULoadChanged;
+        public event ChangedHandler? CPUPowerChanged;
+        public event ChangedHandler? CPUClockChanged;
+        public event ChangedHandler? CPUTemperatureChanged;
 
-        public event ChangedHandler GPULoadChanged;
-        public event ChangedHandler GPUPowerChanged;
-        public event ChangedHandler GPUClockChanged;
-        public event ChangedHandler GPUTemperatureChanged;
-        public event ChangedHandler GPUMemoryChanged;
-        public event ChangedHandler GPUMemoryDedicatedChanged;
-        public event ChangedHandler GPUMemorySharedChanged;
+        public event ChangedHandler? GPULoadChanged;
+        public event ChangedHandler? GPUPowerChanged;
+        public event ChangedHandler? GPUClockChanged;
+        public event ChangedHandler? GPUTemperatureChanged;
+        public event ChangedHandler? GPUMemoryChanged;
+        public event ChangedHandler? GPUMemoryDedicatedChanged;
+        public event ChangedHandler? GPUMemorySharedChanged;
 
-        public event ChangedHandler MemoryUsageChanged;
-        public event ChangedHandler MemoryAvailableChanged;
+        public event ChangedHandler? MemoryUsageChanged;
+        public event ChangedHandler? MemoryAvailableChanged;
 
-        public event ChangedHandler BatteryLevelChanged;
-        public event ChangedHandler BatteryPowerChanged;
-        public event ChangedHandler BatteryTimeSpanChanged;
+        public event ChangedHandler? BatteryLevelChanged;
+        public event ChangedHandler? BatteryPowerChanged;
+        public event ChangedHandler? BatteryTimeSpanChanged;
         #endregion
     }
 }

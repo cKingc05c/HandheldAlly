@@ -14,8 +14,8 @@ namespace HandheldCompanion.Controllers.Steam;
 
 public class NeptuneController : SteamController
 {
-    private steam_hidapi.net.NeptuneController Controller;
-    private NeptuneControllerInputEventArgs input;
+    private steam_hidapi.net.NeptuneController? Controller;
+    private NeptuneControllerInputEventArgs? input;
 
     private const short TrackPadInner = 21844;
 
@@ -26,7 +26,7 @@ public class NeptuneController : SteamController
     public const sbyte MaxIntensity = 10;
 
     // TODO: why not use TimerManager.Tick?
-    private Thread rumbleThread;
+    private Thread? rumbleThread;
     private bool rumbleThreadRunning;
     private int rumbleThreadInterval = 10;
 
@@ -89,7 +89,7 @@ public class NeptuneController : SteamController
 
     public override void Tick(long ticks, float delta, bool commit)
     {
-        if (Inputs is null || IsBusy || !IsPlugged || IsDisposing || IsDisposed)
+        if (Inputs is null || input is null || IsBusy || !IsPlugged || IsDisposing || IsDisposed)
             return;
 
         ButtonState.Overwrite(InjectedButtons, Inputs.ButtonState);
@@ -230,7 +230,7 @@ public class NeptuneController : SteamController
         Inputs.GyroState.SetAccelerometer(aX, aY, aZ);
 
         // process motion
-        if (gamepadMotions.TryGetValue(gamepadIndex, out GamepadMotion gamepadMotion))
+        if (gamepadMotions.TryGetValue(gamepadIndex, out GamepadMotion? gamepadMotion))
             gamepadMotion.ProcessMotion(gX, gY, gZ, aX, aY, aZ, delta);
 
         base.Tick(ticks, delta);
@@ -355,12 +355,12 @@ public class NeptuneController : SteamController
         base.Plug();
     }
 
-    private void SettingsManager_Initialized()
+    protected override void SettingsManager_Initialized()
     {
         QuerySettings();
     }
 
-    private void QuerySettings()
+    protected override void QuerySettings()
     {
         // manage events
         ManagerFactory.settingsManager.SettingValueChanged += SettingsManager_SettingValueChanged;
@@ -369,7 +369,7 @@ public class NeptuneController : SteamController
         SettingsManager_SettingValueChanged("SteamControllerRumbleInterval", ManagerFactory.settingsManager.GetInt("SteamControllerRumbleInterval"), false);
     }
 
-    private void SettingsManager_SettingValueChanged(string name, object value, bool temporary)
+    protected override void SettingsManager_SettingValueChanged(string name, object? value, bool temporary)
     {
         switch (name)
         {
@@ -429,10 +429,10 @@ public class NeptuneController : SteamController
         while (rumbleThreadRunning)
         {
             if (GetHapticIntensity(FeedbackLargeMotor, MinIntensity, MaxIntensity, out var leftIntensity))
-                Controller.SetHaptic2(SCHapticMotor.Left, NCHapticStyle.Weak, leftIntensity);
+                Controller?.SetHaptic2(SCHapticMotor.Left, NCHapticStyle.Weak, leftIntensity);
 
             if (GetHapticIntensity(FeedbackSmallMotor, MinIntensity, MaxIntensity, out var rightIntensity))
-                Controller.SetHaptic2(SCHapticMotor.Right, NCHapticStyle.Weak, rightIntensity);
+                Controller?.SetHaptic2(SCHapticMotor.Right, NCHapticStyle.Weak, rightIntensity);
 
             Thread.Sleep(rumbleThreadInterval);
         }
@@ -447,6 +447,6 @@ public class NeptuneController : SteamController
             HapticStrength.High => 2048,
             _ => 0,
         };
-        Controller.SetHaptic((byte)GetMotorForButton(button), value, 0, 1);
+        Controller?.SetHaptic((byte)GetMotorForButton(button), value, 0, 1);
     }
 }

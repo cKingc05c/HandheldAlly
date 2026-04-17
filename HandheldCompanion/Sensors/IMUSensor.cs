@@ -42,12 +42,12 @@ public abstract class IMUSensor : IDisposable
         { 'Z', 0.0d }
     };
 
-    public object sensor;
+    public object? sensor;
     protected SensorFamily sensorFamily;
     protected int updateInterval;
     protected float threshold;
 
-    public event ReadingUpdatedEventHandler ReadingUpdated;
+    public event ReadingUpdatedEventHandler? ReadingUpdated;
     public delegate void ReadingUpdatedEventHandler();
 
     ~IMUSensor()

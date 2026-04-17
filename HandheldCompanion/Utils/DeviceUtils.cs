@@ -38,7 +38,7 @@ public class DeviceUtils
         Right
     }
 
-    public static USBDeviceInfo GetUSBDevice(string DeviceId)
+    public static USBDeviceInfo? GetUSBDevice(string DeviceId)
     {
         try
         {
@@ -47,7 +47,11 @@ public class DeviceUtils
                        $"SELECT * From Win32_PnPEntity WHERE DeviceId = '{DeviceId.Replace("\\", "\\\\")}'"))
             {
                 var devices = searcher.Get().Cast<ManagementBaseObject>().ToList();
-                return new USBDeviceInfo(devices.FirstOrDefault());
+                ManagementBaseObject? device = devices.FirstOrDefault();
+                if (device is null)
+                    return null;
+
+                return new USBDeviceInfo(device);
             }
         }
         catch

@@ -7,10 +7,10 @@ namespace HandheldCompanion.Misc
     [Serializable]
     public class PowerProfile
     {
-        public string Name;
-        public string Description;
+        public string Name = string.Empty;
+        public string Description = string.Empty;
 
-        public string FileName { get; set; }
+        public string FileName { get; set; } = string.Empty;
         public bool Default { get; set; }
         public bool DeviceDefault { get; set; }
 
@@ -18,7 +18,7 @@ namespace HandheldCompanion.Misc
         public Guid Guid { get; set; } = Guid.NewGuid();
 
         public bool TDPOverrideEnabled { get; set; }
-        public double[] TDPOverrideValues { get; set; }
+        public double[]? TDPOverrideValues { get; set; }
 
         public bool CPUOverrideEnabled { get; set; }
         public double CPUOverrideValue { get; set; }

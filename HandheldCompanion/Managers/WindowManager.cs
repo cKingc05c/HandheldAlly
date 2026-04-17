@@ -8,7 +8,7 @@ namespace HandheldCompanion.Managers
 {
     public static class WindowManager
     {
-        private static string ClearString(string input)
+        private static string? ClearString(string? input)
         {
             // todo: improve me
             // make me executable specific to improve the window's name cleaning logic ?
@@ -51,9 +51,9 @@ namespace HandheldCompanion.Managers
                     name = hwndName;
 
                 // clear name
-                name = ClearString(name);
+                name = ClearString(name) ?? string.Empty;
 
-                if (profile.WindowsSettings.TryGetValue(name, out ProcessWindowSettings processWindowSettings))
+                if (profile.WindowsSettings.TryGetValue(name, out ProcessWindowSettings? processWindowSettings))
                 {
                     // user-created
                     processWindowSettings.IsGeneric = false;
@@ -79,7 +79,7 @@ namespace HandheldCompanion.Managers
                     name = hwndName;
 
                 // clear name
-                name = ClearString(name);
+                name = ClearString(name) ?? string.Empty;
 
                 profile.WindowsSettings[name] = new(screen.DeviceName, borderless, windowPositions) { Hwnd = processWindow.Hwnd, IsGeneric = false };
             }
@@ -104,7 +104,7 @@ namespace HandheldCompanion.Managers
                     name = hwndName;
 
                 // clear name
-                name = ClearString(name);
+                name = ClearString(name) ?? string.Empty;
 
                 if (!profile.WindowsSettings.ContainsKey(name))
                     profile.WindowsSettings[name] = new();
@@ -133,7 +133,7 @@ namespace HandheldCompanion.Managers
                     name = hwndName;
 
                 // clear name
-                name = ClearString(name);
+                name = ClearString(name) ?? string.Empty;
 
                 if (!profile.WindowsSettings.ContainsKey(name))
                     profile.WindowsSettings[name] = new();
@@ -162,7 +162,7 @@ namespace HandheldCompanion.Managers
                     name = hwndName;
 
                 // clear name
-                name = ClearString(name);
+                name = ClearString(name) ?? string.Empty;
 
                 if (!profile.WindowsSettings.ContainsKey(name))
                     profile.WindowsSettings[name] = new();
@@ -179,8 +179,8 @@ namespace HandheldCompanion.Managers
 
         public static void ApplySettings(ProcessWindow processWindow)
         {
-            Screen screen = Screen.AllScreens.FirstOrDefault(screen => screen.DeviceName.Equals(processWindow.windowSettings.DeviceName));
-            if (processWindow.windowSettings.IsGeneric)
+            Screen? screen = Screen.AllScreens.FirstOrDefault(screen => screen.DeviceName.Equals(processWindow.windowSettings.DeviceName));
+            if (processWindow.windowSettings.IsGeneric || screen is null)
                 return;
 
             WinAPI.MakeBorderless(processWindow.Hwnd, processWindow.windowSettings.Borderless);

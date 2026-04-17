@@ -18,13 +18,13 @@ namespace HandheldCompanion.Commands
         }
 
         public delegate void ExecutedEventHandler(ICommands command);
-        public event ExecutedEventHandler Executed;
+        public event ExecutedEventHandler? Executed;
 
         public delegate void UpdatedEventHandler(ICommands command);
-        public event UpdatedEventHandler Updated;
+        public event UpdatedEventHandler? Updated;
 
-        protected object Value;
-        protected object prevValue;
+        protected object? Value;
+        protected object? prevValue;
 
         [JsonIgnore] public bool OnKeyDown = false;
         [JsonIgnore] public bool OnKeyUp = false;
@@ -73,7 +73,7 @@ namespace HandheldCompanion.Commands
         [JsonIgnore] public int FontSize = 16;
 
         public CommandType commandType;
-        public Type deviceType = null;
+        public Type? deviceType = null;
 
         private bool _disposed = false; // Prevent multiple disposals
 

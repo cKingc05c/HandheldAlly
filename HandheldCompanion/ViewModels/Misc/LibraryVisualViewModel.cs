@@ -12,7 +12,7 @@ namespace HandheldCompanion.ViewModels.Misc
         public string Extension { get; set; }
         public string ExtensionThumbnail { get; set; }
 
-        public BitmapImage Image
+        public BitmapImage? Image
         {
             get
             {

@@ -44,6 +44,6 @@ public class PresetManager : BindableBase
         }
     }
 
-    public event EventHandler ColorPresetChanged;
-    public event EventHandler ShapePresetChanged;
+    public event EventHandler? ColorPresetChanged;
+    public event EventHandler? ShapePresetChanged;
 }

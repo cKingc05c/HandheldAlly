@@ -8,21 +8,21 @@ namespace HandheldCompanion.Misc
 {
     public class ProcessWindow : IDisposable
     {
-        private AutomationPropertyChangedEventHandler propertyHandle;
-        private AutomationEventHandler eventHandler;
+        private AutomationPropertyChangedEventHandler? propertyHandle;
+        private AutomationEventHandler? eventHandler;
 
-        public event EventHandler Refreshed;
-        public event EventHandler Closed;
-        public event EventHandler Disposed;
+        public event EventHandler? Refreshed;
+        public event EventHandler? Closed;
+        public event EventHandler? Disposed;
 
-        public AutomationElement Element { get; private set; }
+        public AutomationElement? Element { get; private set; }
         public readonly int Hwnd;
         private bool _disposed = false;
 
         public ProcessEx processEx;
         public ProcessWindowSettings windowSettings = new();
 
-        private string _Name;
+        private string _Name = string.Empty;
         public string Name
         {
             get => _Name;
@@ -107,7 +107,7 @@ namespace HandheldCompanion.Misc
 
             try
             {
-                string title = ProcessUtils.GetWindowTitle(Hwnd);
+                string? title = ProcessUtils.GetWindowTitle(Hwnd);
                 if (!string.IsNullOrEmpty(title))
                     Name = title;
             }

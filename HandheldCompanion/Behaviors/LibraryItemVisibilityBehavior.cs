@@ -65,8 +65,7 @@ public static class LibraryItemVisibilityBehavior
 
     private static ScrollViewer? ResolveScrollViewer(FrameworkElement element)
     {
-        return WPFUtils.FindParent<ScrollViewer>(element)
-               ?? WPFUtils.FindVisualChild<ScrollViewer>(element);
+        return WPFUtils.FindParent<ScrollViewer>(element) ?? WPFUtils.FindVisualChild<ScrollViewer>(element);
     }
 
     private static void SetVisualVisibility(object? dataContext, bool isVisible)

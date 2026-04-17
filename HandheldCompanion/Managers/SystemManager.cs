@@ -22,16 +22,16 @@ public static class SystemManager
 
     #region Events
 
-    public static event SystemStatusChangedEventHandler SystemStatusChanged;
+    public static event SystemStatusChangedEventHandler? SystemStatusChanged;
     public delegate void SystemStatusChangedEventHandler(SystemStatus status, SystemStatus prevStatus);
 
-    public static event PowerStatusChangedEventHandler PowerStatusChanged;
+    public static event PowerStatusChangedEventHandler? PowerStatusChanged;
     public delegate void PowerStatusChangedEventHandler(PowerStatus status);
 
-    public static event PowerLineStatusChangedEventHandler PowerLineStatusChanged;
+    public static event PowerLineStatusChangedEventHandler? PowerLineStatusChanged;
     public delegate void PowerLineStatusChangedEventHandler(PowerLineStatus powerLineStatus);
 
-    public static event InitializedEventHandler Initialized;
+    public static event InitializedEventHandler? Initialized;
     public delegate void InitializedEventHandler();
 
     #endregion
@@ -123,7 +123,7 @@ public static class SystemManager
         PowerManager.RemainingDischargeTimeChanged -= BatteryStatusChanged;
     }
 
-    private static void BatteryStatusChanged(object sender, object e)
+    private static void BatteryStatusChanged(object? sender, object? e)
     {
         PowerStatusChanged?.Invoke(SystemInformation.PowerStatus);
     }

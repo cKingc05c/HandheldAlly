@@ -24,25 +24,25 @@ public static class WPFUtils
     [DllImport("user32.dll")]
     public static extern IntPtr SendMessage(IntPtr hWnd, int Msg, IntPtr wParam, IntPtr lParam);
 
-    public static HwndSource GetControlHandle(Control control)
+    public static HwndSource? GetControlHandle(Control control)
     {
         return PresentationSource.FromVisual(control) as HwndSource;
     }
 
     public static void MakeFocusVisible(Control c)
     {
-        HwndSource hwndSource = GetControlHandle(c);
+        HwndSource? hwndSource = GetControlHandle(c);
         if (hwndSource == null)
             return;
 
         IntPtr hWnd = hwndSource.Handle;
-        SendMessage(hWnd, 257, 0x0000000000000009, (IntPtr)0x00000000c00f0001);
+        SendMessage(hWnd, 257, 0x0000000000000009, unchecked((IntPtr)0x00000000c00f0001));
         // SendMessage(hWnd, WM_CHANGEUISTATE, (IntPtr)MakeLong((int)UIS_CLEAR, (int)UISF_HIDEFOCUS), IntPtr.Zero);
     }
 
     public static void MakeFocusInvisible(Control c)
     {
-        HwndSource hwndSource = GetControlHandle(c);
+        HwndSource? hwndSource = GetControlHandle(c);
         if (hwndSource == null)
             return;
 
@@ -65,14 +65,14 @@ public static class WPFUtils
     }
 
     // A function that takes a list of controls and returns the top-left control
-    public static Control GetTopLeftControl<T>(List<Control> controls, List<Type> typesToIgnore = null) where T : Control
+    public static Control? GetTopLeftControl<T>(List<Control> controls, List<Type>? typesToIgnore = null) where T : Control
     {
         controls = controls.Where(c => c is T && c.IsEnabled).ToList();
 
         if (typesToIgnore is not null)
             controls = controls.Where(c => !typesToIgnore.Contains(c.GetType())).ToList();
 
-        if (controls == null || controls.Count == 0)
+        if (controls.Count == 0)
             return null;
 
         Control topLeft = controls[0];
@@ -90,9 +90,9 @@ public static class WPFUtils
 
     private const double SecondaryAxisCenterOffsetThresholdMultiplier = 4.0;
 
-    public static Control? GetClosestControl<T>(Control source, List<Control> controls, Direction direction, List<Type> typesToIgnore = null) where T : Control
+    public static Control? GetClosestControl<T>(Control source, List<Control> controls, Direction direction, List<Type>? typesToIgnore = null) where T : Control
     {
-        Expander expander = FindParent<Expander>(source);
+        Expander? expander = FindParent<Expander>(source);
         if (expander is not null && expander.IsExpanded)
         {
             Control? scopedCandidate = GetClosestCandidate<T>(
@@ -233,7 +233,7 @@ public static class WPFUtils
         }
     }
 
-    public static Control? GetFurthestControl<T>(Control source, List<Control> controls, Direction direction, List<Type> typesToIgnore = null) where T : Control
+    public static Control? GetFurthestControl<T>(Control source, List<Control> controls, Direction direction, List<Type>? typesToIgnore = null) where T : Control
     {
         List<Control> controlsInDirection = GetControlInDirection<T>(source, controls, direction, typesToIgnore);
 
@@ -246,7 +246,7 @@ public static class WPFUtils
     }
 
 
-    private static List<Control> GetControlInDirection<T>(Control source, List<Control> controls, Direction direction, List<Type> typesToIgnore = null, bool strictAxis = false) where T : Control
+    private static List<Control> GetControlInDirection<T>(Control source, List<Control> controls, Direction direction, List<Type>? typesToIgnore = null, bool strictAxis = false) where T : Control
     {
         // Filter list based on requested type
         controls = controls.Where(c => c is T && c.IsEnabled && c.Opacity != 0).ToList();
@@ -321,7 +321,7 @@ public static class WPFUtils
     }
 
     // Helper method to find the nearest common parent of two controls
-    private static DependencyObject GetNearestCommonParent(Control c1, Control c2)
+    private static DependencyObject? GetNearestCommonParent(Control c1, Control c2)
     {
         // Get the visual tree parents of both controls
         var parents1 = GetVisualParents(c1).ToList();
@@ -579,9 +579,9 @@ public static class WPFUtils
         return childs;
     }
 
-    public static T FindParent<T>(DependencyObject child) where T : DependencyObject
+    public static T? FindParent<T>(DependencyObject child) where T : DependencyObject
     {
-        T parent = null;
+        T? parent = null;
         if (child is null)
         {
             return parent;
@@ -599,7 +599,7 @@ public static class WPFUtils
         return parent;
     }
 
-    public static Visual FindCommonAncestor(Visual visual1, Visual visual2)
+    public static Visual? FindCommonAncestor(Visual visual1, Visual visual2)
     {
         var ancestor1 = visual1;
         while (ancestor1 != null)
@@ -623,7 +623,7 @@ public static class WPFUtils
         return child.TransformToAncestor(ancestor).Transform(point);
     }
 
-    public static T FindVisualChild<T>(DependencyObject parent) where T : DependencyObject
+    public static T? FindVisualChild<T>(DependencyObject parent) where T : DependencyObject
     {
         if (parent == null)
             return null;
@@ -636,7 +636,7 @@ public static class WPFUtils
                 return typedChild;
             }
 
-            T childOfChild = FindVisualChild<T>(child);
+            T? childOfChild = FindVisualChild<T>(child);
             if (childOfChild != null)
             {
                 return childOfChild;
@@ -707,6 +707,10 @@ public static class WPFUtils
 
     public static void SendKeyToControl(Control control, int keyCode)
     {
-        SendMessage(GetControlHandle(control).Handle.ToInt32(), WM_KEYDOWN, keyCode, IntPtr.Zero);
+        HwndSource? controlHandle = GetControlHandle(control);
+        if (controlHandle is null)
+            return;
+
+        SendMessage(controlHandle.Handle.ToInt32(), WM_KEYDOWN, keyCode, IntPtr.Zero);
     }
 }

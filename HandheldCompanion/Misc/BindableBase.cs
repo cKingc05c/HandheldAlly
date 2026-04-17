@@ -5,9 +5,9 @@ namespace HandheldCompanion.Misc;
 
 public class BindableBase : INotifyPropertyChanged
 {
-    public event PropertyChangedEventHandler PropertyChanged;
+    public event PropertyChangedEventHandler? PropertyChanged;
 
-    protected void Set<T>(ref T storage, T value, [CallerMemberName] string propertyName = null)
+    protected void Set<T>(ref T storage, T value, [CallerMemberName] string? propertyName = null)
     {
         if (Equals(storage, value)) return;
 
@@ -15,7 +15,7 @@ public class BindableBase : INotifyPropertyChanged
         RaisePropertyChanged(propertyName);
     }
 
-    protected void RaisePropertyChanged([CallerMemberName] string propertyName = null)
+    protected void RaisePropertyChanged([CallerMemberName] string? propertyName = null)
     {
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
     }

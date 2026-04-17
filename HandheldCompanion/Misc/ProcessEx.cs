@@ -220,13 +220,13 @@ public class ProcessEx : IDisposable, ICloneable
     public const string DisabledMaximizedWindowedValue = "DISABLEDXMAXIMIZEDWINDOWEDMODE";
     public const string HighDPIAwareValue = "HIGHDPIAWARE";
 
-    public Process Process { get; private set; }
+    public Process? Process { get; private set; }
     public int ProcessId => Process?.Id ?? 0;
     public nint Handle => Process?.Handle ?? IntPtr.Zero;
 
     public ProcessFilter Filter { get; set; }
     public GamePlatform Platform { get; set; }
-    public ImageSource ProcessIcon { get; private set; }
+    public ImageSource? ProcessIcon { get; private set; }
 
     public string Path { get; set; } = string.Empty;
     public Dictionary<string, string> AppProperties = new();
@@ -243,10 +243,10 @@ public class ProcessEx : IDisposable, ICloneable
     #region event
     public EventHandler? Refreshed;
 
-    public event WindowAttachedEventHandler WindowAttached;
+    public event WindowAttachedEventHandler? WindowAttached;
     public delegate void WindowAttachedEventHandler(ProcessWindow processWindow);
 
-    public event WindowDetachedEventHandler WindowDetached;
+    public event WindowDetachedEventHandler? WindowDetached;
     public delegate void WindowDetachedEventHandler(ProcessWindow processWindow);
     #endregion
 
@@ -285,6 +285,10 @@ public class ProcessEx : IDisposable, ICloneable
         if (IsDisposing)
             return false;
 
+        Process? process = Process;
+        if (process is null)
+            return false;
+
         switch (Filter)
         {
             case ProcessFilter.Allowed:
@@ -310,7 +314,7 @@ public class ProcessEx : IDisposable, ICloneable
             try
             {
                 // Loop through the modules of the process
-                foreach (ProcessModule module in Process.Modules)
+                foreach (ProcessModule module in process.Modules)
                 {
                     try
                     {
@@ -396,7 +400,9 @@ public class ProcessEx : IDisposable, ICloneable
     private void Window_Closed(object? sender, EventArgs e)
     {
         // get object
-        ProcessWindow processWindow = (ProcessWindow)sender;
+        ProcessWindow? processWindow = (ProcessWindow?)sender;        
+        if (processWindow is null)
+            return;
 
         // raise event
         if (ProcessWindows.TryRemove(processWindow.Hwnd, out _))
@@ -412,7 +418,7 @@ public class ProcessEx : IDisposable, ICloneable
     {
         get
         {
-            string valueStr = GetAppCompatFlags(Path);
+            string? valueStr = GetAppCompatFlags(Path);
             return !string.IsNullOrEmpty(valueStr)
                 && valueStr.Split(' ').Any(s => s == DisabledMaximizedWindowedValue);
         }
@@ -422,7 +428,7 @@ public class ProcessEx : IDisposable, ICloneable
     {
         get
         {
-            string valueStr = GetAppCompatFlags(Path);
+            string? valueStr = GetAppCompatFlags(Path);
             return !string.IsNullOrEmpty(valueStr)
                 && valueStr.Split(' ').Any(s => s == HighDPIAwareValue);
         }
@@ -456,10 +462,11 @@ public class ProcessEx : IDisposable, ICloneable
     {
         try
         {
-            if (Process.HasExited)
+            Process? process = Process;
+            if (process is null || process.HasExited)
                 return;
 
-            Process.Kill();
+            process.Kill();
         }
         catch { }
     }
@@ -468,13 +475,14 @@ public class ProcessEx : IDisposable, ICloneable
     {
         try
         {
-            if (Process is null || Process.HasExited)
+            Process? process = Process;
+            if (process is null || process.HasExited)
                 return;
 
             if (ProcessWindows.IsEmpty && !force)
                 return;
 
-            Process.Refresh();
+            process.Refresh();
 
             if (MainThread is null)
                 return;
@@ -525,7 +533,7 @@ public class ProcessEx : IDisposable, ICloneable
         GetMainThread();
     }
 
-    public static string GetAppCompatFlags(string Path)
+    public static string? GetAppCompatFlags(string Path)
     {
         if (string.IsNullOrEmpty(Path))
             return string.Empty;
@@ -536,7 +544,7 @@ public class ProcessEx : IDisposable, ICloneable
             {
                 using (var key = Registry.CurrentUser.OpenSubKey(AppCompatRegistry))
                 {
-                    string valueStr = (string)key?.GetValue(Path);
+                    string? valueStr = (string?)key?.GetValue(Path);
                     return valueStr;
                 }
             }
@@ -560,7 +568,7 @@ public class ProcessEx : IDisposable, ICloneable
                     if (key != null)
                     {
                         List<string> values = ["~"];
-                        string valueStr = (string)key.GetValue(Path);
+                        string? valueStr = (string?)key.GetValue(Path);
 
                         if (!string.IsNullOrEmpty(valueStr))
                             values = valueStr.Split(' ').ToList();
@@ -583,15 +591,16 @@ public class ProcessEx : IDisposable, ICloneable
 
     private void GetMainThread()
     {
-        ProcessThread mainThread = null;
+        ProcessThread? mainThread = null;
         DateTime startTime = DateTime.MaxValue;
 
         try
         {
-            if (Process.HasExited || Process.Threads is null || Process.Threads.Count == 0)
+            Process? process = Process;
+            if (process is null || process.HasExited || process.Threads is null || process.Threads.Count == 0)
                 return;
 
-            foreach (ProcessThread thread in Process.Threads)
+            foreach (ProcessThread thread in process.Threads)
             {
                 try
                 {
@@ -608,7 +617,7 @@ public class ProcessEx : IDisposable, ICloneable
             }
 
             if (mainThread is null)
-                mainThread = Process.Threads[0];
+                mainThread = process.Threads[0];
 
             if (mainThread is null)
                 return;

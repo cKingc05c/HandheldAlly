@@ -314,7 +314,7 @@ public class ClawA1M : IDevice
         }
 
         // make sure M1/M2 are recognized as buttons
-        if (hidDevices.TryGetValue(INPUT_HID_ID, out HidDevice device))
+        if (hidDevices.TryGetValue(INPUT_HID_ID, out HidDevice? device))
         {
             Thread.Sleep(300);
             device.Write(GetM12(true), 0, 64);
@@ -427,7 +427,7 @@ public class ClawA1M : IDevice
         base.QuerySettings();
     }
 
-    protected override void SettingsManager_SettingValueChanged(string name, object value, bool temporary)
+    protected override void SettingsManager_SettingValueChanged(string name, object? value, bool temporary)
     {
         switch (name)
         {
@@ -567,7 +567,7 @@ public class ClawA1M : IDevice
 
     protected bool SetMotionStatus(bool enabled)
     {
-        if (hidDevices.TryGetValue(INPUT_HID_ID, out HidDevice device))
+        if (hidDevices.TryGetValue(INPUT_HID_ID, out HidDevice? device))
         {
             byte[] msg = { 15, 0, 0, 60, (byte)CommandType.SetMotionStatus, (byte)(enabled ? 1 : 0) };
             if (device.Write(msg, 0, 64))
@@ -587,7 +587,7 @@ public class ClawA1M : IDevice
 
     protected bool SwitchMode(GamepadMode gamepadMode)
     {
-        if (hidDevices.TryGetValue(INPUT_HID_ID, out HidDevice device))
+        if (hidDevices.TryGetValue(INPUT_HID_ID, out HidDevice? device))
         {
             byte[] msg = { 15, 0, 0, 60, (byte)CommandType.SwitchMode, (byte)gamepadMode, (byte)MKeysFunction.Macro };
             if (device.Write(msg, 0, 64))
@@ -607,7 +607,7 @@ public class ClawA1M : IDevice
 
     protected bool SyncToROM()
     {
-        if (hidDevices.TryGetValue(INPUT_HID_ID, out HidDevice device))
+        if (hidDevices.TryGetValue(INPUT_HID_ID, out HidDevice? device))
         {
             byte[] msg = { 15, 0, 0, 60, (byte)CommandType.SyncToROM };
             if (device.Write(msg, 0, 64))
@@ -768,7 +768,7 @@ public class ClawA1M : IDevice
         // store value
         LEDBrightness = brightness;
 
-        if (hidDevices.TryGetValue(INPUT_HID_ID, out HidDevice device))
+        if (hidDevices.TryGetValue(INPUT_HID_ID, out HidDevice? device))
             return device.Write(GetRGB(brightness, LEDMainColor, LEDSecondColor), 0, 64);
 
         return false;
@@ -780,7 +780,7 @@ public class ClawA1M : IDevice
         LEDMainColor = MainColor;
         LEDSecondColor = SecondaryColor;
 
-        if (hidDevices.TryGetValue(INPUT_HID_ID, out HidDevice device))
+        if (hidDevices.TryGetValue(INPUT_HID_ID, out HidDevice? device))
         {
             switch (level)
             {
@@ -866,7 +866,7 @@ public class ClawA1M : IDevice
     private void Device_Removed()
     {
         // close device
-        if (hidDevices.TryGetValue(INPUT_HID_ID, out HidDevice device))
+        if (hidDevices.TryGetValue(INPUT_HID_ID, out HidDevice? device))
         {
             device.MonitorDeviceEvents = false;
             device.Removed -= Device_Removed;
@@ -882,7 +882,7 @@ public class ClawA1M : IDevice
             await WaitUntilReady();
 
         // listen for events
-        if (hidDevices.TryGetValue(INPUT_HID_ID, out HidDevice device))
+        if (hidDevices.TryGetValue(INPUT_HID_ID, out HidDevice? device))
         {
             device.MonitorDeviceEvents = true;
             device.Removed += Device_Removed;

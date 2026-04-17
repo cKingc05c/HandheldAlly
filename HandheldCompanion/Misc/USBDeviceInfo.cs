@@ -21,10 +21,10 @@ public class USBDeviceInfo
 
     public USBDeviceInfo(ManagementBaseObject device)
     {
-        DeviceId = device.GetPropertyValue("DeviceId").ToString();
-        Name = device.GetPropertyValue("Name").ToString();
-        Description = device.GetPropertyValue("Description").ToString();
-        Caption = device.GetPropertyValue("Caption").ToString();
+        DeviceId = device.GetPropertyValue("DeviceId")?.ToString() ?? string.Empty;
+        Name = device.GetPropertyValue("Name")?.ToString() ?? string.Empty;
+        Description = device.GetPropertyValue("Description")?.ToString() ?? string.Empty;
+        Caption = device.GetPropertyValue("Caption")?.ToString() ?? string.Empty;
 
         var mVID = Regex.Match(DeviceId, vidPattern, RegexOptions.IgnoreCase);
         var mPID = Regex.Match(DeviceId, pidPattern, RegexOptions.IgnoreCase);

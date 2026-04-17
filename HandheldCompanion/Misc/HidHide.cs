@@ -13,7 +13,7 @@ namespace HandheldCompanion;
 
 public static class HidHide
 {
-    private static readonly Process process;
+    private static readonly Process? process;
     private static object hidLock = new();
 
     static HidHide()
@@ -281,7 +281,7 @@ public static class HidHide
         try
         {
             if (process is null)
-                return null;
+                return [];
 
             // using --dev-gaming sometimes doesn't report controllers or have empty BaseContainerDeviceInstancePath
             process.StartInfo.Arguments = $"--dev-all";
@@ -294,7 +294,7 @@ public static class HidHide
                 if (string.IsNullOrEmpty(jsonString))
                     return [];
 
-                return JsonConvert.DeserializeObject<List<HidHideDevice>>(jsonString);
+                return JsonConvert.DeserializeObject<List<HidHideDevice>>(jsonString) ?? [];
             }
         }
         catch { }
@@ -302,12 +302,12 @@ public static class HidHide
         return [];
     }
 
-    public static HidHideDevice GetHidHideDevice(string deviceInstancePath)
+    public static HidHideDevice? GetHidHideDevice(string deviceInstancePath)
     {
         List<HidHideDevice> hidHideDevices = GetHidHideDevices();
 
         if (hidHideDevices.Count != 0)
-            return hidHideDevices.FirstOrDefault(device => device.Devices.Where(a => a.BaseContainerDeviceInstancePath == deviceInstancePath || a.DeviceInstancePath == deviceInstancePath).Any());
+            return hidHideDevices.FirstOrDefault(device => device.Devices.Any(a => a.BaseContainerDeviceInstancePath == deviceInstancePath || a.DeviceInstancePath == deviceInstancePath));
 
         return null;
     }
@@ -316,10 +316,10 @@ public static class HidHide
 public partial class HidHideDevice
 {
     [JsonProperty("friendlyName")]
-    public string FriendlyName { get; set; }
+    public string FriendlyName { get; set; } = string.Empty;
 
     [JsonProperty("devices")]
-    public HidHideSubDevice[] Devices { get; set; }
+    public HidHideSubDevice[] Devices { get; set; } = [];
 }
 
 public partial class HidHideSubDevice
@@ -331,31 +331,31 @@ public partial class HidHideSubDevice
     public bool GamingDevice { get; set; }
 
     [JsonProperty("symbolicLink")]
-    public string SymbolicLink { get; set; }
+    public string SymbolicLink { get; set; } = string.Empty;
 
     [JsonProperty("vendor")]
-    public string Vendor { get; set; }
+    public string Vendor { get; set; } = string.Empty;
 
     [JsonProperty("product")]
-    public string Product { get; set; }
+    public string Product { get; set; } = string.Empty;
 
     [JsonProperty("serialNumber")]
-    public string SerialNumber { get; set; }
+    public string SerialNumber { get; set; } = string.Empty;
 
     [JsonProperty("usage")]
-    public string Usage { get; set; }
+    public string Usage { get; set; } = string.Empty;
 
     [JsonProperty("description")]
-    public string Description { get; set; }
+    public string Description { get; set; } = string.Empty;
 
     [JsonProperty("deviceInstancePath")]
-    public string DeviceInstancePath { get; set; }
+    public string DeviceInstancePath { get; set; } = string.Empty;
 
     [JsonProperty("baseContainerDeviceInstancePath")]
-    public string BaseContainerDeviceInstancePath { get; set; }
+    public string BaseContainerDeviceInstancePath { get; set; } = string.Empty;
 
     [JsonProperty("baseContainerClassGuid")]
-    public string BaseContainerClassGuid { get; set; }
+    public string BaseContainerClassGuid { get; set; } = string.Empty;
 
     [JsonProperty("baseContainerDeviceCount")]
     public long BaseContainerDeviceCount { get; set; }

@@ -16,20 +16,16 @@ namespace HandheldCompanion.Managers
 {
     public static class SensorsManager
     {
-        private static IMUGyrometer Gyrometer;
-        private static IMUAccelerometer Accelerometer;
-        private static SerialUSBIMU USBSensor;
+        private static IMUGyrometer? Gyrometer;
+        private static IMUAccelerometer? Accelerometer;
+        private static SerialUSBIMU? USBSensor;
 
         private static SensorFamily sensorFamily;
 
         public static bool IsInitialized;
 
-        public static event InitializedEventHandler Initialized;
+        public static event InitializedEventHandler? Initialized;
         public delegate void InitializedEventHandler();
-
-        static SensorsManager()
-        {
-        }
 
         public static void Start()
         {
@@ -138,7 +134,7 @@ namespace HandheldCompanion.Managers
             Accelerometer?.UpdateSensor();
         }
 
-        private static void ControllerManager_ControllerSelected(IController Controller)
+        private static void ControllerManager_ControllerSelected(IController? Controller)
         {
             if (Controller is null)
                 return;
@@ -163,7 +159,7 @@ namespace HandheldCompanion.Managers
             PickNextSensor();
         }
 
-        private static void DeviceManager_UsbDeviceRemoved(PnPDevice device, Guid IntefaceGuid)
+        private static void DeviceManager_UsbDeviceRemoved(PnPDevice? device, Guid IntefaceGuid)
         {
             if (USBSensor is null || sensorFamily != SensorFamily.SerialUSBIMU)
                 return;
@@ -190,7 +186,7 @@ namespace HandheldCompanion.Managers
                 ManagerFactory.settingsManager.SetProperty("SensorSelection", (int)SensorFamily.None);
         }
 
-        private static void DeviceManager_UsbDeviceArrived(PnPDevice device, Guid IntefaceGuid)
+        private static void DeviceManager_UsbDeviceArrived(PnPDevice? device, Guid IntefaceGuid)
         {
             // If USB Gyro is plugged, hook into it
             USBSensor = SerialUSBIMU.GetCurrent();
@@ -200,7 +196,7 @@ namespace HandheldCompanion.Managers
                 ManagerFactory.settingsManager.SetProperty("SensorSelection", (int)SensorFamily.SerialUSBIMU);
         }
 
-        private static void SettingsManager_SettingValueChanged(string name, object value, bool temporary)
+        private static void SettingsManager_SettingValueChanged(string name, object? value, bool temporary)
         {
             switch (name)
             {
@@ -262,7 +258,7 @@ namespace HandheldCompanion.Managers
                             case SensorFamily.Controller:
                                 {
                                     // get current controller
-                                    IController controller = ControllerManager.GetTarget();
+                                    IController? controller = ControllerManager.GetTarget();
                                     if (controller is null || !controller.Capabilities.HasFlag(ControllerCapabilities.MotionSensor))
                                     {
                                         PickNextSensor();

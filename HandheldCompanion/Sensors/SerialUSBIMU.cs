@@ -54,35 +54,39 @@ public class SerialUSBIMU
 
     private int tentative;
 
-    public event ReadingChangedEventHandler ReadingChanged;
+    public event ReadingChangedEventHandler? ReadingChanged;
 
-    public static SerialUSBIMU GetCurrent()
+    public static SerialUSBIMU? GetCurrent()
     {
         if (serial.port.IsOpen)
             return serial;
 
         // Holds information about the USB device
-        USBDeviceInfo deviceInfo = null;
+        USBDeviceInfo? deviceInfo = null;
 
         // Retrieve the list of available serial devices
-        var devices = GetSerialDevices();
+        List<USBDeviceInfo> devices = GetSerialDevices();
 
         // Iterate through each sensor vendor
-        foreach (var sensor in vendors)
+        foreach (KeyValuePair<KeyValuePair<string, string>, SerialPortEx> sensor in vendors)
         {
             // Skip the serial port name if it matches a COM port already in use
             if (SerialPortNamesInUse.Contains(sensor.Value.PortName))
                 continue;
 
-            var VendorID = sensor.Key.Key;
-            var ProductID = sensor.Key.Value;
+            string VendorID = sensor.Key.Key;
+            string ProductID = sensor.Key.Value;
 
             deviceInfo = devices.FirstOrDefault(a => a.VID == VendorID && a.PID == ProductID);
             if (deviceInfo is not null)
             {
                 serial.USBDevice = deviceInfo;
                 serial.port = sensor.Value;
-                serial.port.PortName = Between(deviceInfo.Name, "(", ")");
+                string? portName = Between(deviceInfo.Name, "(", ")");
+                if (string.IsNullOrEmpty(portName))
+                    continue;
+
+                serial.port.PortName = portName;
                 break;
             }
         }

@@ -15,7 +15,7 @@ namespace HandheldCompanion.Actions
 
         // Runtime
         private bool isKeyDown = false;
-        private KeyCode[] modifiersPressed;
+        private KeyCode[]? modifiersPressed;
 
         // Settings
         public ModifierSet Modifiers = ModifierSet.None;
@@ -67,7 +67,8 @@ namespace HandheldCompanion.Actions
                 isKeyDown = false;
 
                 KeyboardSimulator.KeyUp(Key);
-                KeyboardSimulator.KeyUp(modifiersPressed);
+                if (modifiersPressed is not null)
+                    KeyboardSimulator.KeyUp(modifiersPressed);
 
                 SetHaptic(button, released: true);
             }

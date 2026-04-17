@@ -11,12 +11,12 @@ namespace HandheldCompanion.Converters
         public object Convert(object[] values, Type targetType, object parameter, CultureInfo culture)
         {
             if (values[0] == DependencyProperty.UnsetValue)
-                return null;
+                return DependencyProperty.UnsetValue;
 
             if (values[1] == DependencyProperty.UnsetValue)
-                return null;
+                return DependencyProperty.UnsetValue;
 
-            string text = values[0] as string;
+        string? text = values[0] as string;
             bool isEnabled = (bool)values[1];
 
             ComboBoxItem comboBoxItem = new ComboBoxItem() { IsEnabled = isEnabled, Margin = new(0), Padding = new(0) };

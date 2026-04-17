@@ -24,7 +24,7 @@ namespace HandheldCompanion.Views.Pages;
 public partial class LayoutPage : Page
 {
     // Event to update ViewModel
-    public event UpdatedLayoutHandler LayoutUpdated;
+    public new event UpdatedLayoutHandler? LayoutUpdated;
     public delegate void UpdatedLayoutHandler(Layout layout);
 
     // Getter to update layout in ViewModels
@@ -33,16 +33,16 @@ public partial class LayoutPage : Page
     protected object updateLock = new();
 
     // page vars
-    private Dictionary<string, (ILayoutPage, NavigationViewItem)> pages;
-    private ButtonsPage buttonsPage;
-    private DpadPage dpadPage;
-    private GyroPage gyroPage;
-    private JoysticksPage joysticksPage;
-    private TrackpadsPage trackpadsPage;
-    private TriggersPage triggersPage;
+    private Dictionary<string, (ILayoutPage, NavigationViewItem)>? pages;
+    private ButtonsPage? buttonsPage;
+    private DpadPage? dpadPage;
+    private GyroPage? gyroPage;
+    private JoysticksPage? joysticksPage;
+    private TrackpadsPage? trackpadsPage;
+    private TriggersPage? triggersPage;
 
-    private NavigationView parentNavView;
-    private string preNavItemTag;
+    private NavigationView? parentNavView;
+    private string preNavItemTag = string.Empty;
 
     public LayoutPage()
     {
@@ -62,8 +62,11 @@ public partial class LayoutPage : Page
         this.parentNavView = parent;
     }
 
-    private void ControllerManager_ControllerSelected(IController Controller)
+    private void ControllerManager_ControllerSelected(IController? Controller)
     {
+        if (Controller is null)
+            return;
+
         // UI thread (async to prevent blocking event callers)
         UIHelper.TryBeginInvoke(() =>
         {
@@ -129,6 +132,9 @@ public partial class LayoutPage : Page
         {
             if (sender is ILayoutPage layoutPage)
             {
+                if (pages is null)
+                    return;
+
                 string key = pages.FirstOrDefault(kvp => kvp.Value.Item1 == layoutPage).Key;
                 NavigationViewItem navItem = pages[key].Item2;
                 navItem.IsEnabled = layoutPage.IsEnabled();
@@ -156,7 +162,7 @@ public partial class LayoutPage : Page
         });
     }
 
-    private void SettingsManager_SettingValueChanged(string? name, object value, bool temporary)
+    private void SettingsManager_SettingValueChanged(string? name, object? value, bool temporary)
     {
         // UI thread
         UIHelper.TryInvoke(() =>
@@ -242,7 +248,7 @@ public partial class LayoutPage : Page
 
                         // do not overwrite currentTemplate and currentTemplate.Layout as a whole
                         // because they both have important Update notifitications set
-                        using (Layout? newLayout = layoutTemplate.Layout.Clone() as Layout)
+                        using (Layout newLayout = (Layout)layoutTemplate.Layout.Clone())
                         {
                             currentTemplate.Layout.AxisLayout = CloningHelper.DeepClone(newLayout.AxisLayout);
                             currentTemplate.Layout.ButtonLayout = CloningHelper.DeepClone(newLayout.ButtonLayout);
@@ -305,7 +311,11 @@ public partial class LayoutPage : Page
         }
 
         if (ExportForCurrent.IsChecked == true)
-            newLayout.ControllerType = ControllerManager.GetTarget()?.GetType();
+        {
+            IController? target = ControllerManager.GetTarget();
+            if (target is not null)
+                newLayout.ControllerType = target.GetType();
+        }
 
         ManagerFactory.layoutManager.SerializeLayoutTemplate(newLayout);
 
@@ -396,8 +406,7 @@ public partial class LayoutPage : Page
                     navView.SelectedItem = currentNavViewItem;
             }
 
-            if (parentNavView is not null)
-                parentNavView.IsBackEnabled = MainWindow.GetCurrent()?.ContentFrame.CanGoBack == true;
+            parentNavView?.IsBackEnabled = MainWindow.GetCurrent()?.ContentFrame.CanGoBack == true;
 
             return;
         }
@@ -411,8 +420,7 @@ public partial class LayoutPage : Page
         preNavItemTag = "ButtonsPage";
         NavView_Navigate(preNavItemTag);
 
-        if (parentNavView is not null)
-            parentNavView.IsBackEnabled = MainWindow.GetCurrent()?.ContentFrame.CanGoBack == true;
+        parentNavView?.IsBackEnabled = MainWindow.GetCurrent()?.ContentFrame.CanGoBack == true;
     }
 
     public bool TryGoBack()
@@ -428,8 +436,7 @@ public partial class LayoutPage : Page
     {
         navView.IsBackEnabled = ContentFrame.CanGoBack;
 
-        if (parentNavView is not null)
-            parentNavView.IsBackEnabled = ContentFrame.CanGoBack || MainWindow.GetCurrent()?.ContentFrame.CanGoBack == true;
+        parentNavView?.IsBackEnabled = ContentFrame.CanGoBack || MainWindow.GetCurrent()?.ContentFrame.CanGoBack == true;
 
         if (ContentFrame.SourcePageType is not null)
         {
@@ -442,9 +449,8 @@ public partial class LayoutPage : Page
             if (!(NavViewItem is null))
                 navView.SelectedItem = NavViewItem;
 
-            string header = currentTemplate.Product.Length > 0 ?
-                    $"{Properties.Resources.LayoutPage_Profile}: " + currentTemplate.Product : $"{Properties.Resources.LayoutPage_LaytouDesktop}";
-            parentNavView.Header = new TextBlock() { Text = header };
+            string header = currentTemplate.Product.Length > 0 ? $"{Properties.Resources.LayoutPage_Profile}: " + currentTemplate.Product : $"{Properties.Resources.LayoutPage_LaytouDesktop}";
+            parentNavView?.Header = new TextBlock() { Text = header };
         }
     }
 }

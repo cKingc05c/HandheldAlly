@@ -27,7 +27,7 @@ public class ROGAllyX : ROGAlly
         foreach (KeyValuePair<Guid, double[]> kvp in tdpOverrides)
         {
             PowerProfile? profile = DevicePowerProfiles.FirstOrDefault(p => p.Guid == kvp.Key);
-            if (profile != null) profile.TDPOverrideValues = kvp.Value;
+            profile?.TDPOverrideValues = kvp.Value;
         }
     }
 }

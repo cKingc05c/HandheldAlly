@@ -51,7 +51,7 @@ public class SteamDeck : IDevice
     public DeviceVersion? SupportedDevice => deviceVersions.FirstOrDefault(version => version.IsSupported(FirmwareVersion, BoardID, PDCS));
     public override bool IsSupported => SupportedDevice is not null && SupportedDevice?.Firmware != 0;
 
-    private InpOut inpOut;
+    private InpOut? inpOut;
 
     public SteamDeck()
     {
@@ -153,7 +153,7 @@ public class SteamDeck : IDevice
         base.QuerySettings();
     }
 
-    protected override void SettingsManager_SettingValueChanged(string name, object value, bool temporary)
+    protected override void SettingsManager_SettingValueChanged(string name, object? value, bool temporary)
     {
         switch (name)
         {
@@ -184,7 +184,7 @@ public class SteamDeck : IDevice
 
     public override void Close()
     {
-        inpOut.Dispose();
+        inpOut?.Dispose();
         inpOut = null;
 
         base.Close();
@@ -240,7 +240,7 @@ public class SteamDeck : IDevice
             return;
 
         var data = BitConverter.GetBytes(gain);
-        inpOut.WriteMemory(GNLO_GNHI, data);
+        inpOut?.WriteMemory(GNLO_GNHI, data);
     }
 
     private void SetRampRate(byte rampRate)
@@ -249,7 +249,7 @@ public class SteamDeck : IDevice
             return;
 
         var data = BitConverter.GetBytes((short)rampRate);
-        inpOut.WriteMemory(FRPR, data);
+        inpOut?.WriteMemory(FRPR, data);
     }
 
     public override void SetFanControl(bool enable, int mode = 0)
@@ -260,7 +260,7 @@ public class SteamDeck : IDevice
         SetGain(10);
         SetRampRate(enable ? (byte)10 : (byte)20);
 
-        inpOut.DlPortWritePortUchar(IO6C, enable ? (byte)0xCC : (byte)0xCD);
+        inpOut?.DlPortWritePortUchar(IO6C, enable ? (byte)0xCC : (byte)0xCD);
     }
 
     public override void SetFanDuty(double percent)
@@ -268,17 +268,17 @@ public class SteamDeck : IDevice
         if (!IsOpen || !IsSupported)
             return;
 
-        var rpm = (ushort)(MAX_FAN_RPM * percent / 100.0d);
+        ushort rpm = (ushort)(MAX_FAN_RPM * percent / 100.0d);
         if (rpm > MAX_FAN_RPM)
             rpm = MAX_FAN_RPM;
 
-        var data = BitConverter.GetBytes(rpm);
-        inpOut.WriteMemory(FSLO_FSHI, data);
+        byte[] data = BitConverter.GetBytes(rpm);
+        inpOut?.WriteMemory(FSLO_FSHI, data);
     }
 
     public override float ReadFanDuty()
     {
-        var data = inpOut?.ReadMemory(FNRL_FNRH, 2);
+        byte[]? data = inpOut?.ReadMemory(FNRL_FNRH, 2);
         if (data is null)
             return 0.0f;
         return BitConverter.ToUInt16(data);

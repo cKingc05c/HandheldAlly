@@ -33,7 +33,7 @@ public class ProfileManager : IManager
     // public List<Profile> subProfiles = [];
 
     private object profileLock = new();
-    private Profile currentProfile;
+    private Profile? currentProfile;
 
     public FileSystemWatcher profileWatcher { get; set; }
 
@@ -78,7 +78,7 @@ public class ProfileManager : IManager
         if (!HasDefault())
         {
             // get default layout
-            Layout defaultLayout = IDevice.GetCurrent().DefaultLayout.Clone() as Layout;
+            Layout defaultLayout = (Layout)IDevice.GetCurrent().DefaultLayout.Clone();
 
             Profile defaultProfile = new()
             {
@@ -116,7 +116,11 @@ public class ProfileManager : IManager
         }
 
         if (ControllerManager.IsInitialized)
-            ControllerManager_ControllerPlugged(ControllerManager.GetTarget(), false);
+        {
+            IController? target = ControllerManager.GetTarget();
+            if (target is not null)
+                ControllerManager_ControllerPlugged(target, false);
+        }
 
         base.Start();
     }
@@ -181,7 +185,7 @@ public class ProfileManager : IManager
         if (string.IsNullOrEmpty(path))
             return GetDefault();
 
-        Profile profile = null;
+        Profile? profile = null;
 
         // Get favorite sub-profile (unless asking for parent)
         if (!getParent)
@@ -208,7 +212,7 @@ public class ProfileManager : IManager
 
     public Profile GetProfileFromGuid(Guid Guid, bool ignoreStatus = true, bool isSubProfile = false)
     {
-        Profile profile = null;
+        Profile? profile = null;
 
         // get profile from Guid
         profile = profiles.Values.FirstOrDefault(pr => pr.Guid == Guid);
@@ -346,7 +350,7 @@ public class ProfileManager : IManager
 
     private void PowerProfileManager_Deleted(PowerProfile powerProfile)
     {
-        Profile profileToApply = null;
+        Profile? profileToApply = null;
 
         // update main profiles
         foreach (Profile profile in profiles.Values)
@@ -359,7 +363,7 @@ public class ProfileManager : IManager
 
                 lock (profileLock)
                 {
-                    if (currentProfile.Path.Equals(profile.Path, StringComparison.InvariantCultureIgnoreCase))
+                    if (currentProfile?.Path.Equals(profile.Path, StringComparison.InvariantCultureIgnoreCase) == true)
                         profileToApply = profile;
                 }
             }
@@ -401,13 +405,17 @@ public class ProfileManager : IManager
         try
         {
             Profile profile = GetProfileFromPath(processEx.Path, true);
+            var process = processEx.Process;
+            if (process is null)
+                return;
+
             if (profile.Default)
                 return;
 
             // update vars
-            if (profile.LastUsed != processEx.Process.StartTime || !string.Equals(profile.Path, processEx.Path, StringComparison.OrdinalIgnoreCase))
+            if (profile.LastUsed != process.StartTime || !string.Equals(profile.Path, processEx.Path, StringComparison.OrdinalIgnoreCase))
             {
-                profile.LastUsed = processEx.Process.StartTime;
+                profile.LastUsed = process.StartTime;
                 profile.Path = processEx.Path;
 
                 // update profile
@@ -444,10 +452,14 @@ public class ProfileManager : IManager
 
             if (!profile.Default)
             {
+                var process = processEx.Process;
+                if (process is null)
+                    return;
+
                 // update vars
-                if (profile.LastUsed != processEx.Process.StartTime || !string.Equals(profile.Path, processEx.Path, StringComparison.OrdinalIgnoreCase))
+                if (profile.LastUsed != process.StartTime || !string.Equals(profile.Path, processEx.Path, StringComparison.OrdinalIgnoreCase))
                 {
-                    profile.LastUsed = processEx.Process.StartTime;
+                    profile.LastUsed = process.StartTime;
                     profile.Path = processEx.Path;
 
                     // update profile
@@ -481,15 +493,16 @@ public class ProfileManager : IManager
 
     private void ProfileDeleted(object sender, FileSystemEventArgs e)
     {
-        if (pendingDeletion.Contains(e.FullPath))
-        {
-            pendingDeletion.Remove(e.FullPath);
+        if (pendingDeletion.Remove(e.FullPath))
             return;
-        }
 
-        // not ideal
-        string ProfileName = e.Name.Replace(".json", "");
-        Profile? profile = profiles.Values.FirstOrDefault(p => p.Name.Equals(ProfileName, StringComparison.InvariantCultureIgnoreCase));
+        string deletedFileName = Path.GetFileName(e.FullPath);
+        if (string.IsNullOrEmpty(deletedFileName))
+            return;
+
+        Profile? profile = profiles.Values.FirstOrDefault(p =>
+            (!string.IsNullOrEmpty(p.FileName) && p.FileName.Equals(deletedFileName, StringComparison.InvariantCultureIgnoreCase))
+            || p.GetFileName().Equals(deletedFileName, StringComparison.InvariantCultureIgnoreCase));
 
         // couldn't find a matching profile
         if (profile is null)
@@ -542,9 +555,18 @@ public class ProfileManager : IManager
         return profiles.Values.Where(pr => pr.IsSubProfile).ToList();
     }
 
+    public void RemoveCollectionFromProfiles(Guid collectionId)
+    {
+        foreach (Profile profile in GetProfiles())
+        {
+            if (profile.Collections.Remove(collectionId))
+                SerializeProfile(profile);
+        }
+    }
+
     private void ProcessProfile(string fileName, bool imported = false)
     {
-        Profile profile;
+        Profile? profile;
         UpdateSource updateSource = UpdateSource.Serializer;
 
         try
@@ -573,19 +595,19 @@ public class ProfileManager : IManager
             else if (version <= Version.Parse("0.22.1.5"))
             {
                 // Navigate to the Layout object.
-                JObject layout = jObject["Layout"] as JObject;
+                JObject? layout = jObject["Layout"] as JObject;
                 if (layout != null)
                 {
                     // Navigate to the AxisLayout section.
-                    JObject axisLayout = layout["AxisLayout"] as JObject;
-                    if (axisLayout != null)
+                    JObject? axisLayout = layout["AxisLayout"] as JObject;
+                    if (axisLayout != null && axisLayout.HasValues && axisLayout["$type"] is JToken token)
                     {
                         // Replace the overall "$type" if it matches the old type.
                         string oldAxisLayoutType = "System.Collections.Generic.SortedDictionary`2[[HandheldCompanion.Inputs.AxisLayoutFlags, HandheldCompanion],[HandheldCompanion.Actions.IActions, HandheldCompanion]], System.Collections";
                         string newAxisLayoutType = "System.Collections.Generic.SortedDictionary`2[[HandheldCompanion.Inputs.AxisLayoutFlags, HandheldCompanion],[System.Collections.Generic.List`1[[HandheldCompanion.Actions.IActions, HandheldCompanion]], System.Private.CoreLib]], System.Collections";
-                        if (axisLayout["$type"] != null && axisLayout["$type"].Type == JTokenType.String)
+                        if (axisLayout["$type"] != null && token.Type == JTokenType.String)
                         {
-                            string currentType = axisLayout["$type"].ToString();
+                            string currentType = token.ToString();
                             if (currentType == oldAxisLayoutType)
                             {
                                 axisLayout["$type"] = newAxisLayoutType;
@@ -646,6 +668,8 @@ public class ProfileManager : IManager
 
             // parse profile
             profile = JsonConvert.DeserializeObject<Profile>(outputraw, new JsonSerializerSettings { TypeNameHandling = TypeNameHandling.All });
+            if (profile is null)
+                return;
 
             // store fileName
             profile.FileName = Path.GetFileName(fileName);
@@ -654,7 +678,7 @@ public class ProfileManager : IManager
             if (version <= Version.Parse("0.21.5.4"))
             {
                 // Access the PowerProfile value
-                string oldPowerProfile = jObject["PowerProfile"]?.ToString();
+                string? oldPowerProfile = jObject["PowerProfile"]?.ToString();
                 if (!string.IsNullOrEmpty(oldPowerProfile))
                 {
                     for (int idx = 0; idx < 2; idx++)
@@ -807,7 +831,7 @@ public class ProfileManager : IManager
             if (profile.XInputPlus == XInputPlusMethod.Redirection)
                 XInputPlus.UnregisterApplication(profile);
 
-            _ = profiles.TryRemove(profile.Guid, out Profile removedValue);
+            profiles.TryRemove(profile.Guid, out Profile? removedValue);
 
             // warn owner
             bool isCurrent = false;
@@ -928,13 +952,20 @@ public class ProfileManager : IManager
                 if (!ManagerFactory.powerProfileManager.Contains(powerProfile))
                     profileToSanitize.PowerProfiles[idx] = Guid.Empty;
         }
+
+        // remove stale collection IDs (skip FavoritesId — it is a built-in sentinel, not a CollectionManager entry)
+        if (ManagerFactory.collectionManager.Status == ManagerStatus.Initialized)
+        {
+            HashSet<Guid> knownIds = ManagerFactory.collectionManager.GetCollections().Select(c => c.Id).ToHashSet();
+            profileToSanitize.Collections.RemoveWhere(id => id != GameCollection.FavoritesId && !knownIds.Contains(id));
+        }
     }
 
     public bool IsCurrentProfile(Profile profile)
     {
         lock (profileLock)
         {
-            return currentProfile != null
+            return currentProfile is not null
                 && profile.Path.Equals(currentProfile.Path, StringComparison.InvariantCultureIgnoreCase);
         }
     }
@@ -987,7 +1018,7 @@ public class ProfileManager : IManager
 
         // used to get and store a few previous values
         XInputPlusMethod prevWrapper = XInputPlusMethod.Disabled;
-        if (!profile.IsSubProfile && profiles.TryGetValue(profile.Guid, out Profile prevProfile))
+        if (!profile.IsSubProfile && profiles.TryGetValue(profile.Guid, out Profile? prevProfile))
         {
             prevWrapper = prevProfile.XInputPlus;
         }
@@ -1085,16 +1116,16 @@ public class ProfileManager : IManager
 
     #region events
 
-    public event DeletedEventHandler Deleted;
+    public event DeletedEventHandler? Deleted;
     public delegate void DeletedEventHandler(Profile profile);
 
-    public event UpdatedEventHandler Updated;
+    public event UpdatedEventHandler? Updated;
     public delegate void UpdatedEventHandler(Profile profile, UpdateSource source, bool isCurrent);
 
-    public event AppliedEventHandler Applied;
+    public event AppliedEventHandler? Applied;
     public delegate void AppliedEventHandler(Profile profile, UpdateSource source);
 
-    public event DiscardedEventHandler Discarded;
+    public event DiscardedEventHandler? Discarded;
     public delegate void DiscardedEventHandler(Profile profile, bool swapped, Profile nextProfile);
 
     #endregion

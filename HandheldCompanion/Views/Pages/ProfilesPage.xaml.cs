@@ -19,10 +19,10 @@ namespace HandheldCompanion.Views.Pages;
 /// </summary>
 public partial class ProfilesPage : Page
 {
-    private static ProfilesPage instance;
+    private static ProfilesPage? instance;
 
     // Legacy property for backward compatibility - delegates to ViewModel
-    public static Profile selectedProfile => instance?.viewModel?.SelectedProfile;
+    public static Profile? selectedProfile => instance?.viewModel?.SelectedProfile;
 
     private readonly SettingsMode0 page0 = new("SettingsMode0");
     private readonly SettingsMode1 page1 = new("SettingsMode1");
@@ -60,6 +60,9 @@ public partial class ProfilesPage : Page
         };
         viewModel.RequestOpenPowerProfile += (s, powerProfile) =>
         {
+            if (MainWindow.performancePage is null)
+                return;
+
             MainWindow.performancePage.SelectionChanged(powerProfile);
             MainWindow.GetCurrent().NavigateToPage("PerformancePage");
         };
@@ -112,15 +115,17 @@ public partial class ProfilesPage : Page
     }
 
     // Navigation and dialog events that cannot be bound
-    public async void b_CreateProfile_Click(object sender, RoutedEventArgs e)
+    public async void b_CreateProfile_Click(object? sender, RoutedEventArgs? e)
     {
         try
         {
-            string path = string.Empty;
+            string? path = string.Empty;
             string arguments = string.Empty;
             string name = string.Empty;
 
             FileUtils.CommonFileDialog(out path, out arguments, out name);
+            if (string.IsNullOrEmpty(path))
+                return;
 
             Profile profile = new Profile(path);
             profile.Arguments = arguments;
@@ -170,12 +175,12 @@ public partial class ProfilesPage : Page
         }
     }
 
-    public void b_AdditionalSettings_Click(object sender, RoutedEventArgs e)
+    public void b_AdditionalSettings_Click(object? sender, RoutedEventArgs? e)
     {
         if (viewModel.SelectedProfile is null)
             return;
 
-        if (!viewModel.SelectedProfile.Layout.GyroLayout.TryGetValue(AxisLayoutFlags.Gyroscope, out IActions currentAction))
+        if (!viewModel.SelectedProfile.Layout.GyroLayout.TryGetValue(AxisLayoutFlags.Gyroscope, out IActions? currentAction))
             return;
 
         switch (((GyroActions)currentAction).MotionInput)
@@ -196,7 +201,7 @@ public partial class ProfilesPage : Page
         viewModel.PowerProfile_Selected(powerProfile, AC);
     }
 
-    public async void b_DeleteProfile_Click(object sender, RoutedEventArgs e)
+    public async void b_DeleteProfile_Click(object? sender, RoutedEventArgs? e)
     {
         if (viewModel.SelectedProfile is null)
             return;
@@ -219,7 +224,7 @@ public partial class ProfilesPage : Page
         }
     }
 
-    public void ControllerSettingsButton_Click(object sender, RoutedEventArgs e)
+    public void ControllerSettingsButton_Click(object? sender, RoutedEventArgs? e)
     {
         if (viewModel.SelectedProfile is null)
             return;
@@ -237,7 +242,7 @@ public partial class ProfilesPage : Page
         MainWindow.NavView_Navigate(MainWindow.layoutPage);
     }
 
-    public void b_SubProfileCreate_Click(object sender, RoutedEventArgs e)
+    public void b_SubProfileCreate_Click(object? sender, RoutedEventArgs? e)
     {
         if (viewModel.SelectedMainProfile is null)
             return;
@@ -251,7 +256,7 @@ public partial class ProfilesPage : Page
         ManagerFactory.profileManager.UpdateOrCreateProfile(newSubProfile, UpdateSource.Creation);
     }
 
-    public async void b_SubProfileDelete_Click(object sender, RoutedEventArgs e)
+    public async void b_SubProfileDelete_Click(object? sender, RoutedEventArgs? e)
     {
         // Use ViewModel instead of direct control access
         if (viewModel.SelectedProfile == null || !viewModel.SelectedProfile.IsSubProfile)
@@ -277,7 +282,7 @@ public partial class ProfilesPage : Page
         }
     }
 
-    public async void b_SubProfileRename_Click(object sender, RoutedEventArgs e)
+    public async void b_SubProfileRename_Click(object? sender, RoutedEventArgs? e)
     {
         SubProfileNameTextBox.Text = viewModel.SelectedProfile?.Name ?? "";
         try { await SubProfileRenameDialog.ShowAsync(); } catch { }
@@ -311,7 +316,7 @@ public partial class ProfilesPage : Page
         viewModel.SubmitProfile();
     }
 
-    public async void b_ProfileRename_Click(object sender, RoutedEventArgs e)
+    public async void b_ProfileRename_Click(object? sender, RoutedEventArgs? e)
     {
         ProfileNameTextBox.Text = viewModel.SelectedMainProfile?.Name ?? "";
         try { await ProfileRenameDialog.ShowAsync(); } catch { }

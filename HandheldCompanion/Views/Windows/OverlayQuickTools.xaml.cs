@@ -80,16 +80,16 @@ public partial class OverlayQuickTools : GamepadWindow
 
     private readonly DispatcherTimer clockUpdateTimer;
 
-    public QuickHomePage homePage;
-    public QuickDevicePage devicePage;
-    public QuickPerformancePage performancePage;
-    public QuickProfilesPage profilesPage;
-    public QuickOverlayPage overlayPage;
-    public QuickApplicationsPage applicationsPage;
-    public QuickKeyboardPage keyboardPage;
+    public QuickHomePage homePage = null!;
+    public QuickDevicePage devicePage = null!;
+    public QuickPerformancePage performancePage = null!;
+    public QuickProfilesPage profilesPage = null!;
+    public QuickOverlayPage overlayPage = null!;
+    public QuickApplicationsPage applicationsPage = null!;
+    public QuickKeyboardPage keyboardPage = null!;
 
-    private static OverlayQuickTools CurrentWindow;
-    public string prevNavItemTag;
+    private static OverlayQuickTools CurrentWindow = null!;
+    public string prevNavItemTag = string.Empty;
 
     public OverlayQuickTools()
     {
@@ -132,8 +132,8 @@ public partial class OverlayQuickTools : GamepadWindow
         }
 
         // raise events
-        if (ControllerManager.HasTargetController)
-            ControllerManager_ControllerSelected(ControllerManager.GetTarget());
+        if (ControllerManager.HasTargetController && ControllerManager.GetTarget() is IController controller)
+            ControllerManager_ControllerSelected(controller);
 
         // load gamepad navigation manager
         gamepadFocusManager = new(this, ContentFrame);
@@ -177,12 +177,16 @@ public partial class OverlayQuickTools : GamepadWindow
         homePage = new("quickhome");
         devicePage = new("quickdevice");
         profilesPage = new("quickprofiles");
+        overlayPage = new QuickOverlayPage();
+        performancePage = new QuickPerformancePage();
         applicationsPage = new("quickapplications");
         keyboardPage = new("quickkeyboard");
 
         _pages.Add("QuickHomePage", homePage);
         _pages.Add("QuickDevicePage", devicePage);
         _pages.Add("QuickProfilesPage", profilesPage);
+        _pages.Add("QuickOverlayPage", overlayPage);
+        _pages.Add("QuickPerformancePage", performancePage);
         _pages.Add("QuickApplicationsPage", applicationsPage);
         _pages.Add("QuickKeyboardPage", keyboardPage);
     }
@@ -199,21 +203,12 @@ public partial class OverlayQuickTools : GamepadWindow
         Top = _targetTop;   // otherwise start at the resting Y
     }
 
-    public void LoadPages_MVVM()
-    {
-        overlayPage = new QuickOverlayPage();
-        performancePage = new QuickPerformancePage();
-
-        _pages.Add("QuickOverlayPage", overlayPage);
-        _pages.Add("QuickPerformancePage", performancePage);
-    }
-
     public static OverlayQuickTools GetCurrent()
     {
-        return CurrentWindow;
+        return CurrentWindow!;
     }
 
-    private void SettingsManager_SettingValueChanged(string name, object value, bool temporary)
+    private void SettingsManager_SettingValueChanged(string name, object? value, bool temporary)
     {
         // UI thread
         UIHelper.TryInvoke(() =>
@@ -264,7 +259,7 @@ public partial class OverlayQuickTools : GamepadWindow
         string DeviceName = ManagerFactory.settingsManager.GetString("QuickToolsDeviceName");
 
         // Use a thread-safe enumeration to find the screen with the specified friendly name
-        DesktopScreen friendlyScreen = null;
+        DesktopScreen? friendlyScreen = null;
         foreach (KeyValuePair<string, DesktopScreen> screen in ManagerFactory.multimediaManager.AllScreens)
         {
             if (screen.Value.DevicePath.Equals(DevicePath) || screen.Value.FriendlyName.Equals(DeviceName))
@@ -631,7 +626,8 @@ public partial class OverlayQuickTools : GamepadWindow
             .FirstOrDefault(item => item.Tag?.ToString() == navItemTag);
 
         // Give gamepad focus
-        gamepadFocusManager.Focus((NavigationViewItem)navView.SelectedItem);
+        NavigationViewItem? selectedItem = navView.SelectedItem as NavigationViewItem;
+        gamepadFocusManager.Focus(selectedItem);
 
         // Debounce: update visual selection immediately, defer actual page load
         _pendingNavTag = navItemTag;

@@ -1,5 +1,4 @@
 ﻿using HandheldCompanion.Controllers;
-using HandheldCompanion.Extensions;
 using HandheldCompanion.Inputs;
 using HandheldCompanion.Managers;
 using HandheldCompanion.Views;
@@ -57,8 +56,8 @@ namespace HandheldCompanion.ViewModels
             ControllerManager.ControllerSelected += UpdateController;
 
             // send events
-            if (ControllerManager.HasTargetController)
-                UpdateController(ControllerManager.GetTarget());
+            if (ControllerManager.GetTarget() is IController controller)
+                UpdateController(controller);
         }
 
         private void TriggerMappings_CollectionChanged(object? sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)

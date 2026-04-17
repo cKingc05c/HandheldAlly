@@ -65,10 +65,12 @@ public class IMUGyrometer : IMUSensor
         switch (sensorFamily)
         {
             case SensorFamily.Windows:
-                ((Gyrometer)sensor).ReadingChanged += ReadingChanged;
+                if (sensor is not null)
+                    ((Gyrometer)sensor).ReadingChanged += ReadingChanged;
                 break;
             case SensorFamily.SerialUSBIMU:
-                ((SerialUSBIMU)sensor).ReadingChanged += ReadingChanged;
+                if (sensor is not null)
+                    ((SerialUSBIMU)sensor).ReadingChanged += ReadingChanged;
                 break;
         }
     }
@@ -81,10 +83,12 @@ public class IMUGyrometer : IMUSensor
         switch (sensorFamily)
         {
             case SensorFamily.Windows:
-                ((Gyrometer)sensor).ReadingChanged -= ReadingChanged;
+                if (sensor is not null)
+                    ((Gyrometer)sensor).ReadingChanged -= ReadingChanged;
                 break;
             case SensorFamily.SerialUSBIMU:
-                ((SerialUSBIMU)sensor).ReadingChanged -= ReadingChanged;
+                if (sensor is not null)
+                    ((SerialUSBIMU)sensor).ReadingChanged -= ReadingChanged;
                 break;
         }
 
@@ -137,7 +141,7 @@ public class IMUGyrometer : IMUSensor
         base.ReadingChanged();
     }
 
-    public new SensorReading GetCurrentReading()
+    public SensorReading GetCurrentReading()
     {
         return this.reading;
     }

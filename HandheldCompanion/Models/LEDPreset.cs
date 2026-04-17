@@ -11,7 +11,7 @@ public class LEDPreset(string keyName, string icon, int value)
 
     public string DisplayName
     {
-        get => Resources.ResourceManager.GetString(NameKey);
+        get => Resources.ResourceManager.GetString(NameKey) ?? NameKey;
     }
 
     public Uri IconPath

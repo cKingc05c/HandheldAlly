@@ -109,7 +109,7 @@ namespace HandheldCompanion.Devices
                 await WaitUntilReady();
 
             // listen for events
-            if (hidDevices.TryGetValue(INPUT_HID_ID, out HidDevice device))
+            if (hidDevices.TryGetValue(INPUT_HID_ID, out HidDevice? device))
             {
                 device.MonitorDeviceEvents = true;
                 device.Removed += Device_Removed;
@@ -173,7 +173,7 @@ namespace HandheldCompanion.Devices
 #if USE_SAPIENTIAUSB
             SetTouchPadStatus(enabled ? 0 : 1);
 #else
-            if (hidDevices.TryGetValue(INPUT_HID_ID, out HidDevice device))
+            if (hidDevices.TryGetValue(INPUT_HID_ID, out HidDevice? device))
             {
                 device.Write([0x05, 0x06, 0x6B, 0x02, 0x04, (enabled ? (byte)0x01 : (byte)0x00), 0x01]);
             }
@@ -183,7 +183,7 @@ namespace HandheldCompanion.Devices
 
         public override void SetControllerSwap(bool enabled)
         {
-            if (hidDevices.TryGetValue(INPUT_HID_ID, out HidDevice device))
+            if (hidDevices.TryGetValue(INPUT_HID_ID, out HidDevice? device))
                 device.Write([0x05, 0x06, 0x69, 0x04, 0x01, (byte)(enabled ? 0x02 : 0x01), 0x01]);
 
             base.SetControllerSwap(enabled);
@@ -209,7 +209,7 @@ namespace HandheldCompanion.Devices
             SetLightingEffectProfileID(LeftJoyconIndex, lightProfileL);
             SetLightingEffectProfileID(RightJoyconIndex, lightProfileR);
 #else
-            if (hidDevices.TryGetValue(INPUT_HID_ID, out HidDevice device))
+            if (hidDevices.TryGetValue(INPUT_HID_ID, out HidDevice? device))
             {
                 // write RGB
                 foreach (byte[] cmd in RgbMultiLoadSettings((RgbMode)lightProfileL.effect, 0x03, (byte)lightProfileL.r, (byte)lightProfileL.g, (byte)lightProfileL.b, lightProfileL.brightness, lightProfileL.speed, false))
@@ -224,7 +224,7 @@ namespace HandheldCompanion.Devices
 #if USE_SAPIENTIAUSB
             SetLightingEnable(0, status);
 #else
-            if (hidDevices.TryGetValue(INPUT_HID_ID, out HidDevice device))
+            if (hidDevices.TryGetValue(INPUT_HID_ID, out HidDevice? device))
             {
                 // write RGB
                 foreach (byte[] cmd in RgbMultiEnable(status))
@@ -278,7 +278,7 @@ namespace HandheldCompanion.Devices
             SetLightingEffectProfileID(LeftJoyconIndex, lightProfileL);
             SetLightingEffectProfileID(RightJoyconIndex, lightProfileR);
 #else
-            if (hidDevices.TryGetValue(INPUT_HID_ID, out HidDevice device))
+            if (hidDevices.TryGetValue(INPUT_HID_ID, out HidDevice? device))
             {
                 // write RGB
                 foreach (byte[] cmd in RgbMultiLoadSettings((RgbMode)lightProfileL.effect, 0x03, (byte)lightProfileL.r, (byte)lightProfileL.g, (byte)lightProfileL.b, lightProfileL.brightness, lightProfileL.speed, false))

@@ -9,7 +9,7 @@ namespace HandheldCompanion.Libraries
     [Serializable]
     public class IGDBEntry : LibraryEntry
     {
-        public string Storyline;
+        public string Storyline = string.Empty;
 
         public Cover? Cover;
         public Artwork? Artwork;
@@ -21,8 +21,8 @@ namespace HandheldCompanion.Libraries
 
         public override long GetCoverId()
         {
-            if (Cover != null)
-                return Cover.Id.Value;
+            if (Cover?.Id is long coverId)
+                return coverId;
             return 0;
         }
 
@@ -36,8 +36,8 @@ namespace HandheldCompanion.Libraries
 
         public override long GetArtworkId()
         {
-            if (Artwork != null)
-                return Artwork.Id.Value;
+            if (Artwork?.Id is long artworkId)
+                return artworkId;
             return 0;
         }
 

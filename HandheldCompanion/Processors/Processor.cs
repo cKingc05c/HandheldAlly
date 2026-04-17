@@ -17,7 +17,7 @@ public enum PowerType
 
 public class Processor
 {
-    private static Processor processor;
+    private static Processor? processor;
     private static string Manufacturer;
 
     protected readonly Timer updateTimer = new() { Interval = 3000, AutoReset = true };

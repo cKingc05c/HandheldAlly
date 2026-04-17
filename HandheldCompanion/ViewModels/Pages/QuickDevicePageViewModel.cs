@@ -19,9 +19,9 @@ namespace HandheldCompanion.ViewModels
 {
     public class QuickDevicePageViewModel : BaseViewModel
     {
-        private QuickDevicePage quickDevicePage;
-        private IReadOnlyList<Radio> radios;
-        private DispatcherTimer radioTimer;
+        private QuickDevicePage? quickDevicePage;
+        private IReadOnlyList<Radio>? radios;
+        private DispatcherTimer? radioTimer;
 
         // Flag to prevent circular updates when loading display settings into UI controls
         private bool isLoadingDisplay = false;
@@ -224,7 +224,7 @@ namespace HandheldCompanion.ViewModels
             set { if (value != _ResolutionOverrideStackVisibility) { _ResolutionOverrideStackVisibility = value; OnPropertyChanged(nameof(ResolutionOverrideStackVisibility)); } }
         }
 
-        private ScreenResolution _SelectedResolution;
+        private ScreenResolution _SelectedResolution = null!;
         public ScreenResolution SelectedResolution
         {
             get => _SelectedResolution;
@@ -244,7 +244,7 @@ namespace HandheldCompanion.ViewModels
             }
         }
 
-        private ScreenFrequencyViewModel _SelectedFrequency;
+        private ScreenFrequencyViewModel _SelectedFrequency = null!;
         public ScreenFrequencyViewModel SelectedFrequency
         {
             get => _SelectedFrequency;
@@ -264,7 +264,7 @@ namespace HandheldCompanion.ViewModels
         }
 
         // Event for requesting dialog from View
-        public event EventHandler<TaskCompletionSource<bool>> RequestAYANEOFlipScreenConfirmation;
+        public event EventHandler<TaskCompletionSource<bool>>? RequestAYANEOFlipScreenConfirmation;
 
         public QuickDevicePageViewModel(QuickDevicePage quickDevicePage)
         {
@@ -419,8 +419,7 @@ namespace HandheldCompanion.ViewModels
             if (ManagerFactory.multimediaManager.PrimaryDesktop is not null)
             {
                 MultimediaManager_PrimaryScreenChanged(ManagerFactory.multimediaManager.PrimaryDesktop);
-                MultimediaManager_DisplaySettingsChanged(ManagerFactory.multimediaManager.PrimaryDesktop,
-                    ManagerFactory.multimediaManager.PrimaryDesktop.GetResolution());
+                MultimediaManager_DisplaySettingsChanged(ManagerFactory.multimediaManager.PrimaryDesktop, ManagerFactory.multimediaManager.PrimaryDesktop.GetResolution());
             }
         }
 
@@ -447,7 +446,7 @@ namespace HandheldCompanion.ViewModels
             }
         }
 
-        private void MultimediaManager_DisplaySettingsChanged(DesktopScreen desktopScreen, ScreenResolution resolution)
+        private void MultimediaManager_DisplaySettingsChanged(DesktopScreen desktopScreen, ScreenResolution? resolution)
         {
             isLoadingDisplay = true;
             try
@@ -460,7 +459,7 @@ namespace HandheldCompanion.ViewModels
                     return;
                 }
 
-                if (resolution != SelectedResolution)
+                if (resolution is not null && resolution != SelectedResolution)
                 {
                     SelectedResolution = resolution;
                     UpdateFrequenciesForResolution(resolution);
@@ -515,7 +514,7 @@ namespace HandheldCompanion.ViewModels
             // Go to profile integer scaling resolution
             if (profile.IntegerScalingEnabled)
             {
-                DesktopScreen desktopScreen = ManagerFactory.multimediaManager.PrimaryDesktop;
+                DesktopScreen? desktopScreen = ManagerFactory.multimediaManager.PrimaryDesktop;
                 if (desktopScreen == null)
                     return;
 
@@ -575,7 +574,7 @@ namespace HandheldCompanion.ViewModels
                 // Restore default resolution by reapplying current selection
                 if (profile.IntegerScalingDivider != 1 && SelectedResolution != null)
                 {
-                    DesktopScreen desktopScreen = ManagerFactory.multimediaManager.PrimaryDesktop;
+                    DesktopScreen? desktopScreen = ManagerFactory.multimediaManager.PrimaryDesktop;
                     if (desktopScreen != null)
                         SetResolution(desktopScreen.GetResolution());
                 }
@@ -595,7 +594,7 @@ namespace HandheldCompanion.ViewModels
             }
         }
 
-        private void SettingsManager_SettingValueChanged(string? name, object value, bool temporary)
+        private void SettingsManager_SettingValueChanged(string? name, object? value, bool temporary)
         {
             isLoadingDisplay = true;
             try
@@ -667,7 +666,7 @@ namespace HandheldCompanion.ViewModels
 
             int frequency = SelectedFrequency.Frequency;
 
-            DesktopScreen desktopScreen = ManagerFactory.multimediaManager.PrimaryDesktop;
+            DesktopScreen? desktopScreen = ManagerFactory.multimediaManager.PrimaryDesktop;
             if (desktopScreen == null)
                 return;
 
@@ -689,10 +688,10 @@ namespace HandheldCompanion.ViewModels
             catch { }
         }
 
-        public void SetResolution(ScreenResolution resolution)
+        public void SetResolution(ScreenResolution? resolution)
         {
-            DesktopScreen desktopScreen = ManagerFactory.multimediaManager.PrimaryDesktop;
-            if (desktopScreen == null)
+            DesktopScreen? desktopScreen = ManagerFactory.multimediaManager.PrimaryDesktop;
+            if (desktopScreen == null || resolution == null)
                 return;
 
             try
@@ -754,6 +753,7 @@ namespace HandheldCompanion.ViewModels
                 radioTimer = null;
             }
 
+            radios = null;
             quickDevicePage = null;
 
             Dispose();

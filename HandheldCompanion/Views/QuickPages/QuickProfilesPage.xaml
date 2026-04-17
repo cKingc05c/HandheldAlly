@@ -109,8 +109,11 @@
         <ikw:SimpleStackPanel Name="GridProfile" Spacing="8">
 
             <!--  Battery Power Settings  -->
-            <TextBlock Style="{StaticResource BaseTextBlockStyle}" Text="{l:Static resx:Resources.ProfilesPage_PowerSettings}" />
-            <ikw:SimpleStackPanel Spacing="3">
+            <TextBlock
+                Style="{StaticResource BaseTextBlockStyle}"
+                Text="{l:Static resx:Resources.ProfilesPage_PowerSettings}"
+                Visibility="{Binding PerformanceManagerEnabled, Mode=OneWay, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource BooleanToVisibilityConverter}}" />
+            <ikw:SimpleStackPanel Spacing="3" Visibility="{Binding PerformanceManagerEnabled, Mode=OneWay, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource BooleanToVisibilityConverter}}">
 
                 <ui:SettingsExpander
                     d:IsExpanded="True"
@@ -616,8 +619,11 @@
             </ikw:SimpleStackPanel>
 
             <!--  Graphics settings  -->
-            <TextBlock Style="{StaticResource BaseTextBlockStyle}" Text="{l:Static resx:Resources.ProfilesPage_GraphicsSettings}" />
-            <ikw:SimpleStackPanel Spacing="3">
+            <TextBlock
+                Style="{StaticResource BaseTextBlockStyle}"
+                Text="{l:Static resx:Resources.ProfilesPage_GraphicsSettings}"
+                Visibility="{Binding GPUManagementEnabled, Mode=OneWay, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource BooleanToVisibilityConverter}}" />
+            <ikw:SimpleStackPanel Spacing="3" Visibility="{Binding GPUManagementEnabled, Mode=OneWay, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource BooleanToVisibilityConverter}}">
 
                 <Expander
                     Name="GraphicsSettingsExpander"

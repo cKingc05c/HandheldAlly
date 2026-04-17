@@ -32,7 +32,7 @@ public class TranslationSource : INotifyPropertyChanged
 
     public string this[string key]
     {
-        get { return resManager.GetString(key.Replace("resx:Resources.", ""), currentCulture); }
+        get { return resManager.GetString(key.Replace("resx:Resources.", ""), currentCulture) ?? string.Empty; }
     }
 
     public CultureInfo CurrentCulture

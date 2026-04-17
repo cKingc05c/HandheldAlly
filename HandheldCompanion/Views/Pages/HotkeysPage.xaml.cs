@@ -9,7 +9,7 @@ namespace HandheldCompanion.Views.Pages;
 /// </summary>
 public partial class HotkeysPage : Page
 {
-    public static HotkeySettingsPage hotkeySettingsPage;
+    public static HotkeySettingsPage hotkeySettingsPage = null!;
 
     public HotkeysPage()
     {

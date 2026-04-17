@@ -46,19 +46,19 @@ namespace HandheldCompanion.Views.Classes
             }
         }
 
-        public ContentDialog currentDialog;
+        public ContentDialog? currentDialog;
         private ContentDialog contentDialog => ContentDialog.GetOpenDialog(this);
 
-        protected UIGamepad gamepadFocusManager;
+        protected UIGamepad gamepadFocusManager = null!;
 
-        public HwndSource hwndSource;
+        public HwndSource hwndSource = null!;
 
         public bool HasForeground() => this is OverlayQuickTools || (WinAPI.GetForegroundWindow() == this.hwndSource.Handle);
         public bool IsPrimary => GetScreen().Primary;
         public bool IsIconic => ProcessUtils.IsIconic(this.hwndSource.Handle);
 
-        private AdornerLayer _adornerLayer;
-        private HighlightAdorner _highlightAdorner;
+        private AdornerLayer? _adornerLayer;
+        private HighlightAdorner? _highlightAdorner;
 
         protected const int WM_DISPLAYCHANGE = 0x007E;
         protected const int WM_DPICHANGED = 0x02E0;
@@ -210,7 +210,7 @@ namespace HandheldCompanion.Views.Classes
             });
         }
 
-        private Control focusedControl;
+        private Control focusedControl = null!;
         public Control GetFocusedElement()
         {
             return focusedControl;
@@ -264,16 +264,16 @@ namespace HandheldCompanion.Views.Classes
         }
 
         #region events
-        public event GotGamepadWindowFocusEventHandler GotGamepadWindowFocus;
+        public event GotGamepadWindowFocusEventHandler? GotGamepadWindowFocus;
         public delegate void GotGamepadWindowFocusEventHandler(object sender);
 
-        public event LostGamepadWindowFocusEventHandler LostGamepadWindowFocus;
+        public event LostGamepadWindowFocusEventHandler? LostGamepadWindowFocus;
         public delegate void LostGamepadWindowFocusEventHandler(object sender);
 
-        public event ContentDialogOpenedEventHandler ContentDialogOpened;
+        public event ContentDialogOpenedEventHandler? ContentDialogOpened;
         public delegate void ContentDialogOpenedEventHandler(ContentDialog contentDialog);
 
-        public event ContentDialogClosedEventHandler ContentDialogClosed;
+        public event ContentDialogClosedEventHandler? ContentDialogClosed;
         public delegate void ContentDialogClosedEventHandler(ContentDialog contentDialog);
         #endregion
     }

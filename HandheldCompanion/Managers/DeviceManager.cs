@@ -148,10 +148,11 @@ public class DeviceManager : IManager
         var deviceIndex = 0;
         var devices = new Dictionary<string, DateTimeOffset>();
 
-        while (Devcon.FindByInterfaceGuid(DeviceInterfaceIds.XUsbDevice, out var path, out var _, deviceIndex++))
+        while (Devcon.FindByInterfaceGuid(DeviceInterfaceIds.XUsbDevice, out string? path, out string _, deviceIndex++))
         {
-            var device = PnPDevice.GetDeviceByInterfaceId(path);
-            devices[path] = device.GetProperty<DateTimeOffset>(DevicePropertyKey.Device_LastArrivalDate);
+            PnPDevice? device = PnPDevice.GetDeviceByInterfaceId(path);
+            if (device is not null)
+                devices[path] = device.GetProperty<DateTimeOffset>(DevicePropertyKey.Device_LastArrivalDate);
         }
 
         foreach (var (path, _) in devices.OrderBy(d => d.Value))
@@ -160,13 +161,13 @@ public class DeviceManager : IManager
             XUsbDevice_DeviceArrived(args); // posts a Task into arrivalInProgress
 
             var instanceId = SymLinkToInstanceId(args.SymLink, args.InterfaceGuid.ToString());
-            Task t;
+            Task? t = null;
             // wait briefly until the arrival task is visible
             var until = DateTime.UtcNow.AddMilliseconds(500);
             while (!arrivalInProgress.TryGetValue(instanceId, out t) && DateTime.UtcNow < until)
                 await Task.Delay(10).ConfigureAwait(false);
 
-            if (t != null) tasks.Add(t);
+            if (t is not null) tasks.Add(t);
         }
 
         await Task.WhenAll(tasks).ConfigureAwait(false);
@@ -178,10 +179,11 @@ public class DeviceManager : IManager
         var deviceIndex = 0;
         var devices = new Dictionary<string, DateTimeOffset>();
 
-        while (Devcon.FindByInterfaceGuid(DeviceInterfaceIds.HidDevice, out var path, out var _, deviceIndex++))
+        while (Devcon.FindByInterfaceGuid(DeviceInterfaceIds.HidDevice, out string? path, out string _, deviceIndex++))
         {
-            var device = PnPDevice.GetDeviceByInterfaceId(path);
-            devices[path] = device.GetProperty<DateTimeOffset>(DevicePropertyKey.Device_LastArrivalDate);
+            PnPDevice? device = PnPDevice.GetDeviceByInterfaceId(path);
+            if (device is not null)
+                devices[path] = device.GetProperty<DateTimeOffset>(DevicePropertyKey.Device_LastArrivalDate);
         }
 
         foreach (var (path, _) in devices.OrderBy(d => d.Value))
@@ -190,18 +192,18 @@ public class DeviceManager : IManager
             HidDevice_DeviceArrived(args);
 
             var instanceId = SymLinkToInstanceId(args.SymLink, args.InterfaceGuid.ToString());
-            Task t;
+            Task? t = null;
             var until = DateTime.UtcNow.AddMilliseconds(500);
             while (!hidArrivalInProgress.TryGetValue(instanceId, out t) && DateTime.UtcNow < until)
                 await Task.Delay(10).ConfigureAwait(false);
 
-            if (t != null) tasks.Add(t);
+            if (t is not null) tasks.Add(t);
         }
 
         await Task.WhenAll(tasks).ConfigureAwait(false);
     }
 
-    public PnPDetails FindDevice(string InstanceId)
+    public PnPDetails? FindDevice(string InstanceId)
     {
         if (InstanceId.StartsWith(@"USB\"))
             return FindDeviceFromUSB(InstanceId);
@@ -210,9 +212,9 @@ public class DeviceManager : IManager
         return null;
     }
 
-    public PnPDetails FindDeviceFromUSB(string InstanceId)
+    public PnPDetails? FindDeviceFromUSB(string InstanceId)
     {
-        PnPDetails details = null;
+        PnPDetails? details = null;
         while (details is null)
         {
             details = PnPDevices.Values.FirstOrDefault(device => device.baseContainerDeviceInstanceId.Equals(InstanceId, StringComparison.InvariantCultureIgnoreCase));
@@ -223,8 +225,8 @@ public class DeviceManager : IManager
             // look for parent
             try
             {
-                PnPDevice pnPDevice = PnPDevice.GetDeviceByInstanceId(InstanceId);
-                if (pnPDevice.Parent is null)
+                PnPDevice? pnPDevice = PnPDevice.GetDeviceByInstanceId(InstanceId);
+                if (pnPDevice is null || pnPDevice.Parent is null)
                     break;
 
                 InstanceId = pnPDevice.Parent.InstanceId;
@@ -238,7 +240,7 @@ public class DeviceManager : IManager
         return details;
     }
 
-    public PnPDetails FindDeviceFromHID(string InstanceId)
+    public PnPDetails? FindDeviceFromHID(string InstanceId)
     {
         PnPDevices.TryGetValue(InstanceId, out var device);
         return device;
@@ -407,7 +409,7 @@ public class DeviceManager : IManager
             device.VendorID == VendorId && device.ProductID == ProductId && !device.isHooked).ToList();
     }
 
-    public PnPDetails GetDeviceByInterfaceId(string path)
+    public PnPDetails? GetDeviceByInterfaceId(string path)
     {
         var device = PnPDevice.GetDeviceByInterfaceId(path);
         if (device is null)
@@ -460,7 +462,7 @@ public class DeviceManager : IManager
         var buf = new byte[256];
 
         if (!proc(handle, buf, (uint)buf.Length))
-            return null;
+            return string.Empty;
 
         var str = Encoding.Unicode.GetString(buf, 0, buf.Length);
 
@@ -505,7 +507,7 @@ public class DeviceManager : IManager
             (0x05 == capabilities.UsagePage) || (0x01 == capabilities.UsagePage) && ((0x04 == capabilities.Usage) || (0x05 == capabilities.Usage)));
     }
 
-    public PnPDetails GetPnPDeviceEx(string SymLink)
+    public PnPDetails? GetPnPDeviceEx(string SymLink)
     {
         PnPDevices.TryGetValue(SymLink, out var details);
         return details;
@@ -750,9 +752,16 @@ public class DeviceManager : IManager
     {
         try
         {
-            var symLink = CommonUtils.Between(obj.SymLink, "#", "#") + "&";
-            var VendorID = CommonUtils.Between(symLink, "VID_", "&");
-            var ProductID = CommonUtils.Between(symLink, "PID_", "&");
+            string? symLink = CommonUtils.Between(obj.SymLink, "#", "#");
+            if (string.IsNullOrEmpty(symLink))
+                return;
+
+            symLink += "&";
+            string? VendorID = CommonUtils.Between(symLink, "VID_", "&");
+            string? ProductID = CommonUtils.Between(symLink, "PID_", "&");
+
+            if (string.IsNullOrEmpty(VendorID) || string.IsNullOrEmpty(ProductID))
+                return;
 
             if (SerialUSBIMU.vendors.ContainsKey(new KeyValuePair<string, string>(VendorID, ProductID)))
                 UsbDeviceRemoved?.Invoke(null, obj.InterfaceGuid);
@@ -764,9 +773,16 @@ public class DeviceManager : IManager
     {
         try
         {
-            var symLink = CommonUtils.Between(obj.SymLink, "#", "#") + "&";
-            var VendorID = CommonUtils.Between(symLink, "VID_", "&");
-            var ProductID = CommonUtils.Between(symLink, "PID_", "&");
+            string? symLink = CommonUtils.Between(obj.SymLink, "#", "#");
+            if (string.IsNullOrEmpty(symLink))
+                return;
+
+            symLink += "&";
+            string? VendorID = CommonUtils.Between(symLink, "VID_", "&");
+            string? ProductID = CommonUtils.Between(symLink, "PID_", "&");
+
+            if (string.IsNullOrEmpty(VendorID) || string.IsNullOrEmpty(ProductID))
+                return;
 
             if (SerialUSBIMU.vendors.ContainsKey(new KeyValuePair<string, string>(VendorID, ProductID)))
                 UsbDeviceArrived?.Invoke(null, obj.InterfaceGuid);
@@ -774,7 +790,7 @@ public class DeviceManager : IManager
         catch { }
     }
 
-    public static PnPDetails GetDeviceFromInstanceId(string instanceId)
+    public static PnPDetails? GetDeviceFromInstanceId(string instanceId)
     {
         PnPDetails? details = null;
 
@@ -983,9 +999,9 @@ public class DeviceManager : IManager
         return ranges;
     }
 
-    private bool CM_Get_DevNode_Property(IntPtr devInst, DEVPROPKEY propertyKey, out string result, int flags)
+    private bool CM_Get_DevNode_Property(IntPtr devInst, DEVPROPKEY propertyKey, out string? result, int flags)
     {
-        result = default;
+        result = null;
 
         // int length = 0;
         // int res = CM_Get_DevNode_Property(devInst, ref propertyKey, out var propertyType, null, ref length, flags);
@@ -1160,28 +1176,28 @@ public class DeviceManager : IManager
 
     #region events
 
-    public event XInputDeviceArrivedEventHandler XUsbDeviceArrived;
+    public event XInputDeviceArrivedEventHandler? XUsbDeviceArrived;
     public delegate void XInputDeviceArrivedEventHandler(PnPDetails device, Guid InterfaceGuid);
 
-    public event XInputDeviceRemovedEventHandler XUsbDeviceRemoved;
+    public event XInputDeviceRemovedEventHandler? XUsbDeviceRemoved;
     public delegate void XInputDeviceRemovedEventHandler(PnPDetails device, Guid InterfaceGuid);
 
-    public event GenericDeviceArrivedEventHandler UsbDeviceArrived;
-    public delegate void GenericDeviceArrivedEventHandler(PnPDevice device, Guid InterfaceGuid);
+    public event GenericDeviceArrivedEventHandler? UsbDeviceArrived;
+    public delegate void GenericDeviceArrivedEventHandler(PnPDevice? device, Guid InterfaceGuid);
 
-    public event GenericDeviceRemovedEventHandler UsbDeviceRemoved;
-    public delegate void GenericDeviceRemovedEventHandler(PnPDevice device, Guid InterfaceGuid);
+    public event GenericDeviceRemovedEventHandler? UsbDeviceRemoved;
+    public delegate void GenericDeviceRemovedEventHandler(PnPDevice? device, Guid InterfaceGuid);
 
-    public event DInputDeviceArrivedEventHandler HidDeviceArrived;
+    public event DInputDeviceArrivedEventHandler? HidDeviceArrived;
     public delegate void DInputDeviceArrivedEventHandler(PnPDetails device, Guid InterfaceGuid);
 
-    public event DInputDeviceRemovedEventHandler HidDeviceRemoved;
+    public event DInputDeviceRemovedEventHandler? HidDeviceRemoved;
     public delegate void DInputDeviceRemovedEventHandler(PnPDetails device, Guid InterfaceGuid);
 
-    public event DisplayAdapterArrivedEventHandler DisplayAdapterArrived;
+    public event DisplayAdapterArrivedEventHandler? DisplayAdapterArrived;
     public delegate void DisplayAdapterArrivedEventHandler(AdapterInformation adapterInformation);
 
-    public event DisplayAdapterRemovedEventHandler DisplayAdapterRemoved;
+    public event DisplayAdapterRemovedEventHandler? DisplayAdapterRemoved;
     public delegate void DisplayAdapterRemovedEventHandler(AdapterInformation adapterInformation);
 
     #endregion

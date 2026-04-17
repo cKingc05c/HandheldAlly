@@ -19,7 +19,7 @@ namespace HandheldCompanion.Managers
 {
     public static class UpdateManager
     {
-        public static event UpdatedEventHandler Updated;
+        public static event UpdatedEventHandler? Updated;
         public delegate void UpdatedEventHandler(UpdateStatus status, UpdateFile? update, object? value);
 
         public enum UpdateStatus
@@ -49,7 +49,7 @@ namespace HandheldCompanion.Managers
 
         private static bool IsInitialized;
 
-        public static event InitializedEventHandler Initialized;
+        public static event InitializedEventHandler? Initialized;
         public delegate void InitializedEventHandler();
 
         static UpdateManager()
@@ -131,7 +131,7 @@ namespace HandheldCompanion.Managers
             SettingsManager_SettingValueChanged("UpdateUrl", ManagerFactory.settingsManager.GetString("UpdateUrl"), false);
         }
 
-        private static void SettingsManager_SettingValueChanged(string name, object value, bool temporary)
+        private static void SettingsManager_SettingValueChanged(string name, object? value, bool temporary)
         {
             switch (name)
             {

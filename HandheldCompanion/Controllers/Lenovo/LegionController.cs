@@ -75,7 +75,7 @@ namespace HandheldCompanion.Controllers.Lenovo
         private byte RCONTROLLER_ACCE_IDX = 48;
         private byte RCONTROLLER_GYRO_IDX = 54;
 
-        private controller_hidapi.net.LegionController Controller;
+        private controller_hidapi.net.LegionController? Controller;
         private byte[] data = new byte[64];
 
         #region TouchVariables
@@ -157,7 +157,7 @@ namespace HandheldCompanion.Controllers.Lenovo
             base.QuerySettings();
         }
 
-        protected override void SettingsManager_SettingValueChanged(string name, object value, bool temporary)
+        protected override void SettingsManager_SettingValueChanged(string name, object? value, bool temporary)
         {
             switch (name)
             {
@@ -183,7 +183,7 @@ namespace HandheldCompanion.Controllers.Lenovo
             // create controller
             Controller = new(details.VendorID, details.ProductID);
 
-            switch(Controller.DeviceVersion)
+            switch (Controller.DeviceVersion)
             {
                 case 256: // as of 04/02/2026
                     break;
@@ -363,7 +363,7 @@ namespace HandheldCompanion.Controllers.Lenovo
                 }
 
                 // compute motion from controller
-                if (gamepadMotions.TryGetValue(idx, out GamepadMotion gamepadMotion))
+                if (gamepadMotions.TryGetValue(idx, out GamepadMotion? gamepadMotion))
                     gamepadMotion.ProcessMotion(gX, gY, gZ, aX, aY, aZ, delta);
             }
 

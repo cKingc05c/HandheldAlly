@@ -10,20 +10,27 @@ namespace HandheldCompanion.Utils;
 
 public static class CommonUtils
 {
-    public static string Between(string STR, string FirstString, string LastString = null, bool KeepBorders = false)
+    public static string? Between(string source, string left, string? right = null, bool keepLeftRight = false)
     {
-        if (string.IsNullOrEmpty(STR))
-            return string.Empty;
+        if (string.IsNullOrEmpty(source))
+            return null;
 
-        string FinalString;
-        var Pos1 = STR.IndexOf(FirstString) + FirstString.Length;
-        var Pos2 = STR.Length;
+        int leftIdx = source.IndexOf(left, System.StringComparison.Ordinal);
+        if (leftIdx < 0)
+            return null;
 
-        if (LastString is not null)
-            Pos2 = STR.IndexOf(LastString, Pos1);
+        leftIdx += left.Length;
 
-        FinalString = STR.Substring(Pos1, Pos2 - Pos1);
-        return KeepBorders ? FirstString + FinalString + LastString : FinalString;
+        int rightIdx = source.Length;
+        if (right is not null)
+        {
+            rightIdx = source.IndexOf(right, leftIdx, System.StringComparison.Ordinal);
+            if (rightIdx < 0)
+                return null;
+        }
+
+        string output = source.Substring(leftIdx, rightIdx - leftIdx);
+        return keepLeftRight ? left + output + right : output;
     }
 
     public static string RegexReplace(string inputRaw, string pattern, string replacement)
@@ -31,7 +38,7 @@ public static class CommonUtils
         List<string> outputRaw = [];
         using (var reader = new StringReader(inputRaw))
         {
-            string line;
+            string? line;
             while ((line = reader.ReadLine()) != null) outputRaw.Add(Regex.Replace(line, pattern, replacement));
         }
 

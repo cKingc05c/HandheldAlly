@@ -33,7 +33,7 @@ namespace HandheldCompanion.Converters
                     DeleteObject(hBmp);
                 }
             }
-            return null;
+            return DependencyProperty.UnsetValue;
         }
 
         object IValueConverter.ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)

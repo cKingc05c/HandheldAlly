@@ -39,8 +39,14 @@ namespace HandheldCompanion.Misc
         {
             try
             {
-                var type = Type.GetTypeFromCLSID(Guid.Parse("4ce576fa-83dc-4F88-951c-9d0782b4e376"));
-                var instance = (ITipInvocation)Activator.CreateInstance(type);
+                Type? type = Type.GetTypeFromCLSID(Guid.Parse("4ce576fa-83dc-4F88-951c-9d0782b4e376"));
+                if (type is null)
+                    return;
+
+                ITipInvocation? instance = (ITipInvocation?)Activator.CreateInstance(type);
+                if (instance is null)
+                    return;
+
                 instance.Toggle(NativeMethods.GetDesktopWindow());
                 Marshal.ReleaseComObject(instance);
             }
@@ -91,7 +97,7 @@ namespace HandheldCompanion.Misc
 
 
         [DllImport("user32.dll", SetLastError = false)]
-        private static extern IntPtr FindWindowEx(IntPtr parent, IntPtr after, string className, string title = null);
+        private static extern IntPtr FindWindowEx(IntPtr parent, IntPtr after, string className, string? title = null);
 
         [DllImport("user32.dll", SetLastError = false)]
         private static extern uint GetWindowLong(IntPtr wnd, int index);

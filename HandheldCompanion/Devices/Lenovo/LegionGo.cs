@@ -108,8 +108,8 @@ public class LegionGo : IDevice
             return WMI.Call<uint[]>("root\\WMI",
                 "SELECT * FROM LENOVO_FAN_METHOD",
                 "Fan_Get_Table",
-                new() 
-                { 
+                new()
+                {
                     { "FanID", 1 },
                     { "SensorID", 0 }
                 },
@@ -346,7 +346,7 @@ public class LegionGo : IDevice
         base.QuerySettings();
     }
 
-    protected override void SettingsManager_SettingValueChanged(string name, object value, bool temporary)
+    protected override void SettingsManager_SettingValueChanged(string name, object? value, bool temporary)
     {
         switch (name)
         {
@@ -411,7 +411,7 @@ public class LegionGo : IDevice
 
     protected virtual void Device_Removed()
     {
-        if (hidDevices.TryGetValue(INPUT_HID_ID, out HidDevice device))
+        if (hidDevices.TryGetValue(INPUT_HID_ID, out HidDevice? device))
         {
             device.MonitorDeviceEvents = false;
             device.Removed -= Device_Removed;

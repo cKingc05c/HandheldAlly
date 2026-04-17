@@ -218,7 +218,7 @@ namespace HandheldCompanion.Devices.Zotac
             base.QuerySettings();
         }
 
-        protected override void SettingsManager_SettingValueChanged(string name, object value, bool temporary)
+        protected override void SettingsManager_SettingValueChanged(string name, object? value, bool temporary)
         {
             switch (name)
             {
@@ -246,7 +246,7 @@ namespace HandheldCompanion.Devices.Zotac
 
         private void Device_Removed()
         {
-            if (hidDevices.TryGetValue(INPUT_HID_ID, out HidDevice device))
+            if (hidDevices.TryGetValue(INPUT_HID_ID, out HidDevice? device))
             {
                 device.MonitorDeviceEvents = false;
                 device.Removed -= Device_Removed;
@@ -260,7 +260,7 @@ namespace HandheldCompanion.Devices.Zotac
             if (reScan)
                 await WaitUntilReady();
 
-            if (hidDevices.TryGetValue(INPUT_HID_ID, out HidDevice device))
+            if (hidDevices.TryGetValue(INPUT_HID_ID, out HidDevice? device))
             {
                 device.MonitorDeviceEvents = true;
                 device.Removed += Device_Removed;
@@ -274,7 +274,7 @@ namespace HandheldCompanion.Devices.Zotac
 
         public bool CycleController()
         {
-            if (hidDevices.TryGetValue(INPUT_HID_ID, out HidDevice device))
+            if (hidDevices.TryGetValue(INPUT_HID_ID, out HidDevice? device))
                 return device.Write(RestoreProfileSet());
 
             return false;
@@ -604,7 +604,7 @@ namespace HandheldCompanion.Devices.Zotac
             // Map to closest valid value
             byte value = (byte)ConvertToBrightnessID(brightness);
 
-            if (hidDevices.TryGetValue(INPUT_HID_ID, out HidDevice hidDevice))
+            if (hidDevices.TryGetValue(INPUT_HID_ID, out HidDevice? hidDevice))
             {
                 if (!hidDevice.IsConnected)
                     return false;
@@ -638,7 +638,7 @@ namespace HandheldCompanion.Devices.Zotac
 
             byte speedValue = (byte)ConvertToLightSpeed(speed);
 
-            if (hidDevices.TryGetValue(INPUT_HID_ID, out HidDevice hidDevice))
+            if (hidDevices.TryGetValue(INPUT_HID_ID, out HidDevice? hidDevice))
             {
                 if (!hidDevice.IsConnected)
                     return false;
@@ -665,7 +665,7 @@ namespace HandheldCompanion.Devices.Zotac
 
         private bool SaveConfigData()
         {
-            if (hidDevices.TryGetValue(INPUT_HID_ID, out HidDevice hidDevice))
+            if (hidDevices.TryGetValue(INPUT_HID_ID, out HidDevice? hidDevice))
             {
                 if (!hidDevice.IsConnected)
                     return false;
@@ -690,10 +690,13 @@ namespace HandheldCompanion.Devices.Zotac
         // additionSize in GB
         public void SetVRamSize(uint additionSize)
         {
+            if (!UseOpenLib || !IsOpen)
+                return;
+
             uint vRAM = (physicalInstalledRamGB + additionSize) * 4U;
 
-            openLibSys.WriteIoPortByte(112, 122);
-            openLibSys.WriteIoPortByte(113, (byte)vRAM);
+            openLibSys?.WriteIoPortByte(112, 122);
+            openLibSys?.WriteIoPortByte(113, (byte)vRAM);
         }
 
         public override void SetFanControl(bool enable, int mode)

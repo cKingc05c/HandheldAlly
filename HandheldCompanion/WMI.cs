@@ -79,13 +79,13 @@ namespace HandheldCompanion
             }
         }
 
-        public static ManagementBaseObject Set(string scope, string path, string methodName, byte[] fullPackage)
+        public static ManagementBaseObject? Set(string scope, string path, string methodName, byte[] fullPackage)
         {
             // Create the management object using the provided scope and path
             ManagementObject managementObject = new ManagementObject(scope, path, null);
 
-            ManagementBaseObject inParams = null;
-            ManagementBaseObject inParamsData = null;
+            ManagementBaseObject? inParams = null;
+            ManagementBaseObject? inParamsData = null;
             bool parametersAvailable = false;
 
             // First attempt: retrieve method parameters for specified methodName
@@ -133,18 +133,18 @@ namespace HandheldCompanion
             readSuccess = false;
 
             // Extract the output bytes from the nested 'Data' object.
-            ManagementBaseObject outParams = Set(scope, path, methodName, fullPackage);
+            ManagementBaseObject? outParams = Set(scope, path, methodName, fullPackage);
             if (outParams == null)
                 return resultData;
 
-            ManagementBaseObject dataOut = outParams["Data"] as ManagementBaseObject;
+            ManagementBaseObject? dataOut = outParams["Data"] as ManagementBaseObject;
             if (dataOut == null)
             {
                 LogManager.LogError("WMI Call failed at outParams[\"Data\"]: [scope={0}, path={1}, methodName={2}, iDataBlockIndex={3}, length={4}]", scope, path, methodName, iDataBlockIndex, length);
                 return resultData;
             }
 
-            byte[] outBytes = dataOut["Bytes"] as byte[];
+            byte[]? outBytes = dataOut["Bytes"] as byte[];
             if (outBytes == null || outBytes.Length < 1)
             {
                 LogManager.LogError("WMI Call failed at dataOut[\"Bytes\"]: [scope={0}, path={1}, methodName={2}, iDataBlockIndex={3}, length={4}]", scope, path, methodName, iDataBlockIndex, length);
@@ -178,7 +178,7 @@ namespace HandheldCompanion
             managementObject.InvokeMethod(methodName, methodParamsObject, null);
         }
 
-        public static T Call<T>(string scope, string query, string methodName, Dictionary<string, object> methodParams, Func<PropertyDataCollection, T> resultSelector)
+        public static T? Call<T>(string scope, string query, string methodName, Dictionary<string, object> methodParams, Func<PropertyDataCollection, T> resultSelector)
         {
             using var searcher = new ManagementObjectSearcher(scope, query);
             var managementObject = searcher.Get().Cast<ManagementObject>().FirstOrDefault();
@@ -220,11 +220,8 @@ namespace HandheldCompanion
             }
         }
 
-        public static async Task<T> CallAsync<T>(string scope, FormattableString query, string methodName, Dictionary<string, object> methodParams, Func<PropertyDataCollection, T> converter)
+        public static async Task<T?> CallAsync<T>(string scope, FormattableString query, string methodName, Dictionary<string, object> methodParams, Func<PropertyDataCollection, T> converter)
         {
-            // Define a default value for the type T
-            T defaultValue = default(T);
-
             try
             {
                 var queryFormatted = query.ToString(WMIPropertyValueFormatter.Instance);
@@ -235,7 +232,7 @@ namespace HandheldCompanion
 
                 // Check if managementObject is null and return the default value
                 if (managementObject == null)
-                    return defaultValue;
+                    return default;
 
                 var mo = (ManagementObject)managementObject;
                 var methodParamsObject = mo.GetMethodParameters(methodName);
@@ -250,7 +247,7 @@ namespace HandheldCompanion
             {
                 // Log the exception details and return the default value
                 LogManager.LogError($"Call failed: {ex.Message}. [scope={scope}, query={query}, methodName={methodName}]");
-                return defaultValue;
+                return default;
             }
         }
 

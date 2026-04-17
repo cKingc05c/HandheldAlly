@@ -399,7 +399,7 @@ namespace HandheldCompanion.Controllers
             Inputs.GyroState.SetAccelerometer(aX, aY, aZ);
 
             // process motion
-            if (gamepadMotions.TryGetValue(gamepadIndex, out GamepadMotion gamepadMotion))
+            if (gamepadMotions.TryGetValue(gamepadIndex, out GamepadMotion? gamepadMotion))
                 gamepadMotion.ProcessMotion(gX, gY, gZ, aX, aY, aZ, delta);
 
             base.Tick(ticks, delta);

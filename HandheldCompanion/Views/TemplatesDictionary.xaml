@@ -62,18 +62,6 @@
         </Style.Triggers>
     </Style>
 
-    <Style
-        x:Key="LibraryFavoriteActionMenuItemStyle"
-        BasedOn="{StaticResource {x:Type MenuItem}}"
-        TargetType="MenuItem">
-        <Setter Property="Header" Value="Add to favorites" />
-        <Style.Triggers>
-            <DataTrigger Binding="{Binding IsLiked}" Value="True">
-                <Setter Property="Header" Value="Remove from favorites" />
-            </DataTrigger>
-        </Style.Triggers>
-    </Style>
-
     <ContextMenu
         x:Key="LibraryActionContextMenu"
         x:Shared="False"
@@ -97,7 +85,27 @@
                 </ui:FontIcon>
             </MenuItem.Icon>
         </MenuItem>
-        <MenuItem Command="{Binding ToggleFavoriteCommand}" Style="{StaticResource LibraryFavoriteActionMenuItemStyle}" />
+        <MenuItem Header="Collection" ItemsSource="{Binding CollectionMenuItems}">
+            <MenuItem.ItemContainerStyle>
+                <Style BasedOn="{StaticResource {x:Type MenuItem}}" TargetType="MenuItem">
+                    <Setter Property="Header" Value="{Binding Name}" />
+                    <Setter Property="IsCheckable" Value="{Binding IsCheckable}" />
+                    <Setter Property="IsChecked" Value="{Binding IsChecked, Mode=OneWay}" />
+                    <Setter Property="Command" Value="{Binding ToggleCommand}" />
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding IsSeparator}" Value="True">
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="MenuItem">
+                                        <Separator Style="{StaticResource {x:Static MenuItem.SeparatorStyleKey}}" />
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </MenuItem.ItemContainerStyle>
+        </MenuItem>
         <MenuItem Header="Manage">
             <MenuItem Command="{Binding OpenLayout}" Header="Edit controller layout" />
             <MenuItem
@@ -606,10 +614,10 @@
     <DataTemplate x:Key="LibraryTemplateList" DataType="{x:Type viewmodels:ProfileViewModel}">
         <Grid x:Name="CardRoot" behaviors:LibraryItemVisibilityBehavior.TrackVisibility="True">
             <Button
-                Height="64"
-                Padding="0"
+                Height="80"
                 HorizontalAlignment="Stretch"
                 HorizontalContentAlignment="Stretch"
+                Background="Transparent"
                 BorderThickness="0"
                 Command="{Binding Navigate}"
                 ContextMenu="{StaticResource LibraryActionContextMenu}"
@@ -627,73 +635,56 @@
 
                 <Grid HorizontalAlignment="Stretch">
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="172" />
-                        <ColumnDefinition Width="4" />
+                        <ColumnDefinition Width="Auto" />
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
 
                     <Border ClipToBounds="True" CornerRadius="{DynamicResource ControlCornerRadius}">
                         <Grid>
-                            <Image
-                                x:Name="MainImage"
-                                HorizontalAlignment="Center"
-                                VerticalAlignment="Center"
-                                Source="{Binding Artwork, NotifyOnTargetUpdated=True}"
-                                Stretch="UniformToFill"
-                                StretchDirection="Both"
-                                Style="{StaticResource LibraryImageFadeStyle}" />
                             <ui:ProgressRing
                                 HorizontalAlignment="Center"
                                 VerticalAlignment="Center"
+                                Panel.ZIndex="3"
                                 IsIndeterminate="True"
                                 Visibility="{Binding IsBusy, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                            <ui:PersonPicture
+                                x:Name="MainImage"
+                                Width="64"
+                                Height="64"
+                                Panel.ZIndex="1"
+                                DisplayName="{Binding Name}"
+                                ProfilePicture="{Binding Cover, NotifyOnTargetUpdated=True}" />
+                            <Ellipse
+                                x:Name="FavoriteAccentBar"
+                                Width="64"
+                                Height="64"
+                                Panel.ZIndex="2"
+                                Stroke="{DynamicResource AccentAAFillColorDefaultBrush}"
+                                StrokeThickness="4">
+                                <Ellipse.Style>
+                                    <Style TargetType="Ellipse">
+                                        <Setter Property="Visibility" Value="Collapsed" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding IsLiked}" Value="True">
+                                                <Setter Property="Visibility" Value="Visible" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Ellipse.Style>
+                            </Ellipse>
                         </Grid>
-                    </Border>
-
-                    <Border
-                        x:Name="FavoriteAccentBar"
-                        Grid.Column="1"
-                        Width="4"
-                        HorizontalAlignment="Left"
-                        VerticalAlignment="Stretch"
-                        Panel.ZIndex="1"
-                        Background="{DynamicResource AccentAAFillColorDefaultBrush}">
-                        <Border.Style>
-                            <Style TargetType="Border">
-                                <Setter Property="Visibility" Value="Collapsed" />
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding IsLiked}" Value="True">
-                                        <Setter Property="Visibility" Value="Visible" />
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </Border.Style>
                     </Border>
 
                     <StackPanel
-                        Grid.Column="2"
-                        Margin="8,0,0,0"
+                        Grid.Column="1"
+                        Margin="6,0,0,0"
                         VerticalAlignment="Center">
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto" />
-                                <ColumnDefinition Width="*" />
-                            </Grid.ColumnDefinitions>
-
-                            <ui:FontIcon
-                                Margin="0,0,6,0"
-                                Foreground="{DynamicResource AccentAAFillColorDefaultBrush}"
-                                Glyph="&#xe735;"
-                                Visibility="{Binding IsLiked, Converter={StaticResource BooleanToVisibilityConverter}}" />
-
-                            <TextBlock
-                                Grid.Column="1"
-                                Style="{StaticResource BaseTextBlockStyle}"
-                                Text="{Binding Name}"
-                                TextTrimming="CharacterEllipsis"
-                                TextWrapping="NoWrap" />
-                        </Grid>
+                        <TextBlock
+                            Style="{StaticResource BaseTextBlockStyle}"
+                            Text="{Binding Name}"
+                            TextTrimming="CharacterEllipsis"
+                            TextWrapping="NoWrap" />
                         <TextBlock
                             Text="{Binding Description}"
                             TextTrimming="CharacterEllipsis"
@@ -715,7 +706,7 @@
                     </StackPanel>
 
                     <Image
-                        Grid.Column="3"
+                        Grid.Column="2"
                         Width="24"
                         Height="24"
                         Margin="0,0,12,0"

@@ -1,7 +1,9 @@
 using HandheldCompanion.Controls;
 using HandheldCompanion.Converters;
+using HandheldCompanion.Managers;
 using HandheldCompanion.ViewModels;
 using System.ComponentModel;
+using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -47,8 +49,8 @@ public partial class LibraryPage : Page
             LibraryPageViewModel? libraryVM = DataContext as LibraryPageViewModel;
             if (libraryVM != null)
             {
-                libraryVM.HighlightColor = (Color)averageColorConverter.Convert(profile.Cover, null, null, null);
-                libraryVM.Artwork = profile.Artwork;
+                libraryVM.HighlightColor = (Color)averageColorConverter.Convert(profile.Cover ?? LibraryResources.MissingCover, typeof(Color), DependencyProperty.UnsetValue, CultureInfo.CurrentCulture);
+                libraryVM.Artwork = profile.Artwork ?? LibraryResources.MissingArtwork;
             }
         }
     }
@@ -78,14 +80,12 @@ public partial class LibraryPage : Page
         DetachViewModel();
         libraryPageViewModel = viewModel;
 
-        if (libraryPageViewModel is not null)
-            libraryPageViewModel.PropertyChanged += LibraryPageViewModel_PropertyChanged;
+        libraryPageViewModel?.PropertyChanged += LibraryPageViewModel_PropertyChanged;
     }
 
     private void DetachViewModel()
     {
-        if (libraryPageViewModel is not null)
-            libraryPageViewModel.PropertyChanged -= LibraryPageViewModel_PropertyChanged;
+        libraryPageViewModel?.PropertyChanged -= LibraryPageViewModel_PropertyChanged;
 
         libraryPageViewModel = null;
     }
@@ -112,7 +112,7 @@ public partial class LibraryPage : Page
     {
         if (e.PropertyName is nameof(LibraryPageViewModel.ViewMode)
             or nameof(LibraryPageViewModel.IsGridView)
-            or nameof(LibraryPageViewModel.IsListView))
+            or nameof(LibraryPageViewModel.IsWideView))
         {
             Dispatcher.Invoke(UpdateItemsPanel);
         }
@@ -120,20 +120,11 @@ public partial class LibraryPage : Page
 
     private void UpdateItemsPanel()
     {
-        FrameworkElementFactory factory;
-
-        if (libraryPageViewModel?.IsListView is true)
-        {
-            factory = new FrameworkElementFactory(typeof(StackPanel));
-        }
-        else
-        {
-            factory = new FrameworkElementFactory(typeof(JustifiedWrapPanel));
-            factory.SetValue(JustifiedWrapPanel.HorizontalSpacingProperty, 6.0);
-            factory.SetValue(JustifiedWrapPanel.VerticalSpacingProperty, 6.0);
-            factory.SetValue(JustifiedWrapPanel.TargetRowHeightProperty, 300.0d);
-            factory.SetValue(JustifiedWrapPanel.ItemAspectRatioProperty, 475.0 / 900.0);
-        }
+        var factory = new FrameworkElementFactory(typeof(JustifiedWrapPanel));
+        factory.SetValue(JustifiedWrapPanel.HorizontalSpacingProperty, 6.0);
+        factory.SetValue(JustifiedWrapPanel.VerticalSpacingProperty, 6.0);
+        factory.SetValue(JustifiedWrapPanel.TargetRowHeightProperty, 300.0d);
+        factory.SetValue(JustifiedWrapPanel.ItemAspectRatioProperty, 475.0 / 900.0);
 
         profilesRepeater.ItemsPanel = new ItemsPanelTemplate(factory);
     }

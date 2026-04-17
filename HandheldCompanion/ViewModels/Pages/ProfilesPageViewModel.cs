@@ -1,6 +1,5 @@
 using HandheldCompanion.Actions;
 using HandheldCompanion.Devices;
-using HandheldCompanion.Extensions;
 using HandheldCompanion.GraphicsProcessingUnit;
 using HandheldCompanion.Helpers;
 using HandheldCompanion.Inputs;
@@ -57,10 +56,10 @@ namespace HandheldCompanion.ViewModels
         public ObservableCollection<ProfileViewModel> SubProfiles { get; } = [];
 
         private ObservableCollection<ProfilesPickerViewModel> ProfilePicker = [];
-        public ListCollectionView ProfilePickerCollectionViewAC { get; set; }
-        public ListCollectionView ProfilePickerCollectionViewDC { get; set; }
-        public ListCollectionView MainProfilesView { get; private set; }
-        public ListCollectionView SubProfilesView { get; private set; }
+        public ListCollectionView ProfilePickerCollectionViewAC { get; set; } = null!;
+        public ListCollectionView ProfilePickerCollectionViewDC { get; set; } = null!;
+        public ListCollectionView MainProfilesView { get; private set; } = null!;
+        public ListCollectionView SubProfilesView { get; private set; } = null!;
 
         public ObservableCollection<LibraryEntryViewModel> LibraryPickers { get; } = [];
         public ObservableCollection<WindowListItemViewModel> AllWindows { get; } = [];
@@ -101,16 +100,16 @@ namespace HandheldCompanion.ViewModels
         public bool IsControllerPassthroughEnabled => SelectedProfile != null && !SelectedProfile.Default;
 
         private readonly bool IsQuickTools;
-        private ProfilesPage profilesPage;
-        private QuickProfilesPage quickProfilesPage;
-        private Timer UpdateTimer;
-        private ProcessEx currentProcess;
-        private ProcessEx selectedProcess;
-        private Hotkey GyroHotkey;
-        private LayoutTemplate selectedTemplate;
+        private ProfilesPage profilesPage = null!;
+        private QuickProfilesPage quickProfilesPage = null!;
+        private Timer UpdateTimer = null!;
+        private ProcessEx? currentProcess;
+        private ProcessEx? selectedProcess;
+        private Hotkey GyroHotkey = null!;
+        private LayoutTemplate? selectedTemplate;
 
         #region Profile
-        private Profile _selectedProfile;
+        private Profile _selectedProfile = null!;
         /// <summary>
         /// CRITICAL: Setting this property triggers OnProfileChanged() which:
         /// - Calls UpdateCurrentProcessViewModel()
@@ -145,7 +144,7 @@ namespace HandheldCompanion.ViewModels
             }
         }
 
-        private Profile _selectedMainProfile;
+        private Profile _selectedMainProfile = null!;
         public Profile SelectedMainProfile
         {
             get => _selectedMainProfile;
@@ -167,13 +166,13 @@ namespace HandheldCompanion.ViewModels
             }
         }
 
-        public ProfileViewModel SelectedMainProfileViewModel
+        public ProfileViewModel? SelectedMainProfileViewModel
         {
             get => MainProfiles.FirstOrDefault(vm => vm.Profile.Guid == _selectedMainProfile?.Guid);
             set
             {
-                if (value?.Profile != _selectedMainProfile)
-                    SelectedMainProfile = value?.Profile;
+                if (value is not null && value.Profile != _selectedMainProfile)
+                    SelectedMainProfile = value.Profile;
             }
         }
 
@@ -242,6 +241,9 @@ namespace HandheldCompanion.ViewModels
             get => _HasGPUScalingSupport;
             set { if (value != _HasGPUScalingSupport) { _HasGPUScalingSupport = value; OnPropertyChanged(nameof(HasGPUScalingSupport)); } }
         }
+
+        public bool GPUManagementEnabled => ManagerFactory.settingsManager.GetBoolean("GPUManagementEnabled");
+        public bool PerformanceManagerEnabled => ManagerFactory.settingsManager.GetBoolean("PerformanceManagerEnabled");
 
         private bool _GPUScalingEnabled;
         public bool GPUScalingEnabled
@@ -507,8 +509,8 @@ namespace HandheldCompanion.ViewModels
             set { if (value != _IsSubProfilesVisible) { _IsSubProfilesVisible = value; OnPropertyChanged(nameof(IsSubProfilesVisible)); } }
         }
 
-        private System.Windows.Media.ImageSource _ProcessIcon;
-        public System.Windows.Media.ImageSource ProcessIcon
+        private System.Windows.Media.ImageSource? _ProcessIcon;
+        public System.Windows.Media.ImageSource? ProcessIcon
         {
             get => _ProcessIcon;
             set { if (value != _ProcessIcon) { _ProcessIcon = value; OnPropertyChanged(nameof(ProcessIcon)); } }
@@ -552,7 +554,7 @@ namespace HandheldCompanion.ViewModels
         /// Works correctly with sorted views — no index mapping required.
         /// Setting this (by user ComboBox interaction) triggers profile application.
         /// </summary>
-        public ProfileViewModel SelectedSubProfileViewModel
+        public ProfileViewModel? SelectedSubProfileViewModel
         {
             get => SubProfiles.FirstOrDefault(vm => vm.Profile.Guid == _selectedProfile?.Guid);
             set
@@ -601,7 +603,7 @@ namespace HandheldCompanion.ViewModels
                                 {
                                     AxisAntiDeadZone = GyroActions.DefaultAxisAntiDeadZone,
                                     Axis = AxisLayoutFlags.LeftStick,
-                                    MotionTrigger = GyroHotkey.inputsChord.ButtonState.Clone() as ButtonState,
+                                    MotionTrigger = (ButtonState)GyroHotkey.inputsChord.ButtonState.Clone(),
                                     MotionInput = preservedMotionInput,
                                     MotionMode = preservedMotionMode
                                 };
@@ -618,7 +620,7 @@ namespace HandheldCompanion.ViewModels
                                 {
                                     AxisAntiDeadZone = GyroActions.DefaultAxisAntiDeadZone,
                                     Axis = AxisLayoutFlags.RightStick,
-                                    MotionTrigger = GyroHotkey.inputsChord.ButtonState.Clone() as ButtonState,
+                                    MotionTrigger = (ButtonState)GyroHotkey.inputsChord.ButtonState.Clone(),
                                     MotionInput = preservedMotionInput,
                                     MotionMode = preservedMotionMode
                                 };
@@ -637,7 +639,7 @@ namespace HandheldCompanion.ViewModels
                                     MouseType = GyroActions.DefaultMouseActionsType,
                                     Sensivity = GyroActions.DefaultSensivity,
                                     Deadzone = GyroActions.DefaultDeadzone,
-                                    MotionTrigger = GyroHotkey.inputsChord.ButtonState.Clone() as ButtonState,
+                                    MotionTrigger = (ButtonState)GyroHotkey.inputsChord.ButtonState.Clone(),
                                     MotionInput = preservedMotionInput,
                                     MotionMode = preservedMotionMode
                                 };
@@ -1002,8 +1004,8 @@ namespace HandheldCompanion.ViewModels
             }
         }
 
-        private ScreenFramelimitViewModel _SelectedFrameLimit;
-        public ScreenFramelimitViewModel SelectedFrameLimit
+        private ScreenFramelimitViewModel? _SelectedFrameLimit;
+        public ScreenFramelimitViewModel? SelectedFrameLimit
         {
             get => _SelectedFrameLimit;
             set
@@ -1218,7 +1220,7 @@ namespace HandheldCompanion.ViewModels
         #endregion
 
         #region Library
-        private string _LibrarySearchField;
+        private string _LibrarySearchField = string.Empty;
         public string LibrarySearchField
         {
             get => _LibrarySearchField;
@@ -1232,8 +1234,8 @@ namespace HandheldCompanion.ViewModels
             }
         }
 
-        private LibraryEntry _SelectedLibraryEntry;
-        public LibraryEntry SelectedLibraryEntry
+        private LibraryEntry? _SelectedLibraryEntry = null;
+        public LibraryEntry? SelectedLibraryEntry
         {
             get => _SelectedLibraryEntry;
             set
@@ -1242,7 +1244,10 @@ namespace HandheldCompanion.ViewModels
                 {
                     _SelectedLibraryEntry = value;
                     if (value != null)
-                        _SelectedLibraryIndex = LibraryPickers.IndexOf(LibraryPickers.FirstOrDefault(p => p.Id == value.Id));
+                    {
+                        LibraryEntryViewModel? matchingPicker = LibraryPickers.FirstOrDefault(p => p.Id == value.Id);
+                        _SelectedLibraryIndex = matchingPicker is not null ? LibraryPickers.IndexOf(matchingPicker) : -1;
+                    }
                     else
                         _SelectedLibraryIndex = -1;
 
@@ -1393,11 +1398,11 @@ namespace HandheldCompanion.ViewModels
         #endregion
 
         #region PowerProfile
-        private PowerProfile _selectedPresetDC;
+        private PowerProfile _selectedPresetDC = null!;
         public PowerProfile SelectedPresetDC => _selectedPresetDC;
 
-        private ProfilesPickerViewModel _selectedPickerDC;
-        public ProfilesPickerViewModel SelectedPickerDC
+        private ProfilesPickerViewModel? _selectedPickerDC;
+        public ProfilesPickerViewModel? SelectedPickerDC
         {
             get => _selectedPickerDC;
             set
@@ -1419,11 +1424,11 @@ namespace HandheldCompanion.ViewModels
             }
         }
 
-        private PowerProfile _selectedPresetAC;
+        private PowerProfile _selectedPresetAC = null!;
         public PowerProfile SelectedPresetAC => _selectedPresetAC;
 
-        private ProfilesPickerViewModel _selectedPickerAC;
-        public ProfilesPickerViewModel SelectedPickerAC
+        private ProfilesPickerViewModel? _selectedPickerAC;
+        public ProfilesPickerViewModel? SelectedPickerAC
         {
             get => _selectedPickerAC;
             set
@@ -1447,7 +1452,7 @@ namespace HandheldCompanion.ViewModels
         #endregion
 
         #region Process Control
-        private ProcessExViewModel _CurrentProcessViewModel;
+        private ProcessExViewModel? _CurrentProcessViewModel;
         /// <summary>
         /// Tracks the currently running process for the selected profile (ProfilesPage) or foreground app (QuickProfilesPage).
         /// 
@@ -1457,7 +1462,7 @@ namespace HandheldCompanion.ViewModels
         /// 
         /// This ensures MenuItem bindings update correctly.
         /// </summary>
-        public ProcessExViewModel CurrentProcessViewModel
+        public ProcessExViewModel? CurrentProcessViewModel
         {
             get => _CurrentProcessViewModel;
             private set
@@ -1465,14 +1470,12 @@ namespace HandheldCompanion.ViewModels
                 if (_CurrentProcessViewModel != value)
                 {
                     // Unsubscribe from old ViewModel
-                    if (_CurrentProcessViewModel != null)
-                        _CurrentProcessViewModel.PropertyChanged -= CurrentProcessViewModel_PropertyChanged;
+                    _CurrentProcessViewModel?.PropertyChanged -= CurrentProcessViewModel_PropertyChanged;
 
                     _CurrentProcessViewModel = value;
 
                     // Subscribe to new ViewModel
-                    if (_CurrentProcessViewModel != null)
-                        _CurrentProcessViewModel.PropertyChanged += CurrentProcessViewModel_PropertyChanged;
+                    _CurrentProcessViewModel?.PropertyChanged += CurrentProcessViewModel_PropertyChanged;
 
                     OnPropertyChanged(nameof(CurrentProcessViewModel));
 
@@ -1490,7 +1493,7 @@ namespace HandheldCompanion.ViewModels
         }
         #endregion
 
-        private void CurrentProcessViewModel_PropertyChanged(object sender, System.ComponentModel.PropertyChangedEventArgs e)
+        private void CurrentProcessViewModel_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
         {
             switch (e.PropertyName)
             {
@@ -1515,48 +1518,48 @@ namespace HandheldCompanion.ViewModels
         public bool CanKillProcess => CurrentProcessViewModel?.IsRunning == true;
 
         // Delegate process commands to CurrentProcessViewModel, except Launch which uses Profile
-        public ICommand SuspendProcessCommand => CurrentProcessViewModel?.SuspendProcessCommand;
-        public ICommand ResumeProcessCommand => CurrentProcessViewModel?.ResumeProcessCommand;
-        public ICommand KillProcessCommand => CurrentProcessViewModel?.KillProcessCommand;
+        public ICommand? SuspendProcessCommand => CurrentProcessViewModel?.SuspendProcessCommand;
+        public ICommand? ResumeProcessCommand => CurrentProcessViewModel?.ResumeProcessCommand;
+        public ICommand? KillProcessCommand => CurrentProcessViewModel?.KillProcessCommand;
 
         // Events for View to handle UI-specific operations
-        public event EventHandler RequestCreateProfile;
-        public event EventHandler<Profile> RequestDeleteProfile;
-        public event EventHandler<Profile> RequestRenameProfile;
-        public event EventHandler RequestCreateSubProfile;
-        public event EventHandler<Profile> RequestDeleteSubProfile;
-        public event EventHandler<Profile> RequestRenameSubProfile;
-        public event EventHandler<LayoutTemplate> RequestOpenControllerLayout;
-        public event EventHandler<PowerProfile> RequestOpenPowerProfile;
-        public event EventHandler RequestOpenProfilePage;
-        public event EventHandler RequestOpenProfileLayout;
-        public event EventHandler RequestCreatePowerProfile;
-        public event EventHandler RequestOpenAdditionalSettings;
-        public event EventHandler RequestShowLibraryDialog;
+        public event EventHandler? RequestCreateProfile;
+        public event EventHandler<Profile>? RequestDeleteProfile;
+        public event EventHandler<Profile>? RequestRenameProfile;
+        public event EventHandler? RequestCreateSubProfile;
+        public event EventHandler<Profile>? RequestDeleteSubProfile;
+        public event EventHandler<Profile>? RequestRenameSubProfile;
+        public event EventHandler<LayoutTemplate>? RequestOpenControllerLayout;
+        public event EventHandler<PowerProfile>? RequestOpenPowerProfile;
+        public event EventHandler? RequestOpenProfilePage;
+        public event EventHandler? RequestOpenProfileLayout;
+        public event EventHandler? RequestCreatePowerProfile;
+        public event EventHandler? RequestOpenAdditionalSettings;
+        public event EventHandler? RequestShowLibraryDialog;
 
         // Commands
-        public ICommand RefreshLibrary { get; private set; }
-        public ICommand DisplayLibrary { get; private set; }
-        public ICommand DownloadLibrary { get; private set; }
-        public ICommand LaunchExecutable { get; private set; }
-        public ICommand ToggleProfileProcessCommand { get; private set; }
-        public ICommand LaunchProfileProcessCommand { get; private set; }
-        public ICommand AddProfileExecutable { get; private set; }
-        public ICommand RemoveProfileExecutable { get; private set; }
-        public ICommand CreateProfileCommand { get; private set; }
-        public ICommand DeleteProfileCommand { get; private set; }
-        public ICommand RenameProfileCommand { get; private set; }
-        public ICommand ToggleFavoriteCommand { get; private set; }
-        public ICommand CreateSubProfileCommand { get; private set; }
-        public ICommand DeleteSubProfileCommand { get; private set; }
-        public ICommand RenameSubProfileCommand { get; private set; }
-        public ICommand OpenControllerLayoutCommand { get; private set; }
-        public ICommand OpenPowerProfileOnBatteryCommand { get; private set; }
-        public ICommand OpenPowerProfilePluggedCommand { get; private set; }
-        public ICommand OpenProfilePageCommand { get; private set; }
-        public ICommand OpenProfileLayoutCommand { get; private set; }
-        public ICommand CreatePowerProfileCommand { get; private set; }
-        public ICommand OpenAdditionalSettingsCommand { get; private set; }
+        public ICommand RefreshLibrary { get; private set; } = null!;
+        public ICommand DisplayLibrary { get; private set; } = null!;
+        public ICommand DownloadLibrary { get; private set; } = null!;
+        public ICommand LaunchExecutable { get; private set; } = null!;
+        public ICommand ToggleProfileProcessCommand { get; private set; } = null!;
+        public ICommand LaunchProfileProcessCommand { get; private set; } = null!;
+        public ICommand AddProfileExecutable { get; private set; } = null!;
+        public ICommand RemoveProfileExecutable { get; private set; } = null!;
+        public ICommand CreateProfileCommand { get; private set; } = null!;
+        public ICommand DeleteProfileCommand { get; private set; } = null!;
+        public ICommand RenameProfileCommand { get; private set; } = null!;
+        public ICommand ToggleFavoriteCommand { get; private set; } = null!;
+        public ICommand CreateSubProfileCommand { get; private set; } = null!;
+        public ICommand DeleteSubProfileCommand { get; private set; } = null!;
+        public ICommand RenameSubProfileCommand { get; private set; } = null!;
+        public ICommand OpenControllerLayoutCommand { get; private set; } = null!;
+        public ICommand OpenPowerProfileOnBatteryCommand { get; private set; } = null!;
+        public ICommand OpenPowerProfilePluggedCommand { get; private set; } = null!;
+        public ICommand OpenProfilePageCommand { get; private set; } = null!;
+        public ICommand OpenProfileLayoutCommand { get; private set; } = null!;
+        public ICommand CreatePowerProfileCommand { get; private set; } = null!;
+        public ICommand OpenAdditionalSettingsCommand { get; private set; } = null!;
 
         private bool isLoadingProfile = false;
         public bool IsLoadingProfile => isLoadingProfile;
@@ -1651,10 +1654,16 @@ namespace HandheldCompanion.ViewModels
 
         private void InitializePageSpecific()
         {
-            ManagerFactory.profileManager.Deleted += ProfileDeleted;
-            ManagerFactory.profileManager.Updated += ProfileUpdated;
-            ManagerFactory.profileManager.Applied += ProfileApplied;
-            ManagerFactory.profileManager.Initialized += ProfileManagerLoaded;
+            switch (ManagerFactory.profileManager.Status)
+            {
+                default:
+                case ManagerStatus.Initializing:
+                    ManagerFactory.profileManager.Initialized += ProfileManager_Initialized;
+                    break;
+                case ManagerStatus.Initialized:
+                    QueryProfile();
+                    break;
+            }
 
             if (IsQuickTools)
             {
@@ -1707,7 +1716,7 @@ namespace HandheldCompanion.ViewModels
             {
                 bool runAsAdmin = Convert.ToBoolean(param);
                 ProfileViewModel profileViewModel = new(SelectedProfile, false);
-                profileViewModel.StartProcessCommand.Execute(runAsAdmin);
+                profileViewModel.StartProcessCommand?.Execute(runAsAdmin);
             });
 
             LaunchProfileProcessCommand = new DelegateCommand(() =>
@@ -1718,7 +1727,7 @@ namespace HandheldCompanion.ViewModels
                 try
                 {
                     ProfileViewModel profileViewModel = new(SelectedProfile, false);
-                    profileViewModel.StartProcessCommand.Execute(false);
+                    profileViewModel.StartProcessCommand?.Execute(false);
                 }
                 catch (Exception ex)
                 {
@@ -1787,6 +1796,9 @@ namespace HandheldCompanion.ViewModels
                 int artworkId = (int)(LibraryArtworksIndex != -1 && LibraryArtworksIndex < LibraryArtworks.Count ? LibraryArtworks[LibraryArtworksIndex].Id : 0);
                 int logoId = (int)(LibraryLogosIndex != -1 && LibraryLogosIndex < LibraryLogos.Count ? LibraryLogos[LibraryLogosIndex].Id : 0);
 
+                if (SelectedLibraryEntry is null)
+                    return;
+
                 await ManagerFactory.libraryManager.UpdateProfileArts(SelectedProfile, SelectedLibraryEntry, coverId, artworkId, logoId);
                 ManagerFactory.profileManager.UpdateOrCreateProfile(SelectedProfile, UpdateSource.LibraryUpdate);
 
@@ -1798,9 +1810,9 @@ namespace HandheldCompanion.ViewModels
 
             AddProfileExecutable = new DelegateCommand<object>(async param =>
             {
-                string path = string.Empty;
-                FileUtils.CommonFileDialog(out path, out _, out _, SelectedProfile.Path);
+                string? path = string.Empty;
 
+                FileUtils.CommonFileDialog(out path, out _, out _, SelectedProfile.Path);
                 if (string.IsNullOrEmpty(path))
                     return;
 
@@ -1867,11 +1879,8 @@ namespace HandheldCompanion.ViewModels
                 if (SelectedProfile != null)
                 {
                     // Unsubscribe from previous template if it exists
-                    if (selectedTemplate is not null)
-                    {
-                        selectedTemplate.Updated -= Template_Updated;
-                        selectedTemplate = null;
-                    }
+                    selectedTemplate?.Updated -= Template_Updated;
+                    selectedTemplate = null;
 
                     selectedTemplate = new LayoutTemplate(SelectedProfile.Layout)
                     {
@@ -1938,11 +1947,42 @@ namespace HandheldCompanion.ViewModels
 
         private void SetupManagerEvents()
         {
-            ManagerFactory.multimediaManager.Initialized += MultimediaManager_Initialized;
+            switch (ManagerFactory.multimediaManager.Status)
+            {
+                default:
+                case ManagerStatus.Initializing:
+                    ManagerFactory.multimediaManager.Initialized += MultimediaManager_Initialized;
+                    break;
+                case ManagerStatus.Initialized:
+                    MultimediaManager_Initialized();
+                    break;
+            }
+
             ManagerFactory.multimediaManager.DisplaySettingsChanged += MultimediaManager_DisplaySettingsChanged;
-            ManagerFactory.gpuManager.Hooked += GPUManager_Hooked;
-            ManagerFactory.gpuManager.Unhooked += GPUManager_Unhooked;
+
+            switch (ManagerFactory.gpuManager.Status)
+            {
+                default:
+                case ManagerStatus.Initializing:
+                    ManagerFactory.gpuManager.Initialized += GpuManager_Initialized;
+                    break;
+                case ManagerStatus.Initialized:
+                    QueryGPU();
+                    break;
+            }
+
             ManagerFactory.powerProfileManager.Applied += PowerProfileManager_Applied;
+
+            switch (ManagerFactory.settingsManager.Status)
+            {
+                default:
+                case ManagerStatus.Initializing:
+                    ManagerFactory.settingsManager.Initialized += SettingsManager_Initialized;
+                    break;
+                case ManagerStatus.Initialized:
+                    QuerySettings();
+                    break;
+            }
 
             switch (ManagerFactory.platformManager.Status)
             {
@@ -1970,6 +2010,26 @@ namespace HandheldCompanion.ViewModels
         private void UpdateTimer_Elapsed(object? sender, ElapsedEventArgs e)
         {
             SubmitProfile();
+        }
+
+        private void SettingsManager_Initialized()
+        {
+            QuerySettings();
+        }
+
+        private void QuerySettings()
+        {
+            ManagerFactory.settingsManager.SettingValueChanged += SettingsManager_SettingValueChanged;
+            OnPropertyChanged(nameof(GPUManagementEnabled));
+            OnPropertyChanged(nameof(PerformanceManagerEnabled));
+        }
+
+        private void SettingsManager_SettingValueChanged(string name, object? value, bool temporary)
+        {
+            if (name == "GPUManagementEnabled")
+                OnPropertyChanged(nameof(GPUManagementEnabled));
+            if (name == "PerformanceManagerEnabled")
+                OnPropertyChanged(nameof(PerformanceManagerEnabled));
         }
 
         private void QueryPlatforms()
@@ -2077,7 +2137,7 @@ namespace HandheldCompanion.ViewModels
         {
             try
             {
-                DesktopScreen desktopScreen = ManagerFactory.multimediaManager.PrimaryDesktop;
+                DesktopScreen? desktopScreen = ManagerFactory.multimediaManager.PrimaryDesktop;
                 if (desktopScreen is not null)
                 {
                     lock (_collectionLock6)
@@ -2089,6 +2149,21 @@ namespace HandheldCompanion.ViewModels
                 }
             }
             catch { }
+        }
+
+        private void GpuManager_Initialized()
+        {
+            QueryGPU();
+        }
+
+        private void QueryGPU()
+        {
+            ManagerFactory.gpuManager.Hooked += GPUManager_Hooked;
+            ManagerFactory.gpuManager.Unhooked += GPUManager_Unhooked;
+
+            GPU? gpu = GPUManager.GetCurrent();
+            if (gpu is not null)
+                GPUManager_Hooked(gpu);
         }
 
         private void GPUManager_Hooked(GPU GPU)
@@ -2351,8 +2426,11 @@ namespace HandheldCompanion.ViewModels
                         {
                             if (currentAction is GyroActions gyroActions && gyroActions.MotionTrigger != null)
                             {
-                                GyroHotkey.inputsChord.ButtonState = gyroActions.MotionTrigger.Clone() as ButtonState;
-                                ManagerFactory.hotkeysManager.UpdateOrCreateHotkey(GyroHotkey, UpdateSource.Background);
+                                if (gyroActions.MotionTrigger.Clone() is ButtonState buttonState)
+                                {
+                                    GyroHotkey.inputsChord.ButtonState = buttonState;
+                                    ManagerFactory.hotkeysManager.UpdateOrCreateHotkey(GyroHotkey, UpdateSource.Background);
+                                }
                             }
                         }
 
@@ -2376,7 +2454,7 @@ namespace HandheldCompanion.ViewModels
             if (source == UpdateSource.Serializer)
                 return;
 
-            isCurrent = SelectedProfile?.Guid == profile?.Guid;
+            isCurrent = SelectedProfile?.Guid == profile.Guid;
             isCurrent |= source.HasFlag(UpdateSource.Creation);
 
             if (source == UpdateSource.QuickProfilesPage && !isCurrent)
@@ -2438,7 +2516,8 @@ namespace HandheldCompanion.ViewModels
 
                     if (profile.IsSubProfile && !IsQuickTools)
                     {
-                        int subProfileIndex = SubProfiles.IndexOf(SubProfiles.FirstOrDefault(p => p.Profile.Guid == profile.Guid));
+                        ProfileViewModel? subProfile = SubProfiles.FirstOrDefault(p => p.Profile.Guid == profile.Guid);
+                        int subProfileIndex = subProfile is null ? -1 : SubProfiles.IndexOf(subProfile);
                         if (subProfileIndex >= 0 && subProfileIndex != _SelectedSubProfileIndex)
                         {
                             _SelectedSubProfileIndex = subProfileIndex;
@@ -2502,8 +2581,17 @@ namespace HandheldCompanion.ViewModels
             });
         }
 
-        private void ProfileManagerLoaded()
+        private void ProfileManager_Initialized()
         {
+            QueryProfile();
+        }
+
+        private void QueryProfile()
+        {
+            ManagerFactory.profileManager.Deleted += ProfileDeleted;
+            ManagerFactory.profileManager.Updated += ProfileUpdated;
+            ManagerFactory.profileManager.Applied += ProfileApplied;
+
             UIHelper.TryInvoke(() =>
             {
                 foreach (var vm in MainProfiles)
@@ -2589,7 +2677,7 @@ namespace HandheldCompanion.ViewModels
 
         private void UpdateCurrentProcessViewModel()
         {
-            ProcessEx profileProcess = null;
+            ProcessEx? profileProcess = null;
             if (SelectedProfile != null)
             {
                 List<string> execs = SelectedProfile.GetExecutables(true);
@@ -2784,7 +2872,7 @@ namespace HandheldCompanion.ViewModels
             OnPropertyChanged(nameof(IsControllerPassthroughEnabled));
         }
 
-        private void UpdateSubProfiles(Profile updatedProfile = null)
+        private void UpdateSubProfiles(Profile? updatedProfile = null)
         {
             if (SelectedMainProfile is null)
                 return;
@@ -2827,8 +2915,7 @@ namespace HandheldCompanion.ViewModels
         private void SelectedProcess_WindowDetached_Merged(ProcessWindow processWindow)
         {
             var item = AllWindows.FirstOrDefault(w => w.Hwnd == processWindow.Hwnd);
-            if (item != null)
-                item.ProcessWindow = null;
+            item?.ProcessWindow = null;
 
             OnPropertyChanged(nameof(HasAnyWindows));
         }
@@ -3001,7 +3088,7 @@ namespace HandheldCompanion.ViewModels
             {
                 if (gyroActions is GyroActions gyroAction)
                 {
-                    ButtonState newButtonState = hotkey.inputsChord.ButtonState.Clone() as ButtonState;
+                    ButtonState newButtonState = (ButtonState)hotkey.inputsChord.ButtonState.Clone();
                     if (!gyroAction.MotionTrigger.Equals(newButtonState))
                     {
                         gyroAction.MotionTrigger = newButtonState;
@@ -3066,16 +3153,13 @@ namespace HandheldCompanion.ViewModels
 
         public void Close()
         {
-            if (selectedTemplate is not null)
-            {
-                selectedTemplate.Updated -= Template_Updated;
-                selectedTemplate = null;
-            }
+            selectedTemplate?.Updated -= Template_Updated;
+            selectedTemplate = null;
 
             ManagerFactory.profileManager.Deleted -= ProfileDeleted;
             ManagerFactory.profileManager.Updated -= ProfileUpdated;
             ManagerFactory.profileManager.Applied -= ProfileApplied;
-            ManagerFactory.profileManager.Initialized -= ProfileManagerLoaded;
+            ManagerFactory.profileManager.Initialized -= ProfileManager_Initialized;
 
             if (IsQuickTools)
             {
@@ -3095,6 +3179,7 @@ namespace HandheldCompanion.ViewModels
 
             ManagerFactory.multimediaManager.Initialized -= MultimediaManager_Initialized;
             ManagerFactory.multimediaManager.DisplaySettingsChanged -= MultimediaManager_DisplaySettingsChanged;
+            ManagerFactory.gpuManager.Initialized -= GpuManager_Initialized;
             ManagerFactory.gpuManager.Hooked -= GPUManager_Hooked;
             ManagerFactory.gpuManager.Unhooked -= GPUManager_Unhooked;
             ManagerFactory.powerProfileManager.Applied -= PowerProfileManager_Applied;
@@ -3103,6 +3188,8 @@ namespace HandheldCompanion.ViewModels
             ManagerFactory.powerProfileManager.Initialized -= PowerProfileManager_Initialized;
             PlatformManager.RTSS.Updated -= RTSS_Updated;
             ManagerFactory.platformManager.Initialized -= PlatformManager_Initialized;
+            ManagerFactory.settingsManager.SettingValueChanged -= SettingsManager_SettingValueChanged;
+            ManagerFactory.settingsManager.Initialized -= SettingsManager_Initialized;
 
             UpdateTimer.Elapsed -= UpdateTimer_Elapsed;
             UpdateTimer.Stop();

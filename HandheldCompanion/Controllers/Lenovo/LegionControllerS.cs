@@ -9,7 +9,7 @@ namespace HandheldCompanion.Controllers.Lenovo
 {
     public class LegionControllerS : XInputController
     {
-        private controller_hidapi.net.LegionController Controller;
+        private controller_hidapi.net.LegionController? Controller;
         private byte[] data = new byte[64];
 
         #region TouchVariables
@@ -49,7 +49,7 @@ namespace HandheldCompanion.Controllers.Lenovo
             base.QuerySettings();
         }
 
-        protected override void SettingsManager_SettingValueChanged(string name, object value, bool temporary)
+        protected override void SettingsManager_SettingValueChanged(string name, object? value, bool temporary)
         {
             switch (name)
             {
@@ -193,7 +193,7 @@ namespace HandheldCompanion.Controllers.Lenovo
             Inputs.GyroState.SetAccelerometer(aX, aY, aZ);
 
             // compute motion from controller
-            if (gamepadMotions.TryGetValue(gamepadIndex, out GamepadMotion gamepadMotion))
+            if (gamepadMotions.TryGetValue(gamepadIndex, out GamepadMotion? gamepadMotion))
                 gamepadMotion.ProcessMotion(gX, gY, gZ, aX, aY, aZ, delta);
 
             // handle touchpad if passthrough is off

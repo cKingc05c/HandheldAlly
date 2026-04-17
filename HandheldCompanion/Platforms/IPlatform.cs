@@ -48,15 +48,15 @@ public abstract class IPlatform : IDisposable
     protected readonly object updateLock = new();
     protected List<string> BlacklistIds = new List<string>();
 
-    private Process _Process;
+    private Process? _Process;
 
-    public virtual string Name { get; set; }
-    public virtual string ExecutableName { get; set; }
-    public virtual string InstallPath { get; set; }
-    public virtual string ExecutablePath { get; set; }
+    public virtual string Name { get; set; } = string.Empty;
+    public virtual string ExecutableName { get; set; } = string.Empty;
+    public virtual string InstallPath { get; set; } = string.Empty;
+    public virtual string ExecutablePath { get; set; } = string.Empty;
     public virtual bool IsInstalled { get; set; }
 
-    protected Version ExpectedVersion;
+    protected Version? ExpectedVersion;
 
     protected bool IsStarting;
 
@@ -67,16 +67,16 @@ public abstract class IPlatform : IDisposable
 
     public GamePlatform PlatformType;
 
-    protected Timer PlatformWatchdog;
-    protected string SettingsPath;
+    protected Timer? PlatformWatchdog;
+    protected string SettingsPath = string.Empty;
     public PlatformStatus Status;
 
     protected int Tentative;
-    protected string Url;
+    protected string Url = string.Empty;
 
-    protected FileSystemWatcher systemWatcher;
+    protected FileSystemWatcher? systemWatcher;
 
-    protected Process Process
+    protected Process? Process
     {
         get
         {
@@ -90,11 +90,10 @@ public abstract class IPlatform : IDisposable
                     return null;
 
                 _Process = processes.FirstOrDefault();
-                _Process.EnableRaisingEvents = true;
+                _Process?.Exited += _Process_Exited;
+                _Process?.EnableRaisingEvents = true;
 
                 SetStatus(PlatformStatus.Started);
-
-                _Process.Exited += _Process_Exited;
 
                 return _Process;
             }
@@ -158,7 +157,7 @@ public abstract class IPlatform : IDisposable
         GC.SuppressFinalize(this);
     }
 
-    private void _Process_Exited(object sender, EventArgs e)
+    private void _Process_Exited(object? sender, EventArgs e)
     {
         if (_Process is null)
             return;
@@ -179,9 +178,9 @@ public abstract class IPlatform : IDisposable
         LogManager.LogInformation("Platform {0} is {1}", this.GetType().Name, Status);
     }
 
-    protected void SettingsValueChaned(string name, object value)
+    protected void SettingsValueChaned(string name, object? value)
     {
-        SettingValueChanged?.Invoke(name, Convert.ToString(value));
+        SettingValueChanged?.Invoke(name, Convert.ToString(value) ?? string.Empty);
     }
 
     public string GetName()
@@ -213,7 +212,11 @@ public abstract class IPlatform : IDisposable
                 return true;
 
             // Loop through the modules of the process
-            foreach (ProcessModule module in process.Process.Modules)
+            Process? platformProcess = process.Process;
+            if (platformProcess is null)
+                return false;
+
+            foreach (ProcessModule module in platformProcess.Modules)
             {
                 try
                 {
@@ -289,7 +292,7 @@ public abstract class IPlatform : IDisposable
             // set lock
             IsStarting = true;
 
-            Process process = null;
+            Process? process = null;
             while (process is null && Tentative < MaxTentative)
             {
                 // increase tentative counter
@@ -319,7 +322,7 @@ public abstract class IPlatform : IDisposable
                 process.WaitForInputIdle(3000);
 
                 // (re)start watchdog
-                PlatformWatchdog.Start();
+                PlatformWatchdog?.Start();
 
                 // release lock
                 IsStarting = false;
@@ -368,7 +371,7 @@ public abstract class IPlatform : IDisposable
 
     public virtual Image GetLogo()
     {
-        return null;
+        return null!;
     }
 
     public bool IsFileOverwritten(string FilePath, byte[] content)
@@ -491,10 +494,10 @@ public abstract class IPlatform : IDisposable
 
     #region events
 
-    public event StartedEventHandler Updated;
+    public event StartedEventHandler? Updated;
     public delegate void StartedEventHandler(PlatformStatus status);
 
-    public event SettingValueChangedEventHandler SettingValueChanged;
+    public event SettingValueChangedEventHandler? SettingValueChanged;
     public delegate void SettingValueChangedEventHandler(string name, object value);
 
     #endregion

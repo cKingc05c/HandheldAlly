@@ -161,7 +161,29 @@ public partial class Profile : ICloneable, IComparable, INotifyPropertyChanged
     public List<string> Executables { get; set; } = new();
 
     public bool Enabled { get; set; }
-    public bool IsLiked { get; set; } = false;
+
+    // Computed: true when GameCollection.FavoritesId is present in Collections.
+    // Kept as a serialized property so old JSON files that have "IsLiked": true
+    // automatically migrate on deserialization — the setter adds FavoritesId.
+    public bool IsLiked
+    {
+        get => Collections.Contains(GameCollection.FavoritesId);
+        set
+        {
+            if (Collections.Contains(GameCollection.FavoritesId) == value)
+                return;
+            if (value)
+                Collections.Add(GameCollection.FavoritesId);
+            else
+                Collections.Remove(GameCollection.FavoritesId);
+            OnPropertyChanged();
+        }
+    }
+
+    // Getter-only so Newtonsoft.Json adds items to the existing instance instead
+    // of replacing it, which guarantees the IsLiked migration always wins even
+    // when "IsLiked" appears before "Collections" in old JSON files.
+    public HashSet<Guid> Collections { get; } = [];
     public bool SuspendOnSleep { get; set; }
     public bool SuspendOnQT { get; set; }
 
@@ -266,9 +288,11 @@ public partial class Profile : ICloneable, IComparable, INotifyPropertyChanged
         return CloningHelper.DeepClone(this);
     }
 
-    public int CompareTo(object obj)
+    public int CompareTo(object? obj)
     {
-        var profile = (Profile)obj;
+        if (obj is not Profile profile)
+            return 1;
+
         return profile.Name.CompareTo(Name);
     }
 

@@ -47,7 +47,7 @@ namespace IKriv.Wpf
         {
             try
             {
-                decimal result = Parse(parameter.ToString()).Eval(values);
+                decimal result = Parse(parameter.ToString())?.Eval(values) ?? 0;
                 if (targetType == typeof(decimal)) return result;
                 if (targetType == typeof(string)) return result.ToString();
                 if (targetType == typeof(int)) return (int)result;
@@ -79,10 +79,12 @@ namespace IKriv.Wpf
             Console.WriteLine(ex.Message);
         }
 
-        private IExpression Parse(string s)
+        private IExpression? Parse(string? s)
         {
-            IExpression result = null;
-            if (!_storedExpressions.TryGetValue(s, out result))
+            if (s is null)
+                return null;
+
+            if (!_storedExpressions.TryGetValue(s, out IExpression? result))
             {
                 result = new Parser().Parse(s);
                 _storedExpressions[s] = result;
@@ -185,7 +187,7 @@ namespace IKriv.Wpf
 
         class Parser
         {
-            private string text;
+            private string text = string.Empty;
             private int pos;
 
             public IExpression Parse(string text)

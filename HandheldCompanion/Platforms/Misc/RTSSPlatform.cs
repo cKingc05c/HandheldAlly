@@ -30,7 +30,7 @@ public class RTSSPlatform : IPlatform
     private int TargetProcessId = 0;
 
     private bool ProfileLoaded;
-    private AppEntry appEntry;
+    private AppEntry? appEntry;
 
     public RTSSPlatform()
     {
@@ -98,7 +98,7 @@ public class RTSSPlatform : IPlatform
             StartProcess();
         else
             // hook into current process
-            Process.Exited += Process_Exited;
+            Process?.Exited += Process_Exited;
 
         // manage events
         ManagerFactory.processManager.ForegroundChanged += ProcessManager_ForegroundChanged;
@@ -168,7 +168,7 @@ public class RTSSPlatform : IPlatform
         return base.Stop(kill);
     }
 
-    public AppEntry GetAppEntry()
+    public AppEntry? GetAppEntry()
     {
         return appEntry;
     }
@@ -177,7 +177,7 @@ public class RTSSPlatform : IPlatform
     {
         int frameLimit = 0;
 
-        DesktopScreen desktopScreen = ManagerFactory.multimediaManager.PrimaryDesktop;
+        DesktopScreen? desktopScreen = ManagerFactory.multimediaManager.PrimaryDesktop;
 
         if (desktopScreen is not null)
         {
@@ -346,11 +346,11 @@ public class RTSSPlatform : IPlatform
         return 0.0d;
     }
 
-    public bool GetProfileProperty<T>(string propertyName, out T value)
+    public bool GetProfileProperty<T>(string propertyName, out T value) where T : struct
     {
         var bytes = new byte[Marshal.SizeOf<T>()];
         var handle = GCHandle.Alloc(bytes, GCHandleType.Pinned);
-        value = default;
+        System.Runtime.CompilerServices.Unsafe.SkipInit(out value);
         try
         {
             if (!GetProfileProperty(propertyName, handle.AddrOfPinnedObject(), (uint)bytes.Length))
@@ -572,7 +572,7 @@ public class RTSSPlatform : IPlatform
     private static extern bool PostMessage(nint hWnd, uint Msg, nint wParam, nint lParam);
 
     [DllImport("user32.dll", SetLastError = true)]
-    private static extern nint FindWindow(string lpClassName, string lpWindowName);
+    private static extern nint FindWindow(string? lpClassName, string lpWindowName);
 
     [DllImport("RTSSHooks64.dll")]
     public static extern uint SetFlags(uint dwAND, uint dwXOR);
@@ -602,11 +602,11 @@ public class RTSSPlatform : IPlatform
 
     #region events
 
-    public event HookedEventHandler Hooked;
+    public event HookedEventHandler? Hooked;
 
     public delegate void HookedEventHandler(AppEntry appEntry);
 
-    public event UnhookedEventHandler Unhooked;
+    public event UnhookedEventHandler? Unhooked;
 
     public delegate void UnhookedEventHandler(int processId);
 

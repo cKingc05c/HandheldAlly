@@ -203,7 +203,8 @@
                         HorizontalAlignment="Stretch"
                         ItemsSource="{Binding ProfilesView}"
                         VirtualizingPanel.IsVirtualizing="True"
-                        VirtualizingPanel.VirtualizationMode="Recycling">
+                        VirtualizingPanel.VirtualizationMode="Recycling"
+                        Visibility="{Binding IsListView, Converter={StaticResource InverseBooleanToVisibilityConverter}}">
                         <ItemsControl.ItemContainerStyle>
                             <Style TargetType="ContentPresenter">
                                 <Setter Property="HorizontalAlignment" Value="Stretch" />
@@ -259,6 +260,33 @@
                                         </Style>
                                     </ContentControl.Style>
                                 </ContentControl>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <!--  Collection groups (list view only)  -->
+                    <ItemsControl ItemsSource="{Binding CollectionGroups}" Visibility="{Binding IsListView, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <ikw:SimpleStackPanel Spacing="4">
+                                    <TextBlock Style="{DynamicResource {x:Static ui:ThemeKeys.TitleTextBlockStyleKey}}" Text="{Binding Name}" />
+                                    <ItemsControl ItemsSource="{Binding Profiles}">
+                                        <ItemsControl.ItemContainerStyle>
+                                            <Style TargetType="ContentPresenter">
+                                                <Setter Property="HorizontalAlignment" Value="Stretch" />
+                                                <Setter Property="Margin" Value="0,0,0,6" />
+                                            </Style>
+                                        </ItemsControl.ItemContainerStyle>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <ContentControl
+                                                    HorizontalAlignment="Stretch"
+                                                    Content="{Binding}"
+                                                    ContentTemplate="{StaticResource LibraryTemplateList}" />
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </ikw:SimpleStackPanel>
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>

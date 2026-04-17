@@ -27,7 +27,7 @@ namespace HandheldCompanion.Commands.Functions.Multitasking
 
                 // get the other screen
                 Screen currentScreen = Screen.FromHandle(hWnd);
-                Screen nextScreen = Screen.AllScreens.Where(screen => screen.DeviceName != currentScreen.DeviceName).FirstOrDefault();
+                Screen? nextScreen = Screen.AllScreens.Where(screen => screen.DeviceName != currentScreen.DeviceName).FirstOrDefault();
                 if (nextScreen is not null)
                 {
                     // move window

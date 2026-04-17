@@ -19,15 +19,14 @@ namespace HandheldCompanion.ViewModels
     {
         public ObservableCollection<WindowListItemViewModel> ProcessWindows { get; set; } = [];
 
-        private ProcessEx _process;
+        private ProcessEx? _process;
         public ProcessEx Process
         {
-            get => _process;
+            get => _process ?? throw new ObjectDisposedException(nameof(ProcessExViewModel));
             set
             {
                 // todo: we need to check if _hotkey != value but this will return false because this is a pointer
                 // I've implemented all required Clone() functions but not sure where to call them
-
                 UpdateProcess(_process, value);
 
                 // refresh all properties
@@ -35,7 +34,7 @@ namespace HandheldCompanion.ViewModels
             }
         }
 
-        public ImageSource Icon => Process.ProcessIcon;
+        public ImageSource? Icon => Process.ProcessIcon;
 
         public bool IsSuspended
         {
@@ -61,7 +60,8 @@ namespace HandheldCompanion.ViewModels
                 if (!string.IsNullOrEmpty(FileDescription))
                     return FileDescription;
 
-                string pName = Process.Process.MainModule?.FileVersionInfo?.ProductName ?? string.Empty;
+                var nativeProcess = Process.Process;
+                string pName = nativeProcess?.MainModule?.FileVersionInfo?.ProductName ?? string.Empty;
                 if (!string.IsNullOrEmpty(pName))
                     return pName;
 
@@ -77,7 +77,8 @@ namespace HandheldCompanion.ViewModels
                 if (!string.IsNullOrEmpty(Copyright))
                     return Copyright;
 
-                string cName = Process.Process.MainModule?.FileVersionInfo?.CompanyName ?? string.Empty;
+                var nativeProcess = Process.Process;
+                string cName = nativeProcess?.MainModule?.FileVersionInfo?.CompanyName ?? string.Empty;
                 if (!string.IsNullOrEmpty(cName))
                     return cName;
 
@@ -88,13 +89,13 @@ namespace HandheldCompanion.ViewModels
         public bool FullScreenOptimization => !Process.FullScreenOptimization;
         public bool HighDPIAware => !Process.HighDPIAware;
 
-        public bool IsRunning => Process?.Process != null && !Process.Process.HasExited;
+        public bool IsRunning => _process?.Process != null && !_process.Process.HasExited;
         public bool CanSuspend => IsRunning && !IsSuspended;
         public bool CanResume => IsRunning && IsSuspended;
 
         public ICommand SuspendProcessCommand { get; private set; }
         public ICommand ResumeProcessCommand { get; private set; }
-        public ICommand KillProcessCommand { get; private set; }
+        public ICommand? KillProcessCommand { get; private set; }
 
         public readonly bool IsQuickTools;
         public bool IsMainPage => !IsQuickTools;
@@ -213,12 +214,10 @@ namespace HandheldCompanion.ViewModels
             }
         }
 
-        private void UpdateProcess(ProcessEx oldProcess, ProcessEx newProcess)
+        private void UpdateProcess(ProcessEx? oldProcess, ProcessEx? newProcess)
         {
-            if (oldProcess is not null)
-                oldProcess.Refreshed -= ProcessRefreshed;
-
-            newProcess.Refreshed += ProcessRefreshed;
+            oldProcess?.Refreshed -= ProcessRefreshed;
+            newProcess?.Refreshed += ProcessRefreshed;
 
             _process = newProcess;
         }
@@ -250,7 +249,6 @@ namespace HandheldCompanion.ViewModels
             // clear windows
             ProcessWindows.SafeClear();
 
-            // dispose commands
             KillProcessCommand = null;
             _process = null;
 

@@ -1,5 +1,4 @@
-﻿using HandheldCompanion.Extensions;
-using HandheldCompanion.Managers;
+﻿using HandheldCompanion.Managers;
 using HandheldCompanion.Misc;
 using HandheldCompanion.ViewModels.Commands;
 using System;
@@ -145,10 +144,6 @@ namespace HandheldCompanion.ViewModels
                     break;
             }
 
-            // manage events
-            ManagerFactory.profileManager.Updated += ProfileManager_Updated;
-            ManagerFactory.profileManager.Deleted += ProfileManager_Deleted;
-
             // first‐time fill
             RefreshPage();
         }
@@ -172,6 +167,9 @@ namespace HandheldCompanion.ViewModels
 
         private void QueryProfiles()
         {
+            ManagerFactory.profileManager.Updated += ProfileManager_Updated;
+            ManagerFactory.profileManager.Deleted += ProfileManager_Deleted;
+
             foreach (Profile profile in ManagerFactory.profileManager.GetProfiles(true).Where(profile => !profile.Default && profile.IsLiked))
                 ProfileManager_Updated(profile, UpdateSource.Background, false);
 

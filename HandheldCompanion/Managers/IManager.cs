@@ -19,13 +19,13 @@ namespace HandheldCompanion.Managers
     {
         #region events
         public delegate void InitializedEventHandler();
-        public event InitializedEventHandler Initialized;
+        public event InitializedEventHandler? Initialized;
 
         public delegate void HaltedEventHandler();
-        public event HaltedEventHandler Halted;
+        public event HaltedEventHandler? Halted;
 
         public delegate void StatusChangedEventHandler(ManagerStatus status);
-        public event StatusChangedEventHandler StatusChanged;
+        public event StatusChangedEventHandler? StatusChanged;
         #endregion
 
         private ManagerStatus _Status = ManagerStatus.None;

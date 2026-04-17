@@ -15,7 +15,7 @@ public class ShapePresetResources : ResourceDictionary
         ApplyCurrentPreset();
     }
 
-    private void OnCurrentPresetChanged(object sender, EventArgs e)
+    private void OnCurrentPresetChanged(object? sender, EventArgs e)
     {
         ApplyCurrentPreset();
     }

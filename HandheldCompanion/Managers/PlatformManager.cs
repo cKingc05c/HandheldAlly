@@ -10,25 +10,25 @@ namespace HandheldCompanion.Managers;
 
 public class PlatformManager : IManager
 {
-    public static List<IPlatform> GamingPlatforms;
-    public static List<IPlatform> MiscPlatforms;
-    public static List<IPlatform> AllPlatforms;
+    public static List<IPlatform> GamingPlatforms = null!;
+    public static List<IPlatform> MiscPlatforms = null!;
+    public static List<IPlatform> AllPlatforms = null!;
 
     // gaming platforms
-    public static Steam Steam;
-    public static GOGGalaxy GOGGalaxy;
-    public static UbisoftConnect UbisoftConnect;
-    public static BattleNet BattleNet;
-    public static Origin Origin;
-    public static Epic Epic;
-    public static RiotGames RiotGames;
-    public static Rockstar Rockstar;
-    public static EADesktop EADesktop;
+    public static Steam Steam = null!;
+    public static GOGGalaxy GOGGalaxy = null!;
+    public static UbisoftConnect UbisoftConnect = null!;
+    public static BattleNet BattleNet = null!;
+    public static Origin Origin = null!;
+    public static Epic Epic = null!;
+    public static RiotGames RiotGames = null!;
+    public static Rockstar Rockstar = null!;
+    public static EADesktop EADesktop = null!;
 
     // misc platforms
-    public static RTSSPlatform RTSS;
-    public static LibreHardwarePlatform LibreHardware;
-    public static WindowsPlatform WindowsPlatform;
+    public static RTSSPlatform RTSS = null!;
+    public static LibreHardwarePlatform LibreHardware = null!;
+    public static WindowsPlatform WindowsPlatform = null!;
 
     public PlatformManager()
     { }

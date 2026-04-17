@@ -75,24 +75,24 @@ public struct HidFilter
 public abstract class IDevice
 {
     public delegate void KeyPressedEventHandler(ButtonFlags button);
-    public event KeyPressedEventHandler KeyPressed;
+    public event KeyPressedEventHandler? KeyPressed;
     public delegate void KeyReleasedEventHandler(ButtonFlags button);
-    public event KeyReleasedEventHandler KeyReleased;
+    public event KeyReleasedEventHandler? KeyReleased;
 
     public delegate void CapabilitiesChangedEventHandler(DeviceCapabilities capabilities);
-    public event CapabilitiesChangedEventHandler CapabilitiesChanged;
+    public event CapabilitiesChangedEventHandler? CapabilitiesChanged;
 
     public static readonly Guid BetterBatteryGuid = new Guid("961cc777-2547-4f9d-8174-7d86181b8a7a");
     public static readonly Guid BetterPerformanceGuid = new Guid("3af9B8d9-7c97-431d-ad78-34a8bfea439f");
     public static readonly Guid BestPerformanceGuid = new Guid("ded574b5-45a0-4f42-8737-46345c09c238");
 
-    protected static OpenLibSys openLibSys;
+    protected static OpenLibSys? openLibSys;
     protected object updateLock = new();
 
-    private static IDevice device;
+    private static IDevice? device;
 
     protected int vendorId;
-    protected int[] productIds;
+    protected int[] productIds = [];
     protected Dictionary<int, HidDevice> hidDevices = [];
     protected Dictionary<int, HidFilter> hidFilters = [];
 
@@ -148,7 +148,6 @@ public abstract class IDevice
 
     public List<double[]> fanPresets = new()
     {
-        //               00, 10, 20, 30, 40, 50, 60, 70, 80, 90,  100�C
         { new double[] { 20, 20, 20, 20, 20, 25, 30, 40, 70, 70,  100 } },  // Quiet
         { new double[] { 20, 20, 20, 30, 40, 50, 70, 80, 90, 100, 100 } },  // Default
         { new double[] { 40, 40, 40, 40, 40, 50, 70, 80, 90, 100, 100 } },  // Aggressive
@@ -316,7 +315,7 @@ public abstract class IDevice
         ManagerFactory.settingsManager.SettingValueChanged += SettingsManager_SettingValueChanged;
     }
 
-    protected virtual void SettingsManager_SettingValueChanged(string name, object value, bool temporary)
+    protected virtual void SettingsManager_SettingValueChanged(string name, object? value, bool temporary)
     { }
 
     protected virtual void SettingsManager_Initialized()
@@ -364,11 +363,8 @@ public abstract class IDevice
         SetFanControl(false);
 
         // Close openLib
-        if (openLibSys is not null)
-        {
-            openLibSys.Dispose();
-            openLibSys = null;
-        }
+        openLibSys?.Dispose();
+        openLibSys = null;
 
         // set flag
         DeviceOpen = false;
@@ -389,7 +385,7 @@ public abstract class IDevice
         SetKeyPressDelay(mode);
     }
 
-    private void GenericDeviceUpdated(PnPDevice device, Guid IntefaceGuid)
+    private void GenericDeviceUpdated(PnPDevice? device, Guid IntefaceGuid)
     {
         // todo: improve me
         PullSensors();
@@ -913,7 +909,7 @@ public abstract class IDevice
             string rawId = (gyrometer != null) ? gyrometer.DeviceId : accelerometer.DeviceId;
             string deviceId = CommonUtils.Between(rawId, @"\\?\", @"#{")?.Replace("#", @"\") ?? rawId;
 
-            USBDeviceInfo sensorInfo = GetUSBDevice(deviceId);
+            USBDeviceInfo? sensorInfo = GetUSBDevice(deviceId);
             if (sensorInfo != null)
                 InternalSensorName = sensorInfo.Name;
 
@@ -1001,7 +997,7 @@ public abstract class IDevice
 
         try
         {
-            return openLibSys.ReadIoPortByte(register);
+            return openLibSys?.ReadIoPortByte(register) ?? 0;
         }
         catch (Exception ex)
         {
@@ -1017,7 +1013,7 @@ public abstract class IDevice
 
         try
         {
-            openLibSys.WriteIoPortByte(register, data);
+            openLibSys?.WriteIoPortByte(register, data);
             return true;
         }
         catch (Exception ex)
@@ -1037,23 +1033,23 @@ public abstract class IDevice
 
         try
         {
-            openLibSys.EnterSuperIoConfig(details.AddressStatusCommandPort, details.AddressDataPort);
+            openLibSys?.EnterSuperIoConfig(details.AddressStatusCommandPort, details.AddressDataPort);
 
-            openLibSys.WriteIoPortByte(details.AddressStatusCommandPort, 0x2E);
-            openLibSys.WriteIoPortByte(details.AddressDataPort, 0x11);
-            openLibSys.WriteIoPortByte(details.AddressStatusCommandPort, 0x2F);
-            openLibSys.WriteIoPortByte(details.AddressDataPort, addr_upper);
+            openLibSys?.WriteIoPortByte(details.AddressStatusCommandPort, 0x2E);
+            openLibSys?.WriteIoPortByte(details.AddressDataPort, 0x11);
+            openLibSys?.WriteIoPortByte(details.AddressStatusCommandPort, 0x2F);
+            openLibSys?.WriteIoPortByte(details.AddressDataPort, addr_upper);
 
-            openLibSys.WriteIoPortByte(details.AddressStatusCommandPort, 0x2E);
-            openLibSys.WriteIoPortByte(details.AddressDataPort, 0x10);
-            openLibSys.WriteIoPortByte(details.AddressStatusCommandPort, 0x2F);
-            openLibSys.WriteIoPortByte(details.AddressDataPort, addr_lower);
+            openLibSys?.WriteIoPortByte(details.AddressStatusCommandPort, 0x2E);
+            openLibSys?.WriteIoPortByte(details.AddressDataPort, 0x10);
+            openLibSys?.WriteIoPortByte(details.AddressStatusCommandPort, 0x2F);
+            openLibSys?.WriteIoPortByte(details.AddressDataPort, addr_lower);
 
-            openLibSys.WriteIoPortByte(details.AddressStatusCommandPort, 0x2E);
-            openLibSys.WriteIoPortByte(details.AddressDataPort, 0x12);
-            openLibSys.WriteIoPortByte(details.AddressStatusCommandPort, 0x2F);
+            openLibSys?.WriteIoPortByte(details.AddressStatusCommandPort, 0x2E);
+            openLibSys?.WriteIoPortByte(details.AddressDataPort, 0x12);
+            openLibSys?.WriteIoPortByte(details.AddressStatusCommandPort, 0x2F);
 
-            return openLibSys.ReadIoPortByte(details.AddressDataPort);
+            return openLibSys?.ReadIoPortByte(details.AddressDataPort) ?? 0;
         }
         catch (Exception ex)
         {
@@ -1062,7 +1058,7 @@ public abstract class IDevice
         }
         finally
         {
-            openLibSys.ExitSuperIoConfig(details.AddressStatusCommandPort, details.AddressDataPort);
+            openLibSys?.ExitSuperIoConfig(details.AddressStatusCommandPort, details.AddressDataPort);
         }
     }
 
@@ -1076,22 +1072,22 @@ public abstract class IDevice
 
         try
         {
-            openLibSys.EnterSuperIoConfig(details.AddressStatusCommandPort, details.AddressDataPort);
+            openLibSys?.EnterSuperIoConfig(details.AddressStatusCommandPort, details.AddressDataPort);
 
-            openLibSys.WriteIoPortByte(details.AddressStatusCommandPort, 0x2E);
-            openLibSys.WriteIoPortByte(details.AddressDataPort, 0x11);
-            openLibSys.WriteIoPortByte(details.AddressStatusCommandPort, 0x2F);
-            openLibSys.WriteIoPortByte(details.AddressDataPort, addr_upper);
+            openLibSys?.WriteIoPortByte(details.AddressStatusCommandPort, 0x2E);
+            openLibSys?.WriteIoPortByte(details.AddressDataPort, 0x11);
+            openLibSys?.WriteIoPortByte(details.AddressStatusCommandPort, 0x2F);
+            openLibSys?.WriteIoPortByte(details.AddressDataPort, addr_upper);
 
-            openLibSys.WriteIoPortByte(details.AddressStatusCommandPort, 0x2E);
-            openLibSys.WriteIoPortByte(details.AddressDataPort, 0x10);
-            openLibSys.WriteIoPortByte(details.AddressStatusCommandPort, 0x2F);
-            openLibSys.WriteIoPortByte(details.AddressDataPort, addr_lower);
+            openLibSys?.WriteIoPortByte(details.AddressStatusCommandPort, 0x2E);
+            openLibSys?.WriteIoPortByte(details.AddressDataPort, 0x10);
+            openLibSys?.WriteIoPortByte(details.AddressStatusCommandPort, 0x2F);
+            openLibSys?.WriteIoPortByte(details.AddressDataPort, addr_lower);
 
-            openLibSys.WriteIoPortByte(details.AddressStatusCommandPort, 0x2E);
-            openLibSys.WriteIoPortByte(details.AddressDataPort, 0x12);
-            openLibSys.WriteIoPortByte(details.AddressStatusCommandPort, 0x2F);
-            openLibSys.WriteIoPortByte(details.AddressDataPort, data);
+            openLibSys?.WriteIoPortByte(details.AddressStatusCommandPort, 0x2E);
+            openLibSys?.WriteIoPortByte(details.AddressDataPort, 0x12);
+            openLibSys?.WriteIoPortByte(details.AddressStatusCommandPort, 0x2F);
+            openLibSys?.WriteIoPortByte(details.AddressDataPort, data);
 
             return true;
         }
@@ -1102,7 +1098,7 @@ public abstract class IDevice
         }
         finally
         {
-            openLibSys.ExitSuperIoConfig(details.AddressStatusCommandPort, details.AddressDataPort);
+            openLibSys?.ExitSuperIoConfig(details.AddressStatusCommandPort, details.AddressDataPort);
         }
     }
 
@@ -1111,7 +1107,7 @@ public abstract class IDevice
         if (!UseOpenLib || !IsOpen)
             return;
 
-        openLibSys.EcWriteByte(register, data);
+        openLibSys?.EcWriteByte(register, data);
     }
 
     protected virtual byte EcReadByte(byte register)
@@ -1119,7 +1115,7 @@ public abstract class IDevice
         if (!UseOpenLib || !IsOpen)
             return 0;
 
-        return openLibSys.EcReadByte(register);
+        return openLibSys?.EcReadByte(register) ?? 0;
     }
 
     public virtual void set_long_limit(int limit)

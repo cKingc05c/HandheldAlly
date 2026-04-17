@@ -67,7 +67,7 @@ public class PnPDetails
 
     public DateTimeOffset GetLastArrivalDate()
     {
-        PnPDevice device = GetPnPDevice();
+        PnPDevice? device = GetPnPDevice();
         if (device is null)
             return new();
 
@@ -76,16 +76,22 @@ public class PnPDetails
 
     public UsbPnPDevice? GetUsbPnPDevice()
     {
-        PnPDevice device = GetBasePnPDevice();
+        PnPDevice? device = GetBasePnPDevice();
         if (device is null)
             return null;
 
         // if device is HID, we need to get USB parent
-        string enumerator = device.GetProperty<string>(DevicePropertyKey.Device_EnumeratorName);
+        string? enumerator = device.GetProperty<string>(DevicePropertyKey.Device_EnumeratorName);
         if (Equals(enumerator, "HID"))
         {
-            string device_parent = device.GetProperty<string>(DevicePropertyKey.Device_Parent);
+            string? device_parent = device.GetProperty<string>(DevicePropertyKey.Device_Parent);
+            if (string.IsNullOrEmpty(device_parent))
+                return null;
+
             device = PnPDevice.GetDeviceByInstanceId(device_parent);
+            if (device is null)
+                return null;
+
             enumerator = device.GetProperty<string>(DevicePropertyKey.Device_EnumeratorName);
         }
 
@@ -136,7 +142,8 @@ public class PnPDetails
                 {
                     device.CyclePort();
                     return true;
-                } catch { }
+                }
+                catch { }
             }
         }
 
@@ -145,17 +152,7 @@ public class PnPDetails
 
     public bool InstallNullDrivers(bool basedevice = true)
     {
-        PnPDevice device;
-
-        switch (basedevice)
-        {
-            case true:
-                device = GetBasePnPDevice();
-                break;
-            case false:
-                device = GetPnPDevice();
-                break;
-        }
+        PnPDevice? device = basedevice ? GetBasePnPDevice() : GetPnPDevice();
 
         if (device is not null)
             try { device.InstallNullDriver(); return true; } catch { }
@@ -165,17 +162,7 @@ public class PnPDetails
 
     public bool InstallCustomDriver(string driverName, bool basedevice = true)
     {
-        PnPDevice device;
-
-        switch (basedevice)
-        {
-            case true:
-                device = GetBasePnPDevice();
-                break;
-            case false:
-                device = GetPnPDevice();
-                break;
-        }
+        PnPDevice? device = basedevice ? GetBasePnPDevice() : GetPnPDevice();
 
         if (device is not null)
             try { device.InstallCustomDriver(driverName); return true; } catch { }
@@ -185,23 +172,18 @@ public class PnPDetails
 
     public bool Uninstall(bool basedevice = true, bool parent = false)
     {
-        PnPDevice device;
+        PnPDevice? device = basedevice ? GetBasePnPDevice() : GetPnPDevice();
 
-        switch (basedevice)
+        if (device is null)
+            return false;
+
+        if (basedevice && parent)
         {
-            case true:
-                device = GetBasePnPDevice();
+            string? parentId = device.GetProperty<string>(DevicePropertyKey.Device_Parent);
+            if (string.IsNullOrEmpty(parentId))
+                return false;
 
-                if (parent)
-                {
-                    var parentId = device.GetProperty<string>(DevicePropertyKey.Device_Parent);
-                    device = PnPDevice.GetDeviceByInstanceId(parentId);
-                }
-
-                break;
-            case false:
-                device = GetPnPDevice();
-                break;
+            device = PnPDevice.GetDeviceByInstanceId(parentId);
         }
 
         if (device is not null)

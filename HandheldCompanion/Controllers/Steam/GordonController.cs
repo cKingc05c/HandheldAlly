@@ -14,8 +14,8 @@ namespace HandheldCompanion.Controllers.Steam
 {
     public class GordonController : SteamController
     {
-        private steam_hidapi.net.GordonController Controller;
-        private GordonControllerInputEventArgs input;
+        private steam_hidapi.net.GordonController? Controller;
+        private GordonControllerInputEventArgs? input;
 
         private const short TrackPadInner = short.MaxValue / 2;
         public const ushort MaxRumbleIntensity = 2048;
@@ -205,7 +205,7 @@ namespace HandheldCompanion.Controllers.Steam
             Inputs.GyroState.SetAccelerometer(aX, aY, aZ);
 
             // process motion
-            if (gamepadMotions.TryGetValue(gamepadIndex, out GamepadMotion gamepadMotion))
+            if (gamepadMotions.TryGetValue(gamepadIndex, out GamepadMotion? gamepadMotion))
                 gamepadMotion.ProcessMotion(gX, gY, gZ, aX, aY, aZ, delta);
 
             base.Tick(ticks, delta);
@@ -298,10 +298,10 @@ namespace HandheldCompanion.Controllers.Steam
         public override void SetVibration(byte LargeMotor, byte SmallMotor)
         {
             ushort leftAmplitude = GetHapticIntensity(LargeMotor, MaxRumbleIntensity);
-            Controller.SetHaptic((byte)SCHapticMotor.Left, leftAmplitude, 0, 1);
+            Controller?.SetHaptic((byte)SCHapticMotor.Left, leftAmplitude, 0, 1);
 
             ushort rightAmplitude = GetHapticIntensity(SmallMotor, MaxRumbleIntensity);
-            Controller.SetHaptic((byte)SCHapticMotor.Right, rightAmplitude, 0, 1);
+            Controller?.SetHaptic((byte)SCHapticMotor.Right, rightAmplitude, 0, 1);
         }
 
         public override void SetHaptic(HapticStrength strength, ButtonFlags button)
@@ -313,7 +313,7 @@ namespace HandheldCompanion.Controllers.Steam
                 HapticStrength.High => 2048,
                 _ => 0,
             };
-            Controller.SetHaptic((byte)GetMotorForButton(button), value, 0, 1);
+            Controller?.SetHaptic((byte)GetMotorForButton(button), value, 0, 1);
         }
     }
 }

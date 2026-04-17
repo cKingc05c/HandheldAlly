@@ -8,7 +8,7 @@ namespace HandheldCompanion.ViewModels
 {
     public abstract class StackViewModel : BaseViewModel
     {
-        private string _name;
+        private string _name = string.Empty;
         public string Name
         {
             get => _name;
@@ -22,7 +22,7 @@ namespace HandheldCompanion.ViewModels
             }
         }
 
-        private string _glyph;
+        private string _glyph = string.Empty;
         public string Glyph
         {
             get => _glyph;
@@ -84,7 +84,7 @@ namespace HandheldCompanion.ViewModels
         public abstract void RemoveMapping(MappingViewModel mapping);
         protected abstract void UpdateController(IController controller);
 
-        public ICommand ButtonCommand { get; protected set; }
+        public ICommand? ButtonCommand { get; protected set; }
 
         public StackViewModel(object value)
         {
@@ -92,8 +92,8 @@ namespace HandheldCompanion.ViewModels
             ControllerManager.ControllerSelected += UpdateController;
 
             // send events
-            if (ControllerManager.HasTargetController)
-                UpdateController(ControllerManager.GetTarget());
+            if (ControllerManager.GetTarget() is IController controller)
+                UpdateController(controller);
         }
 
         protected void UpdateIcon(GlyphIconInfo glyphIconInfo)

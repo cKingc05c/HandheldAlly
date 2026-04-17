@@ -21,9 +21,9 @@ namespace HandheldCompanion.Views
         private readonly object _syncRoot = new();
         private readonly ManualResetEventSlim _windowReady = new(false);
 
-        private Thread _thread;
-        private Dispatcher _dispatcher;
-        private SplashScreen _window;
+        private Thread? _thread;
+        private Dispatcher? _dispatcher;
+        private SplashScreen? _window;
 
         public void Show()
         {
@@ -48,8 +48,8 @@ namespace HandheldCompanion.Views
 
         public void Close()
         {
-            SplashScreen window;
-            Dispatcher dispatcher;
+            SplashScreen? window;
+            Dispatcher? dispatcher;
 
             lock (_syncRoot)
             {
@@ -91,7 +91,7 @@ namespace HandheldCompanion.Views
             Dispatcher.Run();
         }
 
-        private static void Window_Closed(object sender, EventArgs e)
+        private static void Window_Closed(object? sender, EventArgs e)
         {
             Dispatcher.CurrentDispatcher.BeginInvokeShutdown(DispatcherPriority.Background);
         }

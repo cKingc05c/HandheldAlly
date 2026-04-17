@@ -9,8 +9,8 @@ namespace HandheldCompanion.ViewModels
 {
     public class ControllerViewModel : BaseViewModel
     {
-        private IController _controller;
-        public IController Controller
+        private IController? _controller;
+        public IController? Controller
         {
             get => _controller;
             set
@@ -22,18 +22,18 @@ namespace HandheldCompanion.ViewModels
 
         // Encapsulating null checks for better readability
         private bool HasController => _controller is not null;
-        public string Name => HasController ? _controller.ToString() : "N/A";
-        public int UserIndex => HasController ? _controller.GetUserIndex() : 0;
-        public bool CanCalibrate => HasController && _controller.HasMotionSensor();
+        public string Name => _controller?.ToString() ?? "N/A";
+        public int UserIndex => _controller?.GetUserIndex() ?? 0;
+        public bool CanCalibrate => _controller?.HasMotionSensor() == true;
         public bool HasLayout => HasController && _controller is TarantulaProController;
-        public string Enumerator => HasController ? _controller.GetEnumerator() : "USB";
-        public bool IsBusy => HasController && _controller.IsBusy;
-        public bool IsVirtual => HasController && _controller.IsVirtual();
-        public bool IsPlugged => HasController && _controller.IsPlugged;
-        public bool IsHidden => HasController && _controller.IsHidden();
-        public bool IsInternal => HasController && _controller.IsInternal();
-        public bool IsWireless => HasController && _controller.IsWireless();
-        public bool IsDongle => HasController && _controller.IsDongle();
+        public string Enumerator => _controller?.GetEnumerator() ?? "USB";
+        public bool IsBusy => _controller?.IsBusy == true;
+        public bool IsVirtual => _controller?.IsVirtual() == true;
+        public bool IsPlugged => _controller?.IsPlugged == true;
+        public bool IsHidden => _controller?.IsHidden() == true;
+        public bool IsInternal => _controller?.IsInternal() == true;
+        public bool IsWireless => _controller?.IsWireless() == true;
+        public bool IsDongle => _controller?.IsDongle() == true;
 
         private string _LayoutGlyph = "\ue001"; // Default icon for layout
         public string LayoutGlyph
@@ -84,10 +84,10 @@ namespace HandheldCompanion.ViewModels
             }
         }
 
-        public ICommand ConnectCommand { get; private set; }
-        public ICommand HideCommand { get; private set; }
-        public ICommand CalibrateCommand { get; private set; }
-        public ICommand SwitchLayoutCommand { get; private set; }
+        public ICommand ConnectCommand { get; private set; } = null!;
+        public ICommand HideCommand { get; private set; } = null!;
+        public ICommand CalibrateCommand { get; private set; } = null!;
+        public ICommand SwitchLayoutCommand { get; private set; } = null!;
 
         public ControllerViewModel() { }
 
@@ -190,12 +190,6 @@ namespace HandheldCompanion.ViewModels
         public override void Dispose()
         {
             DisposeController();
-
-            // dispose commands
-            ConnectCommand = null;
-            HideCommand = null;
-            CalibrateCommand = null;
-            SwitchLayoutCommand = null;
 
             base.Dispose();
         }

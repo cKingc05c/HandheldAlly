@@ -7,16 +7,16 @@ namespace HandheldCompanion.Managers;
 
 public static class TaskManager
 {
-    private static string TaskExecutable;
+    private static string TaskExecutable = string.Empty;
 
     // TaskManager vars
-    private static Task task;
-    private static TaskDefinition taskDefinition;
-    private static TaskService taskService;
+    private static Task? task;
+    private static TaskDefinition? taskDefinition;
+    private static TaskService? taskService;
 
     private static bool IsInitialized;
 
-    public static event InitializedEventHandler Initialized;
+    public static event InitializedEventHandler? Initialized;
     public delegate void InitializedEventHandler();
 
     static TaskManager()
@@ -105,7 +105,7 @@ public static class TaskManager
         LogManager.LogInformation("{0} has stopped", "TaskManager");
     }
 
-    private static void SettingsManager_SettingValueChanged(string name, object value, bool temporary)
+    private static void SettingsManager_SettingValueChanged(string name, object? value, bool temporary)
     {
         switch (name)
         {

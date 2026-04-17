@@ -51,7 +51,7 @@ public static class ProcessUtils
         Restored = 9
     }
 
-    public static string GetWindowTitle(IntPtr handle)
+    public static string? GetWindowTitle(IntPtr handle)
     {
         const int nChars = 256;
         var Buff = new StringBuilder(nChars);
@@ -66,11 +66,13 @@ public static class ProcessUtils
 
         try
         {
-            var shellFile = ShellObject.FromParsingName(filePath);
-            foreach (var property in typeof(ShellProperties.PropertySystem).GetProperties(BindingFlags.Public |
-                         BindingFlags.Instance))
+            ShellObject? shellFile = ShellObject.FromParsingName(filePath);
+            if (shellFile is null)
+                return AppProperties;
+
+            foreach (PropertyInfo property in typeof(ShellProperties.PropertySystem).GetProperties(BindingFlags.Public | BindingFlags.Instance))
             {
-                var shellProperty = property.GetValue(shellFile.Properties.System, null) as IShellProperty;
+                IShellProperty? shellProperty = property.GetValue(shellFile.Properties?.System, null) as IShellProperty;
                 if (shellProperty?.ValueAsObject is null) continue;
                 if (AppProperties.ContainsKey(property.Name)) continue;
 
@@ -78,7 +80,7 @@ public static class ProcessUtils
                     foreach (var shellPropertyValue in shellPropertyValues)
                         AppProperties[property.Name] = shellPropertyValue;
                 else
-                    AppProperties[property.Name] = shellProperty.ValueAsObject.ToString();
+                    AppProperties[property.Name] = shellProperty.ValueAsObject?.ToString() ?? string.Empty;
             }
         }
         catch { }
@@ -93,14 +95,14 @@ public static class ProcessUtils
         Company = AppProperties.ContainsKey("Copyright") ? AppProperties["Copyright"] : string.Empty;
     }
 
-    public static string GetPathToApp(Process process, bool fast = true)
+    public static string? GetPathToApp(Process process, bool fast = true)
     {
         if (fast)
         {
             try
             {
                 // fast but might trigger Win32Exception
-                return process.MainModule.FileName;
+                return process.MainModule?.FileName;
             }
             catch { }
         }
@@ -152,7 +154,7 @@ public static class ProcessUtils
         return string.Empty;
     }
 
-    public static string GetPathToApp(int pid)
+    public static string? GetPathToApp(int pid)
     {
         var size = 1024;
         var sb = new StringBuilder(size);
@@ -179,7 +181,7 @@ public static class ProcessUtils
             try
             {
                 // Get the full path of the process executable
-                string processPath = GetPathToApp(process.Id);
+                string? processPath = GetPathToApp(process.Id);
                 if (string.IsNullOrEmpty(processPath))
                     continue;
 
@@ -205,10 +207,10 @@ public static class ProcessUtils
     }
 
     // A function that receives a window name as a string and look for the process that has the closest processName and return it
-    public static Process FindProcessByWindowName(IntPtr hWnd)
+    public static Process? FindProcessByWindowName(IntPtr hWnd)
     {
         // Get window name
-        string windowName = GetWindowTitle(hWnd);
+            string? windowName = GetWindowTitle(hWnd);
 
         if (string.IsNullOrEmpty(windowName))
             return null;
@@ -223,7 +225,7 @@ public static class ProcessUtils
         // Use the Levenshtein distance as a measure of similarity
         // https://en.wikipedia.org/wiki/Levenshtein_distance
         int minDistance = int.MaxValue;
-        Process closestProcess = null;
+        Process? closestProcess = null;
 
         foreach (Process process in processes)
         {
@@ -357,7 +359,7 @@ public static class ProcessUtils
                 if (processId == 0)
                     return;
 
-                if (TryGetCachedProcess(hWnd, processId, out ProcessDiagnosticInfo cachedProcess))
+                if (TryGetCachedProcess(hWnd, processId, out ProcessDiagnosticInfo? cachedProcess))
                 {
                     _realProcess = cachedProcess;
                     return;
@@ -384,7 +386,7 @@ public static class ProcessUtils
                 if (_realProcess is null || _realProcess.ExecutableFileName == UWPFrameHostApp)
                 {
                     // use Levenshtein to find the process with closest name only as a last resort
-                    Process process = FindProcessByWindowName(hWnd);
+                    Process? process = FindProcessByWindowName(hWnd);
                     if (process is not null)
                         _realProcess = TryGetProcess((uint)process.Id) ?? _realProcess;
                 }
@@ -398,7 +400,7 @@ public static class ProcessUtils
             }
         }
 
-        public ProcessDiagnosticInfo _realProcess { get; private set; }
+        public ProcessDiagnosticInfo? _realProcess { get; private set; }
 
         private bool ChildWindowCallback(IntPtr hWnd, IntPtr lparam)
         {
@@ -406,7 +408,7 @@ public static class ProcessUtils
             if (processId == 0)
                 return true;
 
-            ProcessDiagnosticInfo childProcess = TryGetProcess(processId);
+            ProcessDiagnosticInfo? childProcess = TryGetProcess(processId);
             if (childProcess is null)
                 return true;
 
@@ -419,7 +421,7 @@ public static class ProcessUtils
             return true;
         }
 
-        private static ProcessDiagnosticInfo TryGetProcess(uint processId)
+        private static ProcessDiagnosticInfo? TryGetProcess(uint processId)
         {
             try
             {
@@ -431,11 +433,11 @@ public static class ProcessUtils
             }
         }
 
-        private static bool TryGetCachedProcess(IntPtr hWnd, uint processId, out ProcessDiagnosticInfo process)
+        private static bool TryGetCachedProcess(IntPtr hWnd, uint processId, out ProcessDiagnosticInfo? process)
         {
             process = null;
 
-            if (!HostedProcessesCache.TryGetValue(hWnd, out HostedProcessCacheEntry cacheEntry))
+            if (!HostedProcessesCache.TryGetValue(hWnd, out HostedProcessCacheEntry? cacheEntry))
                 return false;
 
             if (Environment.TickCount64 - cacheEntry.Timestamp > HostedProcessCacheLifetime.TotalMilliseconds)

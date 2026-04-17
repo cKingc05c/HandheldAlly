@@ -31,8 +31,8 @@ namespace HandheldCompanion.Managers
         #endregion
 
         // controllers vars
-        public static ViGEmClient vClient;
-        public static ViGEmTarget vTarget;
+        public static ViGEmClient? vClient;
+        public static ViGEmTarget? vTarget;
 
         // dll vars
         private const string dllName = "vigemclient.dll";
@@ -54,13 +54,13 @@ namespace HandheldCompanion.Managers
 
         public static bool IsInitialized;
 
-        public static event ControllerSelectedEventHandler ControllerSelected;
+        public static event ControllerSelectedEventHandler? ControllerSelected;
         public delegate void ControllerSelectedEventHandler(HIDmode mode);
 
-        public static event InitializedEventHandler Initialized;
+        public static event InitializedEventHandler? Initialized;
         public delegate void InitializedEventHandler();
 
-        public static event VibrateEventHandler Vibrated;
+        public static event VibrateEventHandler? Vibrated;
         public delegate void VibrateEventHandler(byte LargeMotor, byte SmallMotor);
 
         static VirtualManager()
@@ -235,7 +235,7 @@ namespace HandheldCompanion.Managers
             }
         }
 
-        private static void SettingsManager_SettingValueChanged(string name, object value, bool temporary)
+        private static void SettingsManager_SettingValueChanged(string name, object? value, bool temporary)
         {
             switch (name)
             {

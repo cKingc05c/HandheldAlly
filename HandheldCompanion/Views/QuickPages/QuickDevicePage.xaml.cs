@@ -12,7 +12,7 @@ namespace HandheldCompanion.Views.QuickPages;
 /// </summary>
 public partial class QuickDevicePage : Page
 {
-    private QuickDevicePageViewModel ViewModel;
+    private QuickDevicePageViewModel? ViewModel;
 
     public QuickDevicePage()
     {
@@ -40,7 +40,7 @@ public partial class QuickDevicePage : Page
         this.Tag = Tag;
     }
 
-    private async void ViewModel_RequestAYANEOFlipScreenConfirmation(object sender, TaskCompletionSource<bool> tcs)
+    private async void ViewModel_RequestAYANEOFlipScreenConfirmation(object? sender, TaskCompletionSource<bool> tcs)
     {
         // todo: translate me
         Task<ContentDialogResult> dialogTask = new Dialog(OverlayQuickTools.GetCurrent())

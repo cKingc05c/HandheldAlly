@@ -20,8 +20,6 @@ namespace HandheldCompanion.ViewModels
             BindingOperations.EnableCollectionSynchronization(layoutList, _collectionLock);
 
             // manage events
-            ManagerFactory.layoutManager.Updated += LayoutManager_Updated;
-            ManagerFactory.settingsManager.SettingValueChanged += SettingsManager_SettingValueChanged;
             ControllerManager.ControllerSelected += ControllerManager_ControllerSelected;
 
             LayoutCollectionView = new ListCollectionView(layoutList);
@@ -39,11 +37,33 @@ namespace HandheldCompanion.ViewModels
                     break;
             }
 
-            if (ControllerManager.HasTargetController)
-                ControllerManager_ControllerSelected(ControllerManager.GetTarget());
+            switch (ManagerFactory.settingsManager.Status)
+            {
+                default:
+                case ManagerStatus.Initializing:
+                    ManagerFactory.settingsManager.Initialized += SettingsManager_Initialized;
+                    break;
+                case ManagerStatus.Initialized:
+                    QuerySettings();
+                    break;
+            }
+
+            if (ControllerManager.HasTargetController && ControllerManager.GetTarget() is IController controller)
+                ControllerManager_ControllerSelected(controller);
         }
 
-        private void SettingsManager_SettingValueChanged(string? name, object value, bool temporary)
+        private void SettingsManager_Initialized()
+        {
+            QuerySettings();
+        }
+
+        private void QuerySettings()
+        {
+            ManagerFactory.settingsManager.SettingValueChanged += SettingsManager_SettingValueChanged;
+            RefreshLayoutList();
+        }
+
+        private void SettingsManager_SettingValueChanged(string? name, object? value, bool temporary)
         {
             switch (name)
             {
@@ -53,7 +73,7 @@ namespace HandheldCompanion.ViewModels
             }
         }
 
-        private void ControllerManager_ControllerSelected(IController controller)
+        private void ControllerManager_ControllerSelected(IController? controller)
         {
             RefreshLayoutList();
         }
@@ -66,6 +86,7 @@ namespace HandheldCompanion.ViewModels
 
         private void QueryLayouts()
         {
+            ManagerFactory.layoutManager.Updated += LayoutManager_Updated;
             foreach (LayoutTemplate template in LayoutManager.Templates)
                 LayoutManager_Updated(template);
         }
@@ -121,6 +142,7 @@ namespace HandheldCompanion.ViewModels
             // manage events
             ManagerFactory.layoutManager.Updated -= LayoutManager_Updated;
             ManagerFactory.layoutManager.Initialized -= LayoutManager_Initialized;
+            ManagerFactory.settingsManager.Initialized -= SettingsManager_Initialized;
             ManagerFactory.settingsManager.SettingValueChanged -= SettingsManager_SettingValueChanged;
             ControllerManager.ControllerSelected -= ControllerManager_ControllerSelected;
 

@@ -10,7 +10,7 @@ namespace HandheldCompanion.ViewModels
     {
         public string Header => LayoutTemplate.IsInternal ? Resources.LayoutPage_Templates : Resources.LayoutPage_Community;
 
-        private LayoutTemplate _layoutTemplate;
+        private LayoutTemplate _layoutTemplate = null!;
         public LayoutTemplate LayoutTemplate
         {
             get => _layoutTemplate;
@@ -36,10 +36,10 @@ namespace HandheldCompanion.ViewModels
             }
         }
 
-        private Type _controllerType;
+        private Type _controllerType = typeof(object);
         public Type ControllerType
         {
-            get => _layoutTemplate is not null ? _layoutTemplate.ControllerType : _controllerType;
+            get => _layoutTemplate?.ControllerType ?? _controllerType;
             set
             {
                 if (_controllerType != value)
@@ -50,7 +50,7 @@ namespace HandheldCompanion.ViewModels
             }
         }
 
-        private string _name;
+        private string _name = string.Empty;
         public string Name
         {
             get => _layoutTemplate is not null ? _layoutTemplate.Name : _name;

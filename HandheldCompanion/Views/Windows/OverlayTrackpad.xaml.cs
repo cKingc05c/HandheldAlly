@@ -36,7 +36,7 @@ public partial class OverlayTrackpad : OverlayWindow
         rightInput = new TouchInput();
     }
 
-    private void SettingsManager_SettingValueChanged(string name, object value, bool temporary)
+    private void SettingsManager_SettingValueChanged(string name, object? value, bool temporary)
     {
         // UI thread
         UIHelper.TryInvoke(() =>
@@ -87,7 +87,7 @@ public partial class OverlayTrackpad : OverlayWindow
 
     public double GetWindowsScaling()
     {
-        return Screen.PrimaryScreen.Bounds.Width / SystemParameters.PrimaryScreenWidth;
+        return Screen.PrimaryScreen?.Bounds.Width / SystemParameters.PrimaryScreenWidth ?? 1.0d;
     }
 
     private void Trackpad_TouchInput(TouchEventArgs e, CursorAction action, CursorButton button)

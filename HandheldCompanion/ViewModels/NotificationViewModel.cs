@@ -9,7 +9,7 @@ namespace HandheldCompanion.ViewModels
     public class NotificationViewModel : BaseViewModel
     {
 
-        private Notification _Notification;
+        private Notification _Notification = null!;
         public Notification Notification
         {
             get => _Notification;
@@ -40,12 +40,12 @@ namespace HandheldCompanion.ViewModels
             ActionCommand = new RelayCommand(OnInfobarAction);
         }
 
-        private void OnInfoBarClosed(object obj)
+        private void OnInfoBarClosed(object? obj)
         {
             ManagerFactory.notificationManager.Discard(Notification);
         }
 
-        private void OnInfobarAction(object obj)
+        private void OnInfobarAction(object? obj)
         {
             Notification?.Execute();
         }

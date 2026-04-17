@@ -142,7 +142,7 @@ public partial class ButtonState : ICloneable, IDisposable
         }
     }
 
-    public override bool Equals(object obj)
+    public override bool Equals(object? obj)
     {
         if (obj is not ButtonState other) return false;
         if (ReferenceEquals(this, other)) return true;

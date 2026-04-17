@@ -22,7 +22,7 @@ public class DClawController : DInputController
     public byte FeedbackLargeMotor;
     public byte FeedbackSmallMotor;
 
-    private Thread rumbleThread;
+    private Thread? rumbleThread;
     private bool rumbleThreadRunning;
     private int rumbleThreadInterval = 100; // (ms)
 
@@ -116,6 +116,9 @@ public class DClawController : DInputController
         try
         {
             // get state
+            if (joystick is null)
+                return;
+
             JoystickState state = joystick.GetCurrentState();
 
             // dirty, state is corrupted, first state ?
@@ -164,7 +167,8 @@ public class DClawController : DInputController
                     Plug();
             }
             else if (ex.ResultCode == ResultCode.InputLost)
-                AttachDetails(Details);
+                if (Details is not null)
+                    AttachDetails(Details);
         }
 
         base.Tick(ticks, delta);
