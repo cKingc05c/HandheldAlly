@@ -482,18 +482,15 @@ public class ProfileManager : IManager
 
     private void ProfileCreated(object sender, FileSystemEventArgs e)
     {
-        if (pendingCreation.Contains(e.FullPath))
-        {
-            pendingCreation.Remove(e.FullPath);
+        if (pendingCreation.TryRemove(e.FullPath, out _))
             return;
-        }
 
         ProcessProfile(e.FullPath, true);
     }
 
     private void ProfileDeleted(object sender, FileSystemEventArgs e)
     {
-        if (pendingDeletion.Remove(e.FullPath))
+        if (pendingDeletion.TryRemove(e.FullPath, out _))
             return;
 
         string deletedFileName = Path.GetFileName(e.FullPath);
@@ -808,13 +805,13 @@ public class ProfileManager : IManager
             ApplyProfile(profile, updateSource);
     }
 
-    private List<string> pendingCreation = [];
-    private List<string> pendingDeletion = [];
+    private readonly ConcurrentDictionary<string, byte> pendingCreation = new(StringComparer.InvariantCultureIgnoreCase);
+    private readonly ConcurrentDictionary<string, byte> pendingDeletion = new(StringComparer.InvariantCultureIgnoreCase);
 
     public void DeleteProfile(Profile profile)
     {
         string profilePath = Path.Combine(ManagerPath, profile.GetFileName());
-        pendingDeletion.Add(profilePath);
+        pendingDeletion.TryAdd(profilePath, 0);
 
         if (profiles.ContainsKey(profile.Guid))
         {
@@ -865,7 +862,7 @@ public class ProfileManager : IManager
     {
         // prepare for writing
         string profilePath = Path.Combine(ManagerPath, profile.GetFileName());
-        pendingCreation.Add(profilePath);
+        pendingCreation.TryAdd(profilePath, 0);
 
         // update profile version to current build
         profile.Version = MainWindow.CurrentVersion;
@@ -881,6 +878,7 @@ public class ProfileManager : IManager
             if (!string.IsNullOrEmpty(profile.FileName) && !profile.FileName.Equals(profile.GetFileName(), StringComparison.InvariantCultureIgnoreCase))
             {
                 string oldPath = Path.Combine(ManagerPath, profile.FileName);
+                pendingDeletion.TryAdd(oldPath, 0);
                 File.Delete(oldPath);
             }
 
@@ -999,7 +997,7 @@ public class ProfileManager : IManager
                     break;
 
                 default:
-                    ManagerFactory.libraryManager.RefreshProfileArts(profile);
+                    ManagerFactory.libraryManager.RefreshProfileArts(profile, source);
                     break;
             }
 

@@ -346,9 +346,10 @@ namespace HandheldCompanion.ViewModels
                                 profile.LaunchString = game.LaunchString;
                                 profile.Executables = Executables.ToList();
 
-                                ManagerFactory.profileManager.UpdateOrCreateProfile(profile, isCreation ? UpdateSource.Creation : UpdateSource.Background);
-                                ManagerFactory.libraryManager.RefreshProfileArts(profile, isCreation ? UpdateSource.Creation : UpdateSource.LibraryUpdate);
+                                ManagerFactory.profileManager.UpdateOrCreateProfile(profile, isCreation ? UpdateSource.Creation : UpdateSource.LibraryUpdate);
                             }
+
+                            ManagerFactory.libraryManager.TrimImageCache();
                         }
                         break;
                     default:
@@ -651,6 +652,17 @@ namespace HandheldCompanion.ViewModels
             ManagerFactory.collectionManager.Initialized -= CollectionManager_Initialized;
 
             base.Dispose();
+        }
+
+        public void ReleaseVisualsAndTrimCache(bool clearAll = false)
+        {
+            lock (_collectionLock)
+            {
+                foreach (ProfileViewModel profile in Profiles)
+                    profile.SetVisualsVisible(false, immediate: true);
+            }
+
+            ManagerFactory.libraryManager.TrimImageCache(clearAll);
         }
 
         private void UpdateFiltering()
