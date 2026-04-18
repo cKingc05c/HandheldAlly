@@ -310,6 +310,22 @@
                     </ui:SettingsExpander.Items>
                 </ui:SettingsExpander>
 
+                <!--  Framerate Limit  -->
+                <ui:SettingsExpander
+                    Description="{l:Static resx:Resources.ProfilesPage_FramerateLimitDesc}"
+                    Header="{l:Static resx:Resources.ProfilesPage_FramerateLimit}"
+                    IsEnabled="{Binding SupportsFramerateLimiter, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}">
+                    <ui:SettingsExpander.HeaderIcon>
+                        <ui:FontIcon FontFamily="{DynamicResource SymbolThemeFontFamily}" Glyph="&#xe8b2;" />
+                    </ui:SettingsExpander.HeaderIcon>
+
+                    <ComboBox
+                        HorizontalAlignment="Stretch"
+                        VerticalAlignment="Center"
+                        ItemsSource="{Binding FramerateLimits, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}"
+                        SelectedItem="{Binding SelectedFrameLimit, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                </ui:SettingsExpander>
+
                 <!--  Processor energy performance preference (EPP)  -->
                 <ui:SettingsExpander
                     Description="{l:Static resx:Resources.ProfilesPage_EPPDesc}"

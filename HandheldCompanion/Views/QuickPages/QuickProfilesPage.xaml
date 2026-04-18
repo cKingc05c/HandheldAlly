@@ -843,9 +843,7 @@
                                     </Grid>
 
                                     <!--  AFMF 2.1 sub-controls  -->
-                                    <Separator
-                                        Background="{DynamicResource ExpanderHeaderBackground}"
-                                        Visibility="{Binding HasAFMF21Support, Mode=OneWay, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                                    <Separator Background="{DynamicResource ExpanderHeaderBackground}" Visibility="{Binding HasAFMF21Support, Mode=OneWay, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource BooleanToVisibilityConverter}}" />
 
                                     <ikw:SimpleStackPanel
                                         d:Visibility="Visible"
@@ -1101,41 +1099,6 @@
                                             ToolTip="{Binding Value, StringFormat=N0, RelativeSource={RelativeSource Self}, Mode=OneWay}"
                                             Value="{Binding RISValue, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
                                     </DockPanel>
-                                </ikw:SimpleStackPanel>
-
-                                <!--  Separator  -->
-                                <Separator Margin="-16,0,-16,0" Background="{DynamicResource SystemControlBackgroundChromeMediumBrush}" />
-
-                                <!--  Framerate Limit  -->
-                                <ikw:SimpleStackPanel
-                                    Name="StackProfileFramerate"
-                                    IsEnabled="{Binding IsRTSSReady, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}"
-                                    Spacing="3">
-
-                                    <Grid>
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="5*" />
-                                            <ColumnDefinition Width="5*" />
-                                        </Grid.ColumnDefinitions>
-
-                                        <ikw:SimpleStackPanel VerticalAlignment="Center">
-                                            <TextBlock Style="{StaticResource BodyTextBlockStyle}" Text="{l:Static resx:Resources.ProfilesPage_FramerateLimit}" />
-                                            <TextBlock
-                                                Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
-                                                Style="{StaticResource CaptionTextBlockStyle}"
-                                                Text="{l:Static resx:Resources.ProfilesPage_FramerateLimitDesc}"
-                                                TextWrapping="Wrap" />
-                                        </ikw:SimpleStackPanel>
-
-                                        <ComboBox
-                                            Name="FramerateLimitComboBox"
-                                            Grid.Column="1"
-                                            Margin="12,0,0,0"
-                                            HorizontalAlignment="Stretch"
-                                            VerticalAlignment="Center"
-                                            ItemsSource="{Binding FramerateLimits}"
-                                            SelectedItem="{Binding SelectedFrameLimit, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-                                    </Grid>
                                 </ikw:SimpleStackPanel>
                             </ikw:SimpleStackPanel>
                             <ui:ProgressRing

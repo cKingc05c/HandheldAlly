@@ -66,7 +66,6 @@ namespace HandheldCompanion.ViewModels
         public ObservableCollection<HotkeyViewModel> HotkeysList { get; set; } = [];
 
         // ComboBox collections
-        public ObservableCollection<ScreenFramelimitViewModel> FramerateLimits { get; } = [];
         public ObservableCollection<ScreenDividerViewModel> IntegerScalingDividers { get; } = [];
 
         public bool HasAnyWindows => AllWindows.Any();
@@ -1011,27 +1010,6 @@ namespace HandheldCompanion.ViewModels
             }
         }
 
-        private ScreenFramelimitViewModel? _SelectedFrameLimit;
-        public ScreenFramelimitViewModel? SelectedFrameLimit
-        {
-            get => _SelectedFrameLimit;
-            set
-            {
-                if (value != _SelectedFrameLimit)
-                {
-                    _SelectedFrameLimit = value;
-                    OnPropertyChanged(nameof(SelectedFrameLimit));
-
-                    // Only write back to profile if we're not loading from it
-                    if (!isLoadingProfile && SelectedProfile != null && value != null && value.FrameLimit.limit != SelectedProfile.FramerateValue)
-                    {
-                        SelectedProfile.FramerateValue = value.FrameLimit.limit;
-                        UpdateProfile();
-                    }
-                }
-            }
-        }
-
         // Additional Profile Wrapper Properties
         public string ProfilePath
         {
@@ -1698,7 +1676,6 @@ namespace HandheldCompanion.ViewModels
             BindingOperations.EnableCollectionSynchronization(HotkeysList, _collectionLock4);
             BindingOperations.EnableCollectionSynchronization(MainProfiles, _collectionLock5);
             BindingOperations.EnableCollectionSynchronization(SubProfiles, _collectionLock5);
-            BindingOperations.EnableCollectionSynchronization(FramerateLimits, _collectionLock6);
             BindingOperations.EnableCollectionSynchronization(IntegerScalingDividers, _collectionLock6);
             BindingOperations.EnableCollectionSynchronization(AllWindows, _collectionLock7);
 
@@ -2029,8 +2006,6 @@ namespace HandheldCompanion.ViewModels
                     break;
             }
 
-            ManagerFactory.multimediaManager.DisplaySettingsChanged += MultimediaManager_DisplaySettingsChanged;
-
             switch (ManagerFactory.gpuManager.Status)
             {
                 default:
@@ -2344,44 +2319,6 @@ namespace HandheldCompanion.ViewModels
         private void RTSS_Updated(PlatformStatus status)
         {
             IsRTSSReady = status == PlatformStatus.Ready || status == PlatformStatus.Started;
-        }
-
-        private void MultimediaManager_DisplaySettingsChanged(DesktopScreen desktopScreen, ScreenResolution resolution)
-        {
-            try
-            {
-                List<ScreenFramelimit> frameLimits = desktopScreen.GetFramelimits();
-
-                // Store the current selection before clearing (if any)
-                int? currentSelectedLimit = SelectedFrameLimit?.FrameLimit.limit;
-
-                lock (_collectionLock6)
-                {
-                    FramerateLimits.Clear();
-                    foreach (ScreenFramelimit frameLimit in frameLimits)
-                        FramerateLimits.Add(new ScreenFramelimitViewModel(frameLimit));
-                }
-
-                // Restore the selection if we had one, otherwise use the current profile's value
-                if (FramerateLimits.Any())
-                {
-                    if (currentSelectedLimit.HasValue)
-                    {
-                        var matchingLimit = FramerateLimits.FirstOrDefault(vm => vm.FrameLimit.limit == currentSelectedLimit.Value);
-                        if (matchingLimit != null)
-                            SelectedFrameLimit = matchingLimit;
-                    }
-                    else if (SelectedProfile != null)
-                    {
-                        using (new LoadingScope(this))
-                        {
-                            ScreenFramelimit closest = desktopScreen.GetClosest(SelectedProfile.FramerateValue);
-                            SelectedFrameLimit = FramerateLimits.FirstOrDefault(vm => vm.FrameLimit.limit == closest.limit);
-                        }
-                    }
-                }
-            }
-            catch { }
         }
 
         private void ProcessManager_Initialized_Main()
@@ -2848,16 +2785,6 @@ namespace HandheldCompanion.ViewModels
                 ProfileArguments = SelectedProfile.Arguments;
                 ProfileLaunchString = SelectedProfile.LaunchString;
 
-                if (FramerateLimits.Any())
-                {
-                    var desktopScreen = ManagerFactory.multimediaManager.PrimaryDesktop;
-                    if (desktopScreen != null)
-                    {
-                        ScreenFramelimit closest = desktopScreen.GetClosest(SelectedProfile.FramerateValue);
-                        SelectedFrameLimit = FramerateLimits.FirstOrDefault(vm => vm.FrameLimit.limit == closest.limit);
-                    }
-                }
-
                 UpdatePowerProfileSelections();
                 UpdateSelectedPowerProfileName();
                 UpdateControlsEnabledState();
@@ -3279,7 +3206,6 @@ namespace HandheldCompanion.ViewModels
             }
 
             ManagerFactory.multimediaManager.Initialized -= MultimediaManager_Initialized;
-            ManagerFactory.multimediaManager.DisplaySettingsChanged -= MultimediaManager_DisplaySettingsChanged;
             ManagerFactory.gpuManager.Initialized -= GpuManager_Initialized;
             ManagerFactory.gpuManager.Hooked -= GPUManager_Hooked;
             ManagerFactory.gpuManager.Unhooked -= GPUManager_Unhooked;

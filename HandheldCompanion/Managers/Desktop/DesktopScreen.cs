@@ -179,7 +179,7 @@ public class DesktopScreen : IDisposable
 
         // A variable to store the divider value, rounded to nearest even number
         int divider = 1;
-        int dmDisplayFrequency = RoundToEven(GetMaximumFrequency());
+        int dmDisplayFrequency = RoundToEven(GetCurrentFrequency());
 
         if (_cachedFrameLimits.ContainsKey(dmDisplayFrequency))
         {

@@ -100,11 +100,6 @@ public class RTSSPlatform : IPlatform
             // hook into current process
             Process?.Exited += Process_Exited;
 
-        // manage events
-        ManagerFactory.processManager.ForegroundChanged += ProcessManager_ForegroundChanged;
-        ManagerFactory.processManager.ProcessStopped += ProcessManager_ProcessStopped;
-        ManagerFactory.profileManager.Applied += ProfileManager_Applied;
-
         // raise events
         switch (ManagerFactory.processManager.Status)
         {
@@ -117,14 +112,14 @@ public class RTSSPlatform : IPlatform
                 break;
         }
 
-        switch (ManagerFactory.profileManager.Status)
+        switch (ManagerFactory.powerProfileManager.Status)
         {
             default:
             case ManagerStatus.Initializing:
-                ManagerFactory.profileManager.Initialized += ProfileManager_Initialized;
+                ManagerFactory.powerProfileManager.Initialized += PowerProfileManager_Initialized;
                 break;
             case ManagerStatus.Initialized:
-                QueryProfile();
+                QueryPowerProfile();
                 break;
         }
 
@@ -133,7 +128,11 @@ public class RTSSPlatform : IPlatform
 
     private void QueryForeground()
     {
-        ProcessEx processEx = ProcessManager.GetCurrent();
+        // manage events
+        ManagerFactory.processManager.ForegroundChanged += ProcessManager_ForegroundChanged;
+        ManagerFactory.processManager.ProcessStopped += ProcessManager_ProcessStopped;
+
+        ProcessEx? processEx = ProcessManager.GetCurrent();
         if (processEx is null)
             return;
 
@@ -146,14 +145,17 @@ public class RTSSPlatform : IPlatform
         QueryForeground();
     }
 
-    private void QueryProfile()
+    private void QueryPowerProfile()
     {
-        ProfileManager_Applied(ManagerFactory.profileManager.GetCurrent(), UpdateSource.Background);
+        // manage events
+        ManagerFactory.powerProfileManager.Applied += PowerProfileManager_Applied;
+
+        PowerProfileManager_Applied(ManagerFactory.powerProfileManager.GetCurrent(), UpdateSource.Background);
     }
 
-    private void ProfileManager_Initialized()
+    private void PowerProfileManager_Initialized()
     {
-        QueryProfile();
+        QueryPowerProfile();
     }
 
     public override bool Stop(bool kill = false)
@@ -162,8 +164,8 @@ public class RTSSPlatform : IPlatform
         ManagerFactory.processManager.ForegroundChanged -= ProcessManager_ForegroundChanged;
         ManagerFactory.processManager.ProcessStopped -= ProcessManager_ProcessStopped;
         ManagerFactory.processManager.Initialized -= ProcessManager_Initialized;
-        ManagerFactory.profileManager.Applied -= ProfileManager_Applied;
-        ManagerFactory.profileManager.Initialized -= ProfileManager_Initialized;
+        ManagerFactory.powerProfileManager.Applied -= PowerProfileManager_Applied;
+        ManagerFactory.powerProfileManager.Initialized -= PowerProfileManager_Initialized;
 
         return base.Stop(kill);
     }
@@ -173,16 +175,15 @@ public class RTSSPlatform : IPlatform
         return appEntry;
     }
 
-    private void ProfileManager_Applied(Profile profile, UpdateSource source)
+    private void PowerProfileManager_Applied(PowerProfile powerProfile, UpdateSource source)
     {
         int frameLimit = 0;
 
         DesktopScreen? desktopScreen = ManagerFactory.multimediaManager.PrimaryDesktop;
-
         if (desktopScreen is not null)
         {
             // Determine most approriate frame rate limit based on screen frequency
-            frameLimit = desktopScreen.GetClosest(profile.FramerateValue).limit;
+            frameLimit = desktopScreen.GetClosest(powerProfile.FramerateValue).limit;
         }
 
         SetTargetFPS(frameLimit);
@@ -266,7 +267,8 @@ public class RTSSPlatform : IPlatform
     {
         lock (updateLock)
         {
-            int RequestedFramerate = ManagerFactory.profileManager.GetCurrent().FramerateValue;
+            PowerProfile currentPowerProfile = ManagerFactory.powerProfileManager.GetCurrent();
+            int RequestedFramerate = currentPowerProfile.FramerateValue;
             if (GetTargetFPS() != RequestedFramerate)
                 SetTargetFPS(RequestedFramerate);
 

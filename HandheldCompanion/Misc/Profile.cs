@@ -224,7 +224,6 @@ public partial class Profile : ICloneable, IComparable, INotifyPropertyChanged
         { 1 /*PowerLineStatus.Online*/, Guid.Empty },
     };
 
-    public int FramerateValue { get; set; } = 0; // default RTSS value
     public bool GPUScaling { get; set; }
     public int ScalingMode { get; set; } = 0; // default AMD value
     public bool RSREnabled { get; set; }

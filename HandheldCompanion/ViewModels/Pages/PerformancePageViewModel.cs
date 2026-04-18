@@ -4,6 +4,7 @@ using HandheldCompanion.Managers;
 using HandheldCompanion.Managers.Desktop;
 using HandheldCompanion.Misc;
 using HandheldCompanion.Processors;
+using HandheldCompanion.ViewModels.Misc;
 using HandheldCompanion.Views;
 using HandheldCompanion.Views.Windows;
 using iNKORE.UI.WPF.Modern.Controls;
@@ -53,6 +54,8 @@ namespace HandheldCompanion.ViewModels
 
     public class PerformancePageViewModel : BaseViewModel
     {
+        public ObservableCollection<ScreenFramelimitViewModel> FramerateLimits { get; } = [];
+
         private PowerProfile _selectedPreset;
         public PowerProfile SelectedPreset
         {
@@ -123,6 +126,7 @@ namespace HandheldCompanion.ViewModels
         public bool SupportsTDP => PerformanceManager.GetProcessor()?.CanChangeTDP ?? false;
 
         public bool SupportsGPUFreq => PerformanceManager.GetProcessor()?.CanChangeGPU ?? false;
+        public bool SupportsFramerateLimiter => IsRunningRTSS;
 
         public bool PerformanceManagerEnabled => ManagerFactory.settingsManager.GetBoolean("PerformanceManagerEnabled");
 
@@ -367,6 +371,37 @@ namespace HandheldCompanion.ViewModels
                 {
                     SelectedPreset.AutoTDPRequestedFPS = value;
                     OnPropertyChanged(nameof(AutoTDPRequestedFPS));
+                }
+            }
+        }
+
+        public ScreenFramelimitViewModel? SelectedFrameLimit
+        {
+            get
+            {
+                DesktopScreen? desktopScreen = ManagerFactory.multimediaManager.PrimaryDesktop;
+                if (desktopScreen is null)
+                    return null;
+
+                lock (_collectionLock)
+                {
+                    if (!FramerateLimits.Any())
+                        return null;
+
+                    ScreenFramelimit closest = desktopScreen.GetClosest(SelectedPreset.FramerateValue);
+                    return FramerateLimits.FirstOrDefault(vm => vm.FrameLimit.limit == closest.limit);
+                }
+            }
+            set
+            {
+                if (value is null)
+                    return;
+
+                if (SelectedPreset.FramerateValue != value.FrameLimit.limit)
+                {
+                    SelectedPreset.FramerateValue = value.FrameLimit.limit;
+                    OnPropertyChanged(nameof(SelectedFrameLimit));
+                    SubmitSelectedPreset();
                 }
             }
         }
@@ -674,6 +709,10 @@ namespace HandheldCompanion.ViewModels
             nameof(SupportsGPUFreq),
             nameof(SupportsIntelEnduranceGaming),
             nameof(SupportsAutoTDP),
+            nameof(SupportsFramerateLimiter),
+            nameof(IsRunningRTSS),
+            nameof(FramerateLimits),
+            nameof(SelectedFrameLimit),
             nameof(HasWarning),
             string.Empty,
         ];
@@ -684,6 +723,7 @@ namespace HandheldCompanion.ViewModels
         {
             // Enable thread-safe access to the collection
             BindingOperations.EnableCollectionSynchronization(_profilePickerItems, _collectionLock);
+            BindingOperations.EnableCollectionSynchronization(FramerateLimits, _collectionLock);
 
             _selectedPreset = ManagerFactory.powerProfileManager.GetProfile(Guid.Empty);
 
@@ -792,10 +832,7 @@ namespace HandheldCompanion.ViewModels
 
                 // trigger power profile update but don't freeze UI
                 // todo: implement proper debounce
-                Task.Run(() =>
-                {
-                    ManagerFactory.powerProfileManager.UpdateOrCreateProfile(SelectedPreset, IsQuickTools ? UpdateSource.QuickProfilesPage : UpdateSource.ProfilesPage);
-                });
+                SubmitSelectedPreset();
             };
 
             CreatePresetCommand = new DelegateCommand(() =>
@@ -925,7 +962,17 @@ namespace HandheldCompanion.ViewModels
             // manage events
             PlatformManager.LibreHardware.CPUTemperatureChanged += LibreHardwareMonitor_CpuTemperatureChanged;
 
+            OnPropertyChanged(nameof(IsRunningRTSS));
+            OnPropertyChanged(nameof(SupportsFramerateLimiter));
             OnPropertyChanged(nameof(SupportsAutoTDP));
+        }
+
+        private void SubmitSelectedPreset()
+        {
+            Task.Run(() =>
+            {
+                ManagerFactory.powerProfileManager.UpdateOrCreateProfile(SelectedPreset, IsQuickTools ? UpdateSource.QuickProfilesPage : UpdateSource.ProfilesPage);
+            });
         }
 
         private void PlatformManager_Initialized()
@@ -1109,6 +1156,19 @@ namespace HandheldCompanion.ViewModels
 
         private void MultimediaManager_PrimaryScreenChanged(DesktopScreen? screen)
         {
+            lock (_collectionLock)
+            {
+                FramerateLimits.Clear();
+
+                if (screen is not null)
+                {
+                    foreach (ScreenFramelimit frameLimit in screen.GetFramelimits())
+                        FramerateLimits.Add(new ScreenFramelimitViewModel(frameLimit));
+                }
+            }
+
+            OnPropertyChanged(nameof(FramerateLimits));
+            OnPropertyChanged(nameof(SelectedFrameLimit));
             OnPropertyChanged(nameof(AutoTDPMaximum));
         }
 

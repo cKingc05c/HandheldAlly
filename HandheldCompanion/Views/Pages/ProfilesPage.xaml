@@ -1173,22 +1173,6 @@
                             </ui:SettingsExpander.Items>
                         </ui:SettingsExpander>
 
-                        <!--  Framerate Limit  -->
-                        <ui:SettingsCard
-                            Name="StackProfileFramerate"
-                            d:IsEnabled="True"
-                            Description="{l:Static resx:Resources.ProfilesPage_FramerateLimitDesc}"
-                            Header="{l:Static resx:Resources.ProfilesPage_FramerateLimit}"
-                            IsEnabled="{Binding IsRTSSReady, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}">
-                            <ui:SettingsCard.HeaderIcon>
-                                <ui:FontIcon Glyph="&#xe8b2;" />
-                            </ui:SettingsCard.HeaderIcon>
-
-                            <ComboBox
-                                Name="FramerateLimitComboBox"
-                                ItemsSource="{Binding FramerateLimits}"
-                                SelectedItem="{Binding SelectedFrameLimit, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
-                        </ui:SettingsCard>
                     </ikw:SimpleStackPanel>
 
                     <!--  Library settings  -->
