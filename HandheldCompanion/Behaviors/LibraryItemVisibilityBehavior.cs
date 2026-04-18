@@ -1,3 +1,4 @@
+using HandheldCompanion.Shared;
 using HandheldCompanion.ViewModels;
 using System;
 using System.Windows;
@@ -76,8 +77,6 @@ public static class LibraryItemVisibilityBehavior
 
         private void Element_Unloaded(object sender, RoutedEventArgs e)
         {
-            // element.DataContext may already be the {DisconnectedItem} sentinel in recycling
-            // virtualization by the time Unloaded fires, so use the last tracked ViewModel.
             SetVisualVisibility(trackedViewModel, false, immediate: true);
         }
 

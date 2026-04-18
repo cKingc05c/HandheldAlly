@@ -368,21 +368,21 @@ namespace HandheldCompanion.Managers
             return bestEntry;
         }
 
-        public async Task<bool> DownloadGameArts(LibraryEntry entry, bool preview)
+        public async Task<bool> DownloadGameArts(LibraryEntry entry, bool preview, bool includeThumbnails = false)
         {
             // check connection
             if (!IsConnected)
                 return false;
 
             if (entry is SteamGridEntry steamGridEntry)
-                return await DownloadGameArts(steamGridEntry, preview);
+                return await DownloadGameArts(steamGridEntry, preview, includeThumbnails);
             else if (entry is IGDBEntry igdbEntry)
-                return await DownloadGameArts(igdbEntry, preview);
+                return await DownloadGameArts(igdbEntry, preview, includeThumbnails);
 
             return true;
         }
 
-        public async Task<bool> DownloadGameArts(SteamGridEntry entry, bool preview)
+        public async Task<bool> DownloadGameArts(SteamGridEntry entry, bool preview, bool includeThumbnails = false)
         {
             // check connection
             if (!IsConnected)
@@ -411,6 +411,17 @@ namespace HandheldCompanion.Managers
                 // download logo
                 if (entry.Logo != null)
                     await DownloadGameArt(entry.Id, entry.Logo, LibraryType.logo);
+
+                if (includeThumbnails)
+                {
+                    // download thumbnail variants for selected arts
+                    if (entry.Grid != null)
+                        await DownloadGameArt(entry.Id, entry.Grid, LibraryType.cover | LibraryType.thumbnails);
+                    if (entry.Hero != null)
+                        await DownloadGameArt(entry.Id, entry.Hero, LibraryType.artwork | LibraryType.thumbnails);
+                    if (entry.Logo != null)
+                        await DownloadGameArt(entry.Id, entry.Logo, LibraryType.logo | LibraryType.thumbnails);
+                }
             }
 
             return true;
@@ -489,7 +500,7 @@ namespace HandheldCompanion.Managers
             return false;
         }
 
-        public async Task<bool> DownloadGameArts(IGDBEntry entry, bool preview)
+        public async Task<bool> DownloadGameArts(IGDBEntry entry, bool preview, bool includeThumbnails = false)
         {
             // check connection
             if (!IsConnected)
@@ -512,6 +523,15 @@ namespace HandheldCompanion.Managers
                 // download artwork
                 if (entry.Artwork != null)
                     await DownloadGameArt(entry.Id, entry.Artwork, LibraryType.artwork, preview);
+
+                if (includeThumbnails)
+                {
+                    // download thumbnail variants for selected arts
+                    if (entry.Cover != null)
+                        await DownloadGameArt(entry.Id, entry.Cover, LibraryType.cover | LibraryType.thumbnails, preview);
+                    if (entry.Artwork != null)
+                        await DownloadGameArt(entry.Id, entry.Artwork, LibraryType.artwork | LibraryType.thumbnails, preview);
+                }
             }
 
             return true;
@@ -760,8 +780,8 @@ namespace HandheldCompanion.Managers
             profile.LibraryEntry = entry;
             profile.Name = entry.Name;
 
-            // download arts
-            await ManagerFactory.libraryManager.DownloadGameArts(entry, false);
+            // download arts (including thumbnails for library card display)
+            await ManagerFactory.libraryManager.DownloadGameArts(entry, false, includeThumbnails: true);
 
             // update status
             ProfileStatusChanged?.Invoke(profile, ManagerStatus.None);

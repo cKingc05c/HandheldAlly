@@ -82,8 +82,7 @@ namespace HandheldCompanion.ViewModels
             if (image is null || image == LibraryResources.MissingArtwork)
                 return false;
 
-            string? uri = image.UriSource?.ToString();
-            return !string.IsNullOrEmpty(uri) || image.StreamSource is not null;
+            return image.PixelWidth > 0 && image.PixelHeight > 0;
         }
 
         private static bool HasDisplayLogo(BitmapImage? image)
@@ -91,8 +90,7 @@ namespace HandheldCompanion.ViewModels
             if (image is null)
                 return false;
 
-            string? uri = image.UriSource?.ToString();
-            return !string.IsNullOrEmpty(uri) || image.StreamSource is not null;
+            return image.PixelWidth > 0 && image.PixelHeight > 0;
         }
 
         private BitmapImage? GetLaunchDialogArtwork()
@@ -160,14 +158,18 @@ namespace HandheldCompanion.ViewModels
                 return;
             }
 
+            // Library cards (deferVisualLoading) use the pre-downloaded thumbnail variants to
+            // reduce both decode time and working-set memory compared to the full-resolution files.
+            bool useThumbnails = deferVisualLoading;
+
             ImageRequestKey nextRequestKey = new(
                 _Profile.LibraryEntry.Id,
                 _Profile.LibraryEntry.GetCoverId(),
-                _Profile.LibraryEntry.GetCoverExtension(false),
+                _Profile.LibraryEntry.GetCoverExtension(useThumbnails),
                 _Profile.LibraryEntry.GetArtworkId(),
-                _Profile.LibraryEntry.GetArtworkExtension(false),
+                _Profile.LibraryEntry.GetArtworkExtension(useThumbnails),
                 _Profile.LibraryEntry.GetLogoId(),
-                _Profile.LibraryEntry.GetLogoExtension(false));
+                _Profile.LibraryEntry.GetLogoExtension(useThumbnails));
 
             if (!forceReload && currentImageRequestKey == nextRequestKey && visualsLoaded)
                 return;
@@ -194,9 +196,13 @@ namespace HandheldCompanion.ViewModels
 
                 (BitmapImage? cover, BitmapImage? artwork, BitmapImage? logo) = await Task.Run(() =>
                 {
-                    BitmapImage? cover = ManagerFactory.libraryManager.GetGameArt(requestKey.Id, LibraryType.cover, requestKey.CoverId, requestKey.CoverExtension);
-                    BitmapImage? artwork = ManagerFactory.libraryManager.GetGameArt(requestKey.Id, LibraryType.artwork, requestKey.ArtworkId, requestKey.ArtworkExtension);
-                    BitmapImage? logo = ManagerFactory.libraryManager.GetGameArt(requestKey.Id, LibraryType.logo, requestKey.LogoId, requestKey.LogoExtension);
+                    LibraryType coverType  = deferVisualLoading ? LibraryType.cover   | LibraryType.thumbnails : LibraryType.cover;
+                    LibraryType artworkType = deferVisualLoading ? LibraryType.artwork | LibraryType.thumbnails : LibraryType.artwork;
+                    LibraryType logoType   = deferVisualLoading ? LibraryType.logo    | LibraryType.thumbnails : LibraryType.logo;
+
+                    BitmapImage? cover = ManagerFactory.libraryManager.GetGameArt(requestKey.Id, coverType,   requestKey.CoverId,   requestKey.CoverExtension);
+                    BitmapImage? artwork = ManagerFactory.libraryManager.GetGameArt(requestKey.Id, artworkType, requestKey.ArtworkId, requestKey.ArtworkExtension);
+                    BitmapImage? logo = ManagerFactory.libraryManager.GetGameArt(requestKey.Id, logoType,   requestKey.LogoId,   requestKey.LogoExtension);
                     return (cover, artwork, logo);
                 }, cancellationToken).ConfigureAwait(false);
 
