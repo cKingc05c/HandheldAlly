@@ -28,8 +28,9 @@ public enum GamePlatform
     RiotGames = 64,
     Rockstar = 128,
     EADesktop = 256,
+    MicrosoftStore = 512,
 
-    All = Generic | Steam | Origin | UbisoftConnect | GOG | BattleNet | Epic | RiotGames | Rockstar | EADesktop
+    All = Generic | Steam | Origin | UbisoftConnect | GOG | BattleNet | Epic | RiotGames | Rockstar | EADesktop | MicrosoftStore
 }
 
 public enum PlatformStatus

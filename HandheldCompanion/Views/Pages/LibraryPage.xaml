@@ -74,6 +74,10 @@
                                             Header="Steam" />
                                         <MenuItem
                                             Command="{Binding ScanLibraryCommand}"
+                                            CommandParameter="Microsoft Store"
+                                            Header="Microsoft Store" />
+                                        <MenuItem
+                                            Command="{Binding ScanLibraryCommand}"
                                             CommandParameter="Ubisoft"
                                             Header="Ubisoft Connect" />
                                     </ui:MenuFlyout>

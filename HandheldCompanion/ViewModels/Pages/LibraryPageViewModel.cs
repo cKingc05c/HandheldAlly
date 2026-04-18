@@ -10,6 +10,7 @@ using GameLib.Plugin.Ubisoft.Model;
 using HandheldCompanion.Managers;
 using HandheldCompanion.Misc;
 using HandheldCompanion.Platforms;
+using HandheldCompanion.Platforms.Games;
 using HandheldCompanion.Views;
 using iNKORE.UI.WPF.Modern.Controls;
 using System;
@@ -166,6 +167,7 @@ namespace HandheldCompanion.ViewModels
             { typeof(SteamGame), GamePlatform.Steam },
             { typeof(UbisoftGame), GamePlatform.UbisoftConnect },
             { typeof(EAGame), GamePlatform.EADesktop },
+            { typeof(MicrosoftStoreGame), GamePlatform.MicrosoftStore },
         };
 
         private readonly SynchronizationContext _uiContext;
@@ -279,6 +281,9 @@ namespace HandheldCompanion.ViewModels
                                     break;
                                 case "Steam":
                                     games.AddRange(PlatformManager.GetGames(GamePlatform.Steam));
+                                    break;
+                                case "Microsoft Store":
+                                    games.AddRange(PlatformManager.GetGames(GamePlatform.MicrosoftStore));
                                     break;
                                 case "Ubisoft":
                                     games.AddRange(PlatformManager.GetGames(GamePlatform.UbisoftConnect));

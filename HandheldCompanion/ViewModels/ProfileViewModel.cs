@@ -448,6 +448,8 @@ namespace HandheldCompanion.ViewModels
                         return PlatformManager.RiotGames?.GetLogo();
                     case GamePlatform.Rockstar:
                         return PlatformManager.Rockstar?.GetLogo();
+                    case GamePlatform.MicrosoftStore:
+                        return PlatformManager.MicrosoftStore?.GetLogo();
                 }
             }
         }

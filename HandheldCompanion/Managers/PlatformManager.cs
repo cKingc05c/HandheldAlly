@@ -24,6 +24,7 @@ public class PlatformManager : IManager
     public static RiotGames RiotGames = null!;
     public static Rockstar Rockstar = null!;
     public static EADesktop EADesktop = null!;
+    public static MicrosoftStore MicrosoftStore = null!;
 
     // misc platforms
     public static RTSSPlatform RTSS = null!;
@@ -50,6 +51,7 @@ public class PlatformManager : IManager
         RiotGames = new RiotGames();
         Rockstar = new Rockstar();
         EADesktop = new EADesktop();
+        MicrosoftStore = new MicrosoftStore();
 
         // initialize misc platforms
         RTSS = new RTSSPlatform();
@@ -57,7 +59,7 @@ public class PlatformManager : IManager
         WindowsPlatform = new WindowsPlatform();
 
         // populate lists
-        GamingPlatforms = new() { Steam, GOGGalaxy, UbisoftConnect, BattleNet, Origin, Epic, RiotGames, Rockstar, EADesktop };
+        GamingPlatforms = new() { Steam, GOGGalaxy, UbisoftConnect, BattleNet, Origin, Epic, RiotGames, Rockstar, EADesktop, MicrosoftStore };
         MiscPlatforms = new() { RTSS, LibreHardware, WindowsPlatform };
         AllPlatforms = new(GamingPlatforms.Concat(MiscPlatforms));
 
