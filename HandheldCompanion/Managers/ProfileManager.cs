@@ -997,7 +997,7 @@ public class ProfileManager : IManager
                     break;
 
                 default:
-                    ManagerFactory.libraryManager.RefreshProfileArts(profile, source);
+                    ManagerFactory.libraryManager.RefreshProfileArts(profile, source, includeFullResAssets: false);
                     break;
             }
 

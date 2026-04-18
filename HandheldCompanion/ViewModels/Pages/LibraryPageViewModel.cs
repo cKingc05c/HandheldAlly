@@ -228,7 +228,7 @@ namespace HandheldCompanion.ViewModels
                 switch (dialogTask.Result)
                 {
                     case ContentDialogResult.Primary:
-                        ManagerFactory.libraryManager.RefreshProfilesArts();
+                        await ManagerFactory.libraryManager.RefreshProfilesArts();
                         break;
                     default:
                         break;

@@ -65,7 +65,10 @@ namespace HandheldCompanion.ViewModels
                 OnPropertyChanged(nameof(Name));
                 OnPropertyChanged(nameof(CanOpenExecutableLocation));
 
-                RefreshImages(forceReload: true);
+                if (IsLibrary)
+                    RefreshImages(forceReload: true);
+                else
+                    ReleaseVisuals(clearRequestKey: true);
             }
         }
 
@@ -146,6 +149,12 @@ namespace HandheldCompanion.ViewModels
 
         private void RefreshImages(bool forceReload = false)
         {
+            if (!IsLibrary)
+            {
+                ReleaseVisuals(clearRequestKey: true);
+                return;
+            }
+
             if (IsLibrary && !areVisualsVisible)
             {
                 ReleaseVisuals();

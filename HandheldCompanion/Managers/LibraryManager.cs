@@ -668,15 +668,20 @@ namespace HandheldCompanion.Managers
             // do something
         }
 
-        public void RefreshProfilesArts()
+        public async Task RefreshProfilesArts()
         {
-            Parallel.ForEachAsync(ManagerFactory.profileManager.GetProfiles(true), new ParallelOptions { MaxDegreeOfParallelism = 4 }, async (profile, cancellationToken) =>
+            await Parallel.ForEachAsync(ManagerFactory.profileManager.GetProfiles(true), new ParallelOptions { MaxDegreeOfParallelism = 4 }, async (profile, cancellationToken) =>
             {
-                RefreshProfileArts(profile);
+                await RefreshProfileArtsAsync(profile, UpdateSource.LibraryUpdate, includeFullResAssets: false);
             });
         }
 
-        public async void RefreshProfileArts(Profile profile, UpdateSource source = UpdateSource.LibraryUpdate)
+        public async void RefreshProfileArts(Profile profile, UpdateSource source = UpdateSource.LibraryUpdate, bool includeFullResAssets = false)
+        {
+            await RefreshProfileArtsAsync(profile, source, includeFullResAssets);
+        }
+
+        private async Task RefreshProfileArtsAsync(Profile profile, UpdateSource source, bool includeFullResAssets)
         {
             // skip if profile is default
             if (profile.Default)
@@ -719,13 +724,13 @@ namespace HandheldCompanion.Managers
                 return;
 
             // download arts
-            await UpdateProfileArts(profile, entry, (int)coverId, (int)artworkId, (int)logoId);
+            await UpdateProfileArts(profile, entry, (int)coverId, (int)artworkId, (int)logoId, includeFullResAssets);
 
             // update profile
-            ManagerFactory.profileManager.UpdateOrCreateProfile(profile, UpdateSource.LibraryUpdate);
+            ManagerFactory.profileManager.UpdateOrCreateProfile(profile, source);
         }
 
-        public async Task UpdateProfileArts(Profile profile, LibraryEntry entry, int coverId = 0, int artworkId = 0, int logoId = 0)
+        public async Task UpdateProfileArts(Profile profile, LibraryEntry entry, int coverId = 0, int artworkId = 0, int logoId = 0, bool includeFullResAssets = true)
         {
             // update status
             ProfileStatusChanged?.Invoke(profile, ManagerStatus.Busy);
@@ -752,8 +757,30 @@ namespace HandheldCompanion.Managers
             profile.LibraryEntry = entry;
             profile.Name = entry.Name;
 
-            // download arts (including thumbnails for library card display)
-            await ManagerFactory.libraryManager.DownloadGameArts(entry, false, includeThumbnails: true);
+            if (includeFullResAssets)
+            {
+                // download arts (including thumbnails for library card display)
+                await ManagerFactory.libraryManager.DownloadGameArts(entry, false, includeThumbnails: true);
+            }
+            else if (entry is SteamGridEntry steamGridEntry)
+            {
+                if (steamGridEntry.Grid != null)
+                    await DownloadGameArt(entry.Id, steamGridEntry.Grid, LibraryType.cover | LibraryType.thumbnails);
+
+                if (steamGridEntry.Hero != null)
+                    await DownloadGameArt(entry.Id, steamGridEntry.Hero, LibraryType.artwork | LibraryType.thumbnails);
+
+                if (steamGridEntry.Logo != null)
+                    await DownloadGameArt(entry.Id, steamGridEntry.Logo, LibraryType.logo | LibraryType.thumbnails);
+            }
+            else if (entry is IGDBEntry igdbEntry)
+            {
+                if (igdbEntry.Cover != null)
+                    await DownloadGameArt(entry.Id, igdbEntry.Cover, LibraryType.cover | LibraryType.thumbnails, false);
+
+                if (igdbEntry.Artwork != null)
+                    await DownloadGameArt(entry.Id, igdbEntry.Artwork, LibraryType.artwork | LibraryType.thumbnails, false);
+            }
 
             // update status
             ProfileStatusChanged?.Invoke(profile, ManagerStatus.None);
