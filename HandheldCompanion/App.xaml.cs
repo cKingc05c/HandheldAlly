@@ -71,12 +71,11 @@ public partial class App : Application
 
         // Initialize LogManager before accessing ManagerFactory to prevent initialization order issues
         Environment.SetEnvironmentVariable("LOG_PATH", LogsPath);
-        LogManager.Initialize(ApplicationName);
-
 #if DEBUG
         if (!ManagerFactory.settingsManager.GetBoolean("MuteConsole"))
             AllocConsole();
 #endif
+        LogManager.Initialize(ApplicationName);
     }
 
     static DateTime GetLatestUserConfigWriteUtc(string root)
