@@ -16,7 +16,7 @@
     Title="{l:Static resx:Resources.DevicePage_Device}"
     d:Background="White"
     d:DataContext="{d:DesignInstance Type=viewmodels:DevicePageViewModel}"
-    d:DesignHeight="2200"
+    d:DesignHeight="3000"
     d:DesignWidth="1000"
     KeepAlive="True"
     Loaded="Page_Loaded"
@@ -814,6 +814,7 @@
 
                     <ui:SettingsCard
                         Name="LegionGoControllerSwap"
+                        IsEnabled="False"
                         Description="{l:Static resx:Resources.ControllerPage_LegionGoControllerSwapDesc}"
                         Header="{l:Static resx:Resources.ControllerPage_LegionGoControllerSwap}">
                         <ui:SettingsCard.HeaderIcon>

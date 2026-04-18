@@ -1,4 +1,5 @@
-﻿using HandheldCompanion.Actions;
+﻿// #define USE_SAPIENTIAUSB
+using HandheldCompanion.Actions;
 using HandheldCompanion.Inputs;
 using HidLibrary;
 using System;
@@ -13,8 +14,6 @@ namespace HandheldCompanion.Devices
 {
     public class LegionGoTablet : LegionGo
     {
-        private const bool USE_SAPIENTIAUSB = false;
-
         public const int LeftJoyconIndex = 3;
         public const int RightJoyconIndex = 4;
 
@@ -184,7 +183,7 @@ namespace HandheldCompanion.Devices
         public override void SetControllerSwap(bool enabled)
         {
             if (hidDevices.TryGetValue(INPUT_HID_ID, out HidDevice? device))
-                device.Write([0x05, 0x06, 0x69, 0x04, 0x01, (byte)(enabled ? 0x02 : 0x01), 0x01]);
+                device.Write([0x05, 0x06, 0x69, 0x04, 0x01, (byte)(enabled ? 0x02 : 0x01)]);
 
             base.SetControllerSwap(enabled);
         }

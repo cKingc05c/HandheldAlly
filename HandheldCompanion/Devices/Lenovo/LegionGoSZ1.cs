@@ -1,4 +1,5 @@
-﻿using HandheldCompanion.Actions;
+﻿// #define USE_SAPIENTIAUSB
+using HandheldCompanion.Actions;
 using HandheldCompanion.Inputs;
 using HidLibrary;
 using System;
@@ -12,8 +13,6 @@ namespace HandheldCompanion.Devices
 {
     public class LegionGoSZ1 : LegionGo
     {
-        private const bool USE_SAPIENTIAUSB = false;
-
         private LightionProfile lightProfile = new();
 
         public LegionGoSZ1()
@@ -130,7 +129,7 @@ namespace HandheldCompanion.Devices
         public override void SetControllerSwap(bool enabled)
         {
             if (hidDevices.TryGetValue(INPUT_HID_ID, out HidDevice? device))
-                device.Write(WithReportID([0x05, 0x06, 0x69, 0x04, 0x01, (byte)(enabled ? 0x02 : 0x01), 0x01]));
+                device.Write(WithReportID([0x05, 0x06, 0x69, 0x04, 0x01, (byte)(enabled ? 0x02 : 0x01)]));
 
             base.SetControllerSwap(enabled);
         }
