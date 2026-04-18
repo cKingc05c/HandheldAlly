@@ -331,23 +331,21 @@ public class MultimediaManager : IManager
                 List<DisplayDevice> resolutions = GetResolutions(desktopScreen.screen.DeviceName);
                 foreach (DisplayDevice mode in resolutions)
                 {
-                    ScreenResolution res = new ScreenResolution(mode.dmPelsWidth, mode.dmPelsHeight, mode.dmBitsPerPel);
+                    ScreenResolution? resolution = desktopScreen.screenResolutions
+                        .FirstOrDefault(a => a.Width == mode.dmPelsWidth && a.Height == mode.dmPelsHeight);
 
-                    // Get all frequencies for this resolution
-                    List<int> frequencies = resolutions
-                        .Where(a => a.dmPelsWidth == mode.dmPelsWidth &&
-                                    a.dmPelsHeight == mode.dmPelsHeight &&
-                                    a.dmBitsPerPel == mode.dmBitsPerPel)
-                        .Select(b => b.dmDisplayFrequency)
-                        .Distinct()
-                        .OrderBy(f => f)
-                        .ToList();
+                    if (resolution is null)
+                    {
+                        resolution = new ScreenResolution(mode.dmPelsWidth, mode.dmPelsHeight, mode.dmBitsPerPel);
+                        desktopScreen.screenResolutions.Add(resolution);
+                    }
+                    else if (mode.dmBitsPerPel > resolution.BitsPerPel)
+                    {
+                        resolution.BitsPerPel = mode.dmBitsPerPel;
+                    }
 
-                    foreach (int frequency in frequencies)
-                        res.Frequencies.Add(frequency, frequency);
-
-                    if (!desktopScreen.HasResolution(res))
-                        desktopScreen.screenResolutions.Add(res);
+                    if (mode.dmDisplayFrequency > 1 && !resolution.Frequencies.ContainsKey(mode.dmDisplayFrequency))
+                        resolution.Frequencies.Add(mode.dmDisplayFrequency, mode.dmDisplayFrequency);
                 }
 
                 // Get current resolution info

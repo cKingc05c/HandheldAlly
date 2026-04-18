@@ -459,14 +459,13 @@ namespace HandheldCompanion.ViewModels
                     return;
                 }
 
-                if (resolution is not null && resolution != SelectedResolution)
+                int screenFrequency = desktopScreen.GetCurrentFrequency();
+
+                if (resolution is not null)
                 {
                     SelectedResolution = resolution;
-                    UpdateFrequenciesForResolution(resolution);
+                    UpdateFrequenciesForResolution(resolution, screenFrequency);
                 }
-
-                // Select current frequency
-                int screenFrequency = desktopScreen.GetCurrentFrequency();
 
                 lock (_collectionLock2)
                 {
@@ -486,15 +485,19 @@ namespace HandheldCompanion.ViewModels
             }
         }
 
-        private void UpdateFrequenciesForResolution(ScreenResolution resolution)
+        private void UpdateFrequenciesForResolution(ScreenResolution resolution, int? currentFrequency = null)
         {
             // Store current selection before clearing
-            int? currentSelectedFrequency = SelectedFrequency?.Frequency;
+            int? currentSelectedFrequency = currentFrequency ?? SelectedFrequency?.Frequency;
+            IEnumerable<int> frequencies = resolution.Frequencies.Keys;
+
+            if (currentFrequency.HasValue && currentFrequency.Value > 1)
+                frequencies = frequencies.Append(currentFrequency.Value);
 
             lock (_collectionLock2)
             {
                 Frequencies.Clear();
-                foreach (int frequency in resolution.Frequencies.Keys)
+                foreach (int frequency in frequencies.Distinct().OrderByDescending(f => f))
                 {
                     Frequencies.Add(new ScreenFrequencyViewModel(frequency));
                 }
