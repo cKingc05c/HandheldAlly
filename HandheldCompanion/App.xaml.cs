@@ -69,6 +69,10 @@ public partial class App : Application
         SettingsPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), ApplicationName);
         LogsPath = Path.Combine(SettingsPath, "logs");
 
+        // Initialize LogManager before accessing ManagerFactory to prevent initialization order issues
+        Environment.SetEnvironmentVariable("LOG_PATH", LogsPath);
+        LogManager.Initialize(ApplicationName);
+
 #if DEBUG
         if (!ManagerFactory.settingsManager.GetBoolean("MuteConsole"))
             AllocConsole();
@@ -189,11 +193,9 @@ public partial class App : Application
             FileVersionInfo fileVersionInfo = FileVersionInfo.GetVersionInfo(CurrentAssembly.Location);
 
             // Set environment variables
-            Environment.SetEnvironmentVariable("LOG_PATH", LogsPath);
             Environment.SetEnvironmentVariable("COMPlus_legacyCorruptedStateExceptionsPolicy", "1");
 
-            // initialize log
-            LogManager.Initialize(ApplicationName);
+            // Log application start (LogManager already initialized in constructor)
             LogManager.LogInformation("{0} ({1})", CurrentAssembly.GetName().ToString(), fileVersionInfo.FileVersion ?? string.Empty);
 
             using (Process process = Process.GetCurrentProcess())
