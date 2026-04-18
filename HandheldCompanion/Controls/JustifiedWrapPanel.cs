@@ -1,14 +1,18 @@
+using HandheldCompanion.Utils;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Reflection;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 
 namespace HandheldCompanion.Controls
 {
-    public sealed class JustifiedWrapPanel : Panel
+    public sealed class JustifiedWrapPanel : VirtualizingPanel
     {
+        private const double OverscanViewportMultiplier = 0.5;
+
         public static readonly DependencyProperty TargetRowHeightProperty = DependencyProperty.Register(
             nameof(TargetRowHeight),
             typeof(double),
@@ -42,7 +46,14 @@ namespace HandheldCompanion.Controls
         public static int GetItemSpan(UIElement element) => (int)element.GetValue(ItemSpanProperty);
         public static void SetItemSpan(UIElement element, int value) => element.SetValue(ItemSpanProperty, value);
 
-        private readonly List<RowLayout> rows = new();
+        private LayoutInfo currentLayout = LayoutInfo.Empty;
+        private ScrollViewer? observedScrollViewer;
+
+        public JustifiedWrapPanel()
+        {
+            Loaded += JustifiedWrapPanel_Loaded;
+            Unloaded += JustifiedWrapPanel_Unloaded;
+        }
 
         public double TargetRowHeight
         {
@@ -70,95 +81,187 @@ namespace HandheldCompanion.Controls
 
         protected override Size MeasureOverride(Size availableSize)
         {
-            LayoutInfo layout = BuildLayout(availableSize);
+            AttachScrollViewer();
 
-            foreach (RowLayout row in rows)
+            ItemsControl? itemsOwner = ItemsControl.GetItemsOwner(this);
+            if (itemsOwner is null || itemsOwner.Items.Count == 0)
             {
-                foreach (ItemLayout item in row.Items)
-                    item.Child.Measure(new Size(item.Width, item.Height));
+                currentLayout = LayoutInfo.Empty;
+                CleanupItems(-1, -1, itemsOwner);
+                return new Size(0.0, 0.0);
             }
 
-            return new Size(layout.DesiredWidth, layout.DesiredHeight);
+            double availableWidth = ResolveAvailableWidth(availableSize);
+            currentLayout = BuildLayout(itemsOwner, availableWidth);
+
+            bool isVirtualizing = GetIsVirtualizing(itemsOwner);
+            (int firstIndex, int lastIndex) = GetRealizationRange(currentLayout, isVirtualizing);
+
+            CleanupItems(firstIndex, lastIndex, itemsOwner);
+
+            if (firstIndex >= 0)
+                RealizeItems(itemsOwner, firstIndex, lastIndex);
+
+            return new Size(currentLayout.DesiredWidth, currentLayout.DesiredHeight);
         }
 
         protected override Size ArrangeOverride(Size finalSize)
         {
-            LayoutInfo layout = BuildLayout(finalSize);
-            double y = 0.0;
-
-            foreach (RowLayout row in rows)
+            for (int childIndex = 0; childIndex < InternalChildren.Count; childIndex++)
             {
-                double x = 0.0;
+                UIElement child = InternalChildren[childIndex];
+                int itemIndex = GetItemIndexFromContainer(child);
 
-                foreach (ItemLayout item in row.Items)
+                if (itemIndex < 0 || !currentLayout.TryGetItemLayout(itemIndex, out ItemLayout? itemLayout))
                 {
-                    item.Child.Arrange(new Rect(x, y, item.Width, item.Height));
-                    x += item.Width + HorizontalSpacing;
+                    child.Arrange(Rect.Empty);
+                    continue;
                 }
 
-                y += row.Height + VerticalSpacing;
+                child.Arrange(itemLayout.Bounds);
             }
 
-            if (rows.Count > 0)
-                y -= VerticalSpacing;
-
-            return new Size(layout.DesiredWidth, Math.Max(layout.DesiredHeight, y));
+            return new Size(Math.Max(finalSize.Width, currentLayout.DesiredWidth), currentLayout.DesiredHeight);
         }
 
-        private LayoutInfo BuildLayout(Size availableSize)
+        protected override void OnItemsChanged(object sender, ItemsChangedEventArgs args)
         {
-            rows.Clear();
+            base.OnItemsChanged(sender, args);
+            currentLayout = LayoutInfo.Empty;
+            InvalidateMeasure();
+        }
 
-            List<UIElement> visibleChildren = new();
-            foreach (UIElement child in InternalChildren)
+        protected override void OnRenderSizeChanged(SizeChangedInfo sizeInfo)
+        {
+            base.OnRenderSizeChanged(sizeInfo);
+
+            if (sizeInfo.WidthChanged)
+                InvalidateMeasure();
+        }
+
+        private void JustifiedWrapPanel_Loaded(object sender, RoutedEventArgs e)
+        {
+            AttachScrollViewer();
+        }
+
+        private void JustifiedWrapPanel_Unloaded(object sender, RoutedEventArgs e)
+        {
+            DetachScrollViewer();
+        }
+
+        private void AttachScrollViewer()
+        {
+            ScrollViewer? nextScrollViewer = WPFUtils.FindParent<ScrollViewer>(this);
+            if (ReferenceEquals(observedScrollViewer, nextScrollViewer))
+                return;
+
+            DetachScrollViewer();
+            observedScrollViewer = nextScrollViewer;
+
+            if (observedScrollViewer is null)
+                return;
+
+            observedScrollViewer.ScrollChanged += ObservedScrollViewer_ScrollChanged;
+            observedScrollViewer.SizeChanged += ObservedScrollViewer_SizeChanged;
+        }
+
+        private void DetachScrollViewer()
+        {
+            if (observedScrollViewer is null)
+                return;
+
+            observedScrollViewer.ScrollChanged -= ObservedScrollViewer_ScrollChanged;
+            observedScrollViewer.SizeChanged -= ObservedScrollViewer_SizeChanged;
+            observedScrollViewer = null;
+        }
+
+        private void ObservedScrollViewer_ScrollChanged(object sender, ScrollChangedEventArgs e)
+        {
+            if (e.VerticalChange != 0 || e.ViewportHeightChange != 0 || e.HorizontalChange != 0 || e.ViewportWidthChange != 0)
+                InvalidateMeasure();
+        }
+
+        private void ObservedScrollViewer_SizeChanged(object sender, SizeChangedEventArgs e)
+        {
+            if (e.WidthChanged || e.HeightChanged)
+                InvalidateMeasure();
+        }
+
+        private double ResolveAvailableWidth(Size availableSize)
+        {
+            if (!double.IsInfinity(availableSize.Width) && availableSize.Width > 0.0)
+                return availableSize.Width;
+
+            if (observedScrollViewer is not null)
             {
-                if (child.Visibility == Visibility.Visible)
-                    visibleChildren.Add(child);
+                double scrollWidth = observedScrollViewer.ViewportWidth > 0.0 ? observedScrollViewer.ViewportWidth : observedScrollViewer.ActualWidth;
+                if (scrollWidth > 0.0)
+                    return scrollWidth;
             }
 
-            if (visibleChildren.Count == 0)
-                return new LayoutInfo(0.0, 0.0);
+            return ActualWidth > 0.0 ? ActualWidth : 0.0;
+        }
 
-            bool hasFiniteWidth = !double.IsInfinity(availableSize.Width) && availableSize.Width > 0.0;
+        private LayoutInfo BuildLayout(ItemsControl itemsOwner, double availableWidth)
+        {
+            int itemCount = itemsOwner.Items.Count;
+            if (itemCount == 0)
+                return LayoutInfo.Empty;
+
+            bool hasFiniteWidth = !double.IsInfinity(availableWidth) && availableWidth > 0.0;
             double targetHeight = Math.Max(1.0, TargetRowHeight);
             double aspectRatio = Math.Max(0.01, ItemAspectRatio);
             double targetWidth = targetHeight * aspectRatio;
+
+            List<RowLayout> rows = new();
+            Dictionary<int, ItemLayout> itemLayouts = new(itemCount);
             List<PendingItemLayout> pendingItems = new();
             double pendingItemsWidth = 0.0;
+            double y = 0.0;
 
-            foreach (UIElement child in visibleChildren)
+            for (int index = 0; index < itemCount; index++)
             {
-                int itemSpan = Math.Max(1, ReadItemSpan(child));
+                int itemSpan = Math.Max(1, ReadItemSpan(itemsOwner, index));
                 double width = (targetWidth * itemSpan) + (HorizontalSpacing * (itemSpan - 1));
 
-                pendingItems.Add(new PendingItemLayout(child, width));
+                pendingItems.Add(new PendingItemLayout(index, width));
                 pendingItemsWidth += width;
 
                 double currentRowWidth = pendingItemsWidth + (Math.Max(0, pendingItems.Count - 1) * HorizontalSpacing);
-                if (hasFiniteWidth && currentRowWidth >= availableSize.Width)
+                if (hasFiniteWidth && currentRowWidth >= availableWidth)
                 {
-                    rows.Add(CreateRowLayout(pendingItems, availableSize.Width, targetHeight, justify: true));
+                    RowLayout row = CreateRowLayout(pendingItems, availableWidth, targetHeight, justify: true, y, rows.Count > 0 ? rows[^1] : null);
+                    rows.Add(row);
+
+                    foreach (ItemLayout itemLayout in row.Items)
+                        itemLayouts[itemLayout.Index] = itemLayout;
+
+                    y += row.Height + VerticalSpacing;
                     pendingItems = new List<PendingItemLayout>();
                     pendingItemsWidth = 0.0;
                 }
             }
 
             if (pendingItems.Count > 0)
-                rows.Add(CreateRowLayout(pendingItems, availableSize.Width, targetHeight, justify: false));
-
-            double desiredWidth = hasFiniteWidth ? availableSize.Width : GetDesiredWidth();
-            double desiredHeight = 0.0;
-            for (int i = 0; i < rows.Count; i++)
             {
-                desiredHeight += rows[i].Height;
-                if (i < rows.Count - 1)
-                    desiredHeight += VerticalSpacing;
+                RowLayout row = CreateRowLayout(pendingItems, availableWidth, targetHeight, justify: false, y, rows.Count > 0 ? rows[^1] : null);
+                rows.Add(row);
+
+                foreach (ItemLayout itemLayout in row.Items)
+                    itemLayouts[itemLayout.Index] = itemLayout;
+
+                y += row.Height;
+            }
+            else if (rows.Count > 0)
+            {
+                y -= VerticalSpacing;
             }
 
-            return new LayoutInfo(desiredWidth, desiredHeight);
+            double desiredWidth = hasFiniteWidth ? availableWidth : GetDesiredWidth(rows);
+            return new LayoutInfo(desiredWidth, Math.Max(0.0, y), rows, itemLayouts, itemCount);
         }
 
-        private RowLayout CreateRowLayout(IReadOnlyList<PendingItemLayout> pendingItems, double availableWidth, double targetHeight, bool justify)
+        private RowLayout CreateRowLayout(IReadOnlyList<PendingItemLayout> pendingItems, double availableWidth, double targetHeight, bool justify, double y, RowLayout? previousRow)
         {
             double totalItemWidth = 0.0;
             foreach (PendingItemLayout item in pendingItems)
@@ -174,49 +277,105 @@ namespace HandheldCompanion.Controls
                     scale = Math.Max(0.01, availableItemWidth / totalItemWidth);
             }
 
-            if (!justify && rows.Count > 0)
+            if (!justify && previousRow is not null)
             {
-                double previousRowScale = rows[^1].Height / Math.Max(1.0, targetHeight);
+                double previousRowScale = previousRow.Height / Math.Max(1.0, targetHeight);
                 scale = Math.Min(scale, previousRowScale);
             }
 
             double rowHeight = Math.Max(1.0, targetHeight * scale);
-            RowLayout row = new(rowHeight);
+            RowLayout row = new(y, rowHeight);
+            double x = 0.0;
 
             foreach (PendingItemLayout item in pendingItems)
-                row.Items.Add(new ItemLayout(item.Child, Math.Max(1.0, item.Width * scale), rowHeight));
+            {
+                double itemWidth = Math.Max(1.0, item.Width * scale);
+                row.Items.Add(new ItemLayout(item.Index, new Rect(x, y, itemWidth, rowHeight)));
+                x += itemWidth + HorizontalSpacing;
+            }
 
+            row.Width = pendingItems.Count > 0 ? Math.Max(0.0, x - HorizontalSpacing) : 0.0;
             return row;
         }
 
-        private int ReadItemSpan(UIElement child)
+        private int ReadItemSpan(ItemsControl itemsOwner, int index)
         {
-            int attachedSpan = GetItemSpan(child);
-            if (attachedSpan > 1)
-                return attachedSpan;
-
-            if (child is FrameworkElement frameworkElement && frameworkElement.Tag is not null)
+            if (itemsOwner.ItemContainerGenerator.ContainerFromIndex(index) is UIElement container)
             {
-                if (frameworkElement.Tag is int tagInt && tagInt > 0)
-                    return tagInt;
+                int attachedSpan = GetItemSpan(container);
+                if (attachedSpan > 1)
+                    return attachedSpan;
 
-                if (frameworkElement.Tag is string tagString)
+                if (container is FrameworkElement frameworkElement)
                 {
-                    if (int.TryParse(tagString, NumberStyles.Integer, CultureInfo.InvariantCulture, out int invariantSpan) && invariantSpan > 0)
-                        return invariantSpan;
+                    int tagSpan = ReadSpanFromTag(frameworkElement.Tag);
+                    if (tagSpan > 1)
+                        return tagSpan;
 
-                    if (int.TryParse(tagString, NumberStyles.Integer, CultureInfo.CurrentCulture, out int currentSpan) && currentSpan > 0)
-                        return currentSpan;
+                    if (TryGetBooleanProperty(frameworkElement.DataContext, "IsLiked", out bool isLiked) && isLiked)
+                        return 3;
                 }
-
-                if (frameworkElement.Tag is double tagDouble && tagDouble >= 1.0)
-                    return Math.Max(1, (int)Math.Round(tagDouble));
             }
 
-            if (child is FrameworkElement dataElement && TryGetBooleanProperty(dataElement.DataContext, "IsLiked", out bool isLiked) && isLiked)
-                return 2;
+            if (TryGetBooleanProperty(itemsOwner.DataContext, "IsWideView", out bool isWideView) && isWideView)
+                return 3;
+
+            object item = itemsOwner.Items[index];
+
+            if (TryGetIntProperty(item, "ItemSpan", out int reflectedSpan) && reflectedSpan > 0)
+                return reflectedSpan;
+
+            if (TryGetBooleanProperty(item, "IsLiked", out bool isFavorite) && isFavorite)
+                return 3;
 
             return 1;
+        }
+
+        private static int ReadSpanFromTag(object? tag)
+        {
+            if (tag is int tagInt && tagInt > 0)
+                return tagInt;
+
+            if (tag is string tagString)
+            {
+                if (int.TryParse(tagString, NumberStyles.Integer, CultureInfo.InvariantCulture, out int invariantSpan) && invariantSpan > 0)
+                    return invariantSpan;
+
+                if (int.TryParse(tagString, NumberStyles.Integer, CultureInfo.CurrentCulture, out int currentSpan) && currentSpan > 0)
+                    return currentSpan;
+            }
+
+            if (tag is double tagDouble && tagDouble >= 1.0)
+                return Math.Max(1, (int)Math.Round(tagDouble));
+
+            return 0;
+        }
+
+        private static bool TryGetIntProperty(object? instance, string propertyName, out int value)
+        {
+            value = 0;
+
+            if (instance is null)
+                return false;
+
+            PropertyInfo? propertyInfo = instance.GetType().GetProperty(propertyName, BindingFlags.Instance | BindingFlags.Public);
+            if (propertyInfo is null)
+                return false;
+
+            object? propertyValue = propertyInfo.GetValue(instance);
+            if (propertyValue is int intValue && intValue > 0)
+            {
+                value = intValue;
+                return true;
+            }
+
+            if (propertyValue is double doubleValue && doubleValue >= 1.0)
+            {
+                value = Math.Max(1, (int)Math.Round(doubleValue));
+                return true;
+            }
+
+            return false;
         }
 
         private static bool TryGetBooleanProperty(object? instance, string propertyName, out bool value)
@@ -238,77 +397,273 @@ namespace HandheldCompanion.Controls
             return true;
         }
 
-        private double GetDesiredWidth()
+        private (int FirstIndex, int LastIndex) GetRealizationRange(LayoutInfo layout, bool isVirtualizing)
+        {
+            if (layout.Rows.Count == 0)
+                return (-1, -1);
+
+            if (!isVirtualizing || !TryGetViewportRange(layout.DesiredHeight, out double viewportTop, out double viewportBottom))
+                return (0, layout.ItemCount - 1);
+
+            int firstIndex = -1;
+            int lastIndex = -1;
+
+            foreach (RowLayout row in layout.Rows)
+            {
+                if (row.Bottom < viewportTop || row.Top > viewportBottom)
+                    continue;
+
+                firstIndex = firstIndex < 0 ? row.FirstIndex : Math.Min(firstIndex, row.FirstIndex);
+                lastIndex = Math.Max(lastIndex, row.LastIndex);
+            }
+
+            if (firstIndex < 0 || lastIndex < 0)
+                return GetNearestRealizationRange(layout, viewportTop, viewportBottom);
+
+            return (firstIndex, lastIndex);
+        }
+
+        private static (int FirstIndex, int LastIndex) GetNearestRealizationRange(LayoutInfo layout, double viewportTop, double viewportBottom)
+        {
+            RowLayout nearestRow = layout.Rows[0];
+            double nearestDistance = GetViewportDistance(nearestRow, viewportTop, viewportBottom);
+
+            for (int i = 1; i < layout.Rows.Count; i++)
+            {
+                RowLayout candidate = layout.Rows[i];
+                double candidateDistance = GetViewportDistance(candidate, viewportTop, viewportBottom);
+                if (candidateDistance >= nearestDistance)
+                    continue;
+
+                nearestRow = candidate;
+                nearestDistance = candidateDistance;
+            }
+
+            return (nearestRow.FirstIndex, nearestRow.LastIndex);
+        }
+
+        private static double GetViewportDistance(RowLayout row, double viewportTop, double viewportBottom)
+        {
+            if (row.Bottom < viewportTop)
+                return viewportTop - row.Bottom;
+
+            if (row.Top > viewportBottom)
+                return row.Top - viewportBottom;
+
+            return 0.0;
+        }
+
+        private bool TryGetViewportRange(double extentHeight, out double viewportTop, out double viewportBottom)
+        {
+            viewportTop = 0.0;
+            viewportBottom = 0.0;
+
+            if (observedScrollViewer is null)
+                return false;
+
+            double viewportHeight = observedScrollViewer.ViewportHeight > 0.0 ? observedScrollViewer.ViewportHeight : observedScrollViewer.ActualHeight;
+            if (viewportHeight <= 0.0 || double.IsInfinity(viewportHeight))
+                return false;
+
+            try
+            {
+                Point origin = TranslatePoint(new Point(0, 0), observedScrollViewer);
+                double rawViewportTop = -origin.Y;
+                double rawViewportBottom = rawViewportTop + viewportHeight;
+
+                if (rawViewportBottom <= 0.0 || rawViewportTop >= extentHeight)
+                    return false;
+
+                double overscan = Math.Max(TargetRowHeight, viewportHeight * OverscanViewportMultiplier);
+                viewportTop = Math.Max(0.0, rawViewportTop - overscan);
+                viewportBottom = Math.Min(extentHeight, rawViewportBottom + overscan);
+                return viewportBottom > viewportTop;
+            }
+            catch (InvalidOperationException)
+            {
+                return false;
+            }
+        }
+
+        private void CleanupItems(int firstIndex, int lastIndex, ItemsControl? itemsOwner)
+        {
+            bool useRecycling = itemsOwner is not null && GetVirtualizationMode(itemsOwner) == VirtualizationMode.Recycling;
+            IRecyclingItemContainerGenerator? recyclingGenerator = useRecycling ? ItemContainerGenerator as IRecyclingItemContainerGenerator : null;
+
+            for (int childIndex = InternalChildren.Count - 1; childIndex >= 0; childIndex--)
+            {
+                UIElement child = InternalChildren[childIndex];
+                int itemIndex = itemsOwner?.ItemContainerGenerator.IndexFromContainer(child) ?? GetItemIndexFromContainer(child);
+
+                if (itemIndex >= firstIndex && itemIndex <= lastIndex)
+                    continue;
+
+                if (itemIndex < 0)
+                {
+                    RemoveInternalChildRange(childIndex, 1);
+                    continue;
+                }
+
+                GeneratorPosition generatorPosition = new(childIndex, 0);
+
+                if (recyclingGenerator is not null)
+                    recyclingGenerator.Recycle(generatorPosition, 1);
+                else
+                    ItemContainerGenerator.Remove(generatorPosition, 1);
+
+                RemoveInternalChildRange(childIndex, 1);
+            }
+        }
+
+        private void RealizeItems(ItemsControl itemsOwner, int firstIndex, int lastIndex)
+        {
+            GeneratorPosition startPosition = ItemContainerGenerator.GeneratorPositionFromIndex(firstIndex);
+            int childIndex = GetChildIndexFromGeneratorPosition(startPosition);
+
+            using (ItemContainerGenerator.StartAt(startPosition, GeneratorDirection.Forward, true))
+            {
+                for (int itemIndex = firstIndex; itemIndex <= lastIndex; itemIndex++, childIndex++)
+                {
+                    bool newlyRealized;
+                    DependencyObject child = ItemContainerGenerator.GenerateNext(out newlyRealized);
+                    UIElement element = (UIElement)child;
+
+                    if (newlyRealized)
+                    {
+                        if (childIndex >= InternalChildren.Count)
+                            AddInternalChild(element);
+                        else
+                            InsertInternalChild(childIndex, element);
+
+                        ItemContainerGenerator.PrepareItemContainer(child);
+                    }
+                    else
+                    {
+                        int currentIndex = InternalChildren.IndexOf(element);
+                        if (currentIndex != childIndex)
+                        {
+                            if (currentIndex >= 0)
+                                RemoveInternalChildRange(currentIndex, 1);
+
+                            if (childIndex >= InternalChildren.Count)
+                                AddInternalChild(element);
+                            else
+                                InsertInternalChild(childIndex, element);
+                        }
+                    }
+
+                    if (currentLayout.TryGetItemLayout(itemIndex, out ItemLayout? itemLayout))
+                        element.Measure(new Size(itemLayout.Bounds.Width, itemLayout.Bounds.Height));
+                }
+            }
+        }
+
+        private static int GetChildIndexFromGeneratorPosition(GeneratorPosition generatorPosition)
+        {
+            if (generatorPosition.Index < 0)
+                return 0;
+
+            return generatorPosition.Index + (generatorPosition.Offset == 0 ? 0 : 1);
+        }
+
+        private int GetItemIndexFromContainer(UIElement child)
+        {
+            ItemsControl? itemsOwner = ItemsControl.GetItemsOwner(this);
+            return itemsOwner?.ItemContainerGenerator.IndexFromContainer(child) ?? -1;
+        }
+
+        private static double GetDesiredWidth(IReadOnlyList<RowLayout> rows)
         {
             double desiredWidth = 0.0;
 
             foreach (RowLayout row in rows)
-            {
-                double rowWidth = 0.0;
-                for (int i = 0; i < row.Items.Count; i++)
-                {
-                    rowWidth += row.Items[i].Width;
-                    if (i < row.Items.Count - 1)
-                        rowWidth += HorizontalSpacing;
-                }
-
-                desiredWidth = Math.Max(desiredWidth, rowWidth);
-            }
+                desiredWidth = Math.Max(desiredWidth, row.Width);
 
             return desiredWidth;
         }
 
         private sealed class LayoutInfo
         {
-            public LayoutInfo(double desiredWidth, double desiredHeight)
+            public static readonly LayoutInfo Empty = new LayoutInfo(0.0, 0.0, Array.Empty<RowLayout>(), new Dictionary<int, ItemLayout>(), 0);
+
+            public LayoutInfo(double desiredWidth, double desiredHeight, IReadOnlyList<RowLayout> rows, IReadOnlyDictionary<int, ItemLayout> itemLayouts, int itemCount)
             {
                 DesiredWidth = desiredWidth;
                 DesiredHeight = desiredHeight;
+                Rows = rows;
+                ItemLayouts = itemLayouts;
+                ItemCount = itemCount;
             }
 
             public double DesiredWidth { get; }
 
             public double DesiredHeight { get; }
+
+            public IReadOnlyList<RowLayout> Rows { get; }
+
+            public IReadOnlyDictionary<int, ItemLayout> ItemLayouts { get; }
+
+            public int ItemCount { get; }
+
+            public bool TryGetItemLayout(int index, out ItemLayout? itemLayout)
+            {
+                if (ItemLayouts.TryGetValue(index, out ItemLayout? value))
+                {
+                    itemLayout = value;
+                    return true;
+                }
+
+                itemLayout = null;
+                return false;
+            }
         }
 
         private sealed class RowLayout
         {
-            public RowLayout(double height)
+            public RowLayout(double top, double height)
             {
+                Top = top;
                 Height = height;
                 Items = new List<ItemLayout>();
             }
 
+            public double Top { get; }
+
+            public double Bottom => Top + Height;
+
             public double Height { get; }
+
+            public double Width { get; set; }
+
+            public int FirstIndex => Items.Count > 0 ? Items[0].Index : -1;
+
+            public int LastIndex => Items.Count > 0 ? Items[^1].Index : -1;
 
             public List<ItemLayout> Items { get; }
         }
 
         private sealed class ItemLayout
         {
-            public ItemLayout(UIElement child, double width, double height)
+            public ItemLayout(int index, Rect bounds)
             {
-                Child = child;
-                Width = width;
-                Height = height;
+                Index = index;
+                Bounds = bounds;
             }
 
-            public UIElement Child { get; }
+            public int Index { get; }
 
-            public double Width { get; }
-
-            public double Height { get; }
+            public Rect Bounds { get; }
         }
 
         private sealed class PendingItemLayout
         {
-            public PendingItemLayout(UIElement child, double width)
+            public PendingItemLayout(int index, double width)
             {
-                Child = child;
+                Index = index;
                 Width = width;
             }
 
-            public UIElement Child { get; }
+            public int Index { get; }
 
             public double Width { get; }
         }

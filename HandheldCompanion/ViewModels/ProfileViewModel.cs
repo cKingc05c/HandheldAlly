@@ -65,7 +65,7 @@ namespace HandheldCompanion.ViewModels
                 OnPropertyChanged(nameof(Name));
                 OnPropertyChanged(nameof(CanOpenExecutableLocation));
 
-                RefreshImages();
+                RefreshImages(forceReload: true);
             }
         }
 
@@ -146,20 +146,17 @@ namespace HandheldCompanion.ViewModels
             return new Dialog(owner, mainWindow.LaunchProfileContentDialog);
         }
 
-        private void RefreshImages()
+        private void RefreshImages(bool forceReload = false)
         {
             if (deferVisualLoading && !areVisualsVisible)
             {
-                CancelPendingVisualLoad();
-                ApplyPlaceholderImages();
+                ReleaseVisuals();
                 return;
             }
 
             if (_Profile.LibraryEntry is null)
             {
-                CancelPendingVisualLoad();
-                currentImageRequestKey = null;
-                ApplyPlaceholderImages();
+                ReleaseVisuals(clearRequestKey: true);
                 return;
             }
 
@@ -172,7 +169,7 @@ namespace HandheldCompanion.ViewModels
                 _Profile.LibraryEntry.GetLogoId(),
                 _Profile.LibraryEntry.GetLogoExtension(false));
 
-            if (currentImageRequestKey == nextRequestKey && visualsLoaded)
+            if (!forceReload && currentImageRequestKey == nextRequestKey && visualsLoaded)
                 return;
 
             bool requestChanged = currentImageRequestKey != nextRequestKey;
@@ -240,10 +237,28 @@ namespace HandheldCompanion.ViewModels
             }
         }
 
-        public void SetVisualsVisible(bool isVisible)
+        private void ReleaseVisuals(bool clearRequestKey = false)
+        {
+            CancelPendingVisualLoad();
+            CancelPendingVisualUnload();
+
+            if (clearRequestKey)
+                currentImageRequestKey = null;
+
+            ApplyPlaceholderImages();
+        }
+
+        public void SetVisualsVisible(bool isVisible, bool immediate = false)
         {
             if (!deferVisualLoading)
                 return;
+
+            if (!isVisible && immediate)
+            {
+                areVisualsVisible = false;
+                ReleaseVisuals();
+                return;
+            }
 
             if (areVisualsVisible == isVisible)
                 return;
@@ -254,6 +269,12 @@ namespace HandheldCompanion.ViewModels
             {
                 // Cancel any in-flight image load immediately to avoid wasted work.
                 CancelPendingVisualLoad();
+
+                if (!visualsLoaded)
+                {
+                    CancelPendingVisualUnload();
+                    return;
+                }
 
                 // Delay the actual placeholder/memory clear so that normal scrolling
                 // (cards passing briefly through the viewport edge) never triggers a
@@ -678,8 +699,7 @@ namespace HandheldCompanion.ViewModels
 
         public override void Dispose()
         {
-            SetVisualsVisible(false);
-            CancelPendingVisualLoad();
+            SetVisualsVisible(false, immediate: true);
 
             ManagerFactory.processManager.ProcessStarted -= ProcessManager_ProcessStarted;
             ManagerFactory.processManager.ProcessStopped -= ProcessManager_ProcessStopped;
