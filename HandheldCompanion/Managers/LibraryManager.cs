@@ -63,7 +63,7 @@ namespace HandheldCompanion.Managers
         private IGDBClient? IGDBClient;
         private SteamGridDb? steamGridDb;
 
-        private readonly ConcurrentDictionary<string, BitmapImage> _imageCache = new();
+        private readonly ConcurrentDictionary<string, WeakReference<BitmapImage>> _imageCache = new();
 
         public bool HasIGDBClient => IGDBClient is not null;
         public bool HasSteamGridDb => steamGridDb is not null;
@@ -96,33 +96,6 @@ namespace HandheldCompanion.Managers
             return GetGameArtPath(gameId, libraryType, imageId.ToString(), extension);
         }
 
-        private static (int decodeWidth, int decodeHeight) GetDecodeConstraint(string path, LibraryType libraryType)
-        {
-            int cap = libraryType.HasFlag(LibraryType.cover) ? 300
-                    : libraryType.HasFlag(LibraryType.artwork) ? 900
-                    : libraryType.HasFlag(LibraryType.logo) ? 300
-                    : 0;
-
-            if (cap <= 0)
-                return (0, 0);
-
-            // Read only the image header to obtain natural dimensions without
-            // decoding any pixel data — a fast, near-zero-cost I/O operation.
-            using (FileStream stream = File.OpenRead(path))
-            {
-                BitmapFrame frame = BitmapDecoder.Create(stream, BitmapCreateOptions.DelayCreation, BitmapCacheOption.None).Frames[0];
-                int nw = frame.PixelWidth;
-                int nh = frame.PixelHeight;
-
-                // Only apply the cap when the longer axis actually exceeds it;
-                // images already within bounds are decoded at natural size.
-                if (nw >= nh)
-                    return nw > cap ? (cap, 0) : (0, 0);
-                else
-                    return nh > cap ? (0, cap) : (0, 0);
-            }
-        }
-
         public BitmapImage? GetGameArt(long gameId, LibraryType libraryType, string imageId, string extension)
         {
             string fileName = GetGameArtPath(gameId, libraryType, imageId, extension);
@@ -138,20 +111,19 @@ namespace HandheldCompanion.Managers
                     return null;
             }
 
-            return _imageCache.GetOrAdd(fileName, path =>
-            {
-                (int decodeWidth, int decodeHeight) = GetDecodeConstraint(path, libraryType);
+            if (_imageCache.TryGetValue(fileName, out WeakReference<BitmapImage>? cachedReference) &&
+                cachedReference.TryGetTarget(out BitmapImage? cachedImage))
+                return cachedImage;
 
-                var bmp = new BitmapImage();
-                bmp.BeginInit();
-                bmp.CacheOption = BitmapCacheOption.OnLoad;
-                bmp.UriSource = new Uri(path);
-                bmp.DecodePixelWidth = decodeWidth;
-                bmp.DecodePixelHeight = decodeHeight;
-                bmp.EndInit();
-                bmp.Freeze();
-                return bmp;
-            });
+            BitmapImage bitmapImage = new();
+            bitmapImage.BeginInit();
+            bitmapImage.CacheOption = BitmapCacheOption.OnLoad;
+            bitmapImage.UriSource = new Uri(fileName);
+            bitmapImage.EndInit();
+            bitmapImage.Freeze();
+
+            _imageCache[fileName] = new WeakReference<BitmapImage>(bitmapImage);
+            return bitmapImage;
         }
 
         public BitmapImage? GetGameArt(long gameId, LibraryType libraryType, long imageId, string extension)

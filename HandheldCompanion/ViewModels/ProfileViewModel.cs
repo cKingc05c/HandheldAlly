@@ -31,7 +31,7 @@ namespace HandheldCompanion.ViewModels
 
         public readonly bool IsQuickTools;
         public bool IsMainPage => !IsQuickTools;
-        private readonly bool deferVisualLoading;
+        private readonly bool IsLibrary;
         private bool areVisualsVisible = true;
         private CancellationTokenSource? visualsLoadCancellationTokenSource;
         private CancellationTokenSource? visualsUnloadCancellationTokenSource;
@@ -146,7 +146,7 @@ namespace HandheldCompanion.ViewModels
 
         private void RefreshImages(bool forceReload = false)
         {
-            if (deferVisualLoading && !areVisualsVisible)
+            if (IsLibrary && !areVisualsVisible)
             {
                 ReleaseVisuals();
                 return;
@@ -160,7 +160,7 @@ namespace HandheldCompanion.ViewModels
 
             // Library cards (deferVisualLoading) use the pre-downloaded thumbnail variants to
             // reduce both decode time and working-set memory compared to the full-resolution files.
-            bool useThumbnails = deferVisualLoading;
+            bool useThumbnails = IsLibrary;
 
             ImageRequestKey nextRequestKey = new(
                 _Profile.LibraryEntry.Id,
@@ -196,9 +196,9 @@ namespace HandheldCompanion.ViewModels
 
                 (BitmapImage? cover, BitmapImage? artwork, BitmapImage? logo) = await Task.Run(() =>
                 {
-                    LibraryType coverType  = deferVisualLoading ? LibraryType.cover   | LibraryType.thumbnails : LibraryType.cover;
-                    LibraryType artworkType = deferVisualLoading ? LibraryType.artwork | LibraryType.thumbnails : LibraryType.artwork;
-                    LibraryType logoType   = deferVisualLoading ? LibraryType.logo    | LibraryType.thumbnails : LibraryType.logo;
+                    LibraryType coverType  = IsLibrary ? LibraryType.cover   | LibraryType.thumbnails : LibraryType.cover;
+                    LibraryType artworkType = IsLibrary ? LibraryType.artwork | LibraryType.thumbnails : LibraryType.artwork;
+                    LibraryType logoType   = IsLibrary ? LibraryType.logo    | LibraryType.thumbnails : LibraryType.logo;
 
                     BitmapImage? cover = ManagerFactory.libraryManager.GetGameArt(requestKey.Id, coverType,   requestKey.CoverId,   requestKey.CoverExtension);
                     BitmapImage? artwork = ManagerFactory.libraryManager.GetGameArt(requestKey.Id, artworkType, requestKey.ArtworkId, requestKey.ArtworkExtension);
@@ -256,7 +256,7 @@ namespace HandheldCompanion.ViewModels
 
         public void SetVisualsVisible(bool isVisible, bool immediate = false)
         {
-            if (!deferVisualLoading)
+            if (!IsLibrary)
                 return;
 
             if (!isVisible && immediate)
@@ -502,12 +502,12 @@ namespace HandheldCompanion.ViewModels
             }
         }
 
-        public ProfileViewModel(Profile profile, bool isQuickTools, bool deferVisualLoading = false)
+        public ProfileViewModel(Profile profile, bool isQuickTools, bool isLibrary = false)
         {
             IsQuickTools = isQuickTools;
-            this.deferVisualLoading = deferVisualLoading;
-            areVisualsVisible = !deferVisualLoading;
-            _Profile = profile;
+            IsLibrary = isLibrary;
+
+            areVisualsVisible = !isLibrary;
             Profile = profile;
 
             ManagerFactory.processManager.ProcessStarted += ProcessManager_ProcessStarted;
