@@ -348,8 +348,6 @@ namespace HandheldCompanion.ViewModels
 
                                 ManagerFactory.profileManager.UpdateOrCreateProfile(profile, isCreation ? UpdateSource.Creation : UpdateSource.LibraryUpdate);
                             }
-
-                            ManagerFactory.libraryManager.TrimImageCache();
                         }
                         break;
                     default:
@@ -652,17 +650,6 @@ namespace HandheldCompanion.ViewModels
             ManagerFactory.collectionManager.Initialized -= CollectionManager_Initialized;
 
             base.Dispose();
-        }
-
-        public void ReleaseVisualsAndTrimCache(bool clearAll = false)
-        {
-            lock (_collectionLock)
-            {
-                foreach (ProfileViewModel profile in Profiles)
-                    profile.SetVisualsVisible(false, immediate: true);
-            }
-
-            ManagerFactory.libraryManager.TrimImageCache(clearAll);
         }
 
         private void UpdateFiltering()
