@@ -34,6 +34,7 @@ namespace HandheldCompanion.ViewModels
         public bool IsInternal => _controller?.IsInternal() == true;
         public bool IsWireless => _controller?.IsWireless() == true;
         public bool IsDongle => _controller?.IsDongle() == true;
+        public int VisibleUserIndexCount => _controller is XInputController ? 4 : 8;
 
         private string _LayoutGlyph = "\ue001"; // Default icon for layout
         public string LayoutGlyph
@@ -164,6 +165,7 @@ namespace HandheldCompanion.ViewModels
             OnPropertyChanged(nameof(IsBusy));
             OnPropertyChanged(nameof(UserIndex));
             OnPropertyChanged(nameof(CanCalibrate));
+            OnPropertyChanged(nameof(VisibleUserIndexCount));
 
             // controller specific properties
             OnPropertyChanged(nameof(HasLayout));

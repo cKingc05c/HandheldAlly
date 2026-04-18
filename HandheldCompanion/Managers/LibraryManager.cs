@@ -22,11 +22,22 @@ namespace HandheldCompanion.Managers
 {
     public static class LibraryResources
     {
+        private static BitmapImage CreateBitmapImage(string uri)
+        {
+            BitmapImage bitmapImage = new();
+            bitmapImage.BeginInit();
+            bitmapImage.CacheOption = BitmapCacheOption.OnLoad;
+            bitmapImage.UriSource = new Uri(uri);
+            bitmapImage.EndInit();
+            bitmapImage.Freeze();
+            return bitmapImage;
+        }
+
         // GameArt
-        public static BitmapImage MissingCover = new BitmapImage(new Uri("pack://application:,,,/Resources/MissingCover.png"));
-        public static BitmapImage MissingArtwork = new BitmapImage(new Uri("pack://application:,,,/Resources/MissingArtwork.png"));
-        public static BitmapImage Xbox360Big = new BitmapImage(new Uri("pack://application:,,,/Resources/controller_0_big.png"));
-        public static BitmapImage DualShock4Big = new BitmapImage(new Uri("pack://application:,,,/Resources/controller_1_big.png"));
+        public static BitmapImage MissingCover = CreateBitmapImage("pack://application:,,,/Resources/MissingCover.png");
+        public static BitmapImage MissingArtwork = CreateBitmapImage("pack://application:,,,/Resources/MissingArtwork.png");
+        public static BitmapImage Xbox360Big = CreateBitmapImage("pack://application:,,,/Resources/controller_0_big.png");
+        public static BitmapImage DualShock4Big = CreateBitmapImage("pack://application:,,,/Resources/controller_1_big.png");
     }
 
     public class LibraryManager : IManager
@@ -63,7 +74,7 @@ namespace HandheldCompanion.Managers
         private IGDBClient? IGDBClient;
         private SteamGridDb? steamGridDb;
 
-        private readonly ConcurrentDictionary<string, BitmapImage> _imageCache = new();
+        private readonly ConcurrentDictionary<string, WeakReference<BitmapImage>> _imageCache = new();
 
         public bool HasIGDBClient => IGDBClient is not null;
         public bool HasSteamGridDb => steamGridDb is not null;
@@ -96,35 +107,16 @@ namespace HandheldCompanion.Managers
             return GetGameArtPath(gameId, libraryType, imageId.ToString(), extension);
         }
 
-        private static (int decodeWidth, int decodeHeight) GetDecodeConstraint(string path, LibraryType libraryType)
-        {
-            int cap = libraryType.HasFlag(LibraryType.cover) ? 300
-                    : libraryType.HasFlag(LibraryType.artwork) ? 900
-                    : libraryType.HasFlag(LibraryType.logo) ? 300
-                    : 0;
-
-            if (cap <= 0)
-                return (0, 0);
-
-            // Read only the image header to obtain natural dimensions without
-            // decoding any pixel data — a fast, near-zero-cost I/O operation.
-            using (FileStream stream = File.OpenRead(path))
-            {
-                BitmapFrame frame = BitmapDecoder.Create(stream, BitmapCreateOptions.DelayCreation, BitmapCacheOption.None).Frames[0];
-                int nw = frame.PixelWidth;
-                int nh = frame.PixelHeight;
-
-                // Only apply the cap when the longer axis actually exceeds it;
-                // images already within bounds are decoded at natural size.
-                if (nw >= nh)
-                    return nw > cap ? (cap, 0) : (0, 0);
-                else
-                    return nh > cap ? (0, cap) : (0, 0);
-            }
-        }
-
         public BitmapImage? GetGameArt(long gameId, LibraryType libraryType, string imageId, string extension)
         {
+            return GetGameArt(gameId, libraryType, imageId, extension, CancellationToken.None);
+        }
+
+        public BitmapImage? GetGameArt(long gameId, LibraryType libraryType, string imageId, string extension, CancellationToken cancellationToken)
+        {
+            if (cancellationToken.IsCancellationRequested)
+                return null;
+
             string fileName = GetGameArtPath(gameId, libraryType, imageId, extension);
             if (!File.Exists(fileName))
             {
@@ -138,25 +130,41 @@ namespace HandheldCompanion.Managers
                     return null;
             }
 
-            return _imageCache.GetOrAdd(fileName, path =>
-            {
-                (int decodeWidth, int decodeHeight) = GetDecodeConstraint(path, libraryType);
+            if (_imageCache.TryGetValue(fileName, out WeakReference<BitmapImage>? cachedReference) &&
+                cachedReference.TryGetTarget(out BitmapImage? cachedImage))
+                return cachedImage;
 
-                var bmp = new BitmapImage();
-                bmp.BeginInit();
-                bmp.CacheOption = BitmapCacheOption.OnLoad;
-                bmp.UriSource = new Uri(path);
-                bmp.DecodePixelWidth = decodeWidth;
-                bmp.DecodePixelHeight = decodeHeight;
-                bmp.EndInit();
-                bmp.Freeze();
-                return bmp;
-            });
+            if (cancellationToken.IsCancellationRequested)
+                return null;
+
+            BitmapImage bitmapImage = new();
+            using (FileStream stream = File.OpenRead(fileName))
+            {
+                if (cancellationToken.IsCancellationRequested)
+                    return null;
+
+                bitmapImage.BeginInit();
+                bitmapImage.CacheOption = BitmapCacheOption.OnLoad;
+                bitmapImage.StreamSource = stream;
+                bitmapImage.EndInit();
+            }
+
+            if (cancellationToken.IsCancellationRequested)
+                return null;
+            bitmapImage.Freeze();
+
+            _imageCache[fileName] = new WeakReference<BitmapImage>(bitmapImage);
+            return bitmapImage;
         }
 
         public BitmapImage? GetGameArt(long gameId, LibraryType libraryType, long imageId, string extension)
         {
             return GetGameArt(gameId, libraryType, imageId.ToString(), extension);
+        }
+
+        public BitmapImage? GetGameArt(long gameId, LibraryType libraryType, long imageId, string extension, CancellationToken cancellationToken)
+        {
+            return GetGameArt(gameId, libraryType, imageId.ToString(), extension, cancellationToken);
         }
 
         public async Task<IEnumerable<LibraryEntry>> GetGames(LibraryFamily libraryFamily, string name)
@@ -368,21 +376,21 @@ namespace HandheldCompanion.Managers
             return bestEntry;
         }
 
-        public async Task<bool> DownloadGameArts(LibraryEntry entry, bool preview)
+        public async Task<bool> DownloadGameArts(LibraryEntry entry, bool preview, bool includeThumbnails = false)
         {
             // check connection
             if (!IsConnected)
                 return false;
 
             if (entry is SteamGridEntry steamGridEntry)
-                return await DownloadGameArts(steamGridEntry, preview);
+                return await DownloadGameArts(steamGridEntry, preview, includeThumbnails);
             else if (entry is IGDBEntry igdbEntry)
-                return await DownloadGameArts(igdbEntry, preview);
+                return await DownloadGameArts(igdbEntry, preview, includeThumbnails);
 
             return true;
         }
 
-        public async Task<bool> DownloadGameArts(SteamGridEntry entry, bool preview)
+        public async Task<bool> DownloadGameArts(SteamGridEntry entry, bool preview, bool includeThumbnails = false)
         {
             // check connection
             if (!IsConnected)
@@ -411,6 +419,17 @@ namespace HandheldCompanion.Managers
                 // download logo
                 if (entry.Logo != null)
                     await DownloadGameArt(entry.Id, entry.Logo, LibraryType.logo);
+
+                if (includeThumbnails)
+                {
+                    // download thumbnail variants for selected arts
+                    if (entry.Grid != null)
+                        await DownloadGameArt(entry.Id, entry.Grid, LibraryType.cover | LibraryType.thumbnails);
+                    if (entry.Hero != null)
+                        await DownloadGameArt(entry.Id, entry.Hero, LibraryType.artwork | LibraryType.thumbnails);
+                    if (entry.Logo != null)
+                        await DownloadGameArt(entry.Id, entry.Logo, LibraryType.logo | LibraryType.thumbnails);
+                }
             }
 
             return true;
@@ -489,7 +508,7 @@ namespace HandheldCompanion.Managers
             return false;
         }
 
-        public async Task<bool> DownloadGameArts(IGDBEntry entry, bool preview)
+        public async Task<bool> DownloadGameArts(IGDBEntry entry, bool preview, bool includeThumbnails = false)
         {
             // check connection
             if (!IsConnected)
@@ -512,6 +531,15 @@ namespace HandheldCompanion.Managers
                 // download artwork
                 if (entry.Artwork != null)
                     await DownloadGameArt(entry.Id, entry.Artwork, LibraryType.artwork, preview);
+
+                if (includeThumbnails)
+                {
+                    // download thumbnail variants for selected arts
+                    if (entry.Cover != null)
+                        await DownloadGameArt(entry.Id, entry.Cover, LibraryType.cover | LibraryType.thumbnails, preview);
+                    if (entry.Artwork != null)
+                        await DownloadGameArt(entry.Id, entry.Artwork, LibraryType.artwork | LibraryType.thumbnails, preview);
+                }
             }
 
             return true;
@@ -676,15 +704,20 @@ namespace HandheldCompanion.Managers
             // do something
         }
 
-        public void RefreshProfilesArts()
+        public async Task RefreshProfilesArts()
         {
-            Parallel.ForEachAsync(ManagerFactory.profileManager.GetProfiles(true), new ParallelOptions { MaxDegreeOfParallelism = 4 }, async (profile, cancellationToken) =>
+            await Parallel.ForEachAsync(ManagerFactory.profileManager.GetProfiles(true), new ParallelOptions { MaxDegreeOfParallelism = 4 }, async (profile, cancellationToken) =>
             {
-                RefreshProfileArts(profile);
+                await RefreshProfileArtsAsync(profile, UpdateSource.LibraryUpdate, includeFullResAssets: false);
             });
         }
 
-        public async void RefreshProfileArts(Profile profile, UpdateSource source = UpdateSource.LibraryUpdate)
+        public async void RefreshProfileArts(Profile profile, UpdateSource source = UpdateSource.LibraryUpdate, bool includeFullResAssets = false)
+        {
+            await RefreshProfileArtsAsync(profile, source, includeFullResAssets);
+        }
+
+        private async Task RefreshProfileArtsAsync(Profile profile, UpdateSource source, bool includeFullResAssets)
         {
             // skip if profile is default
             if (profile.Default)
@@ -727,13 +760,13 @@ namespace HandheldCompanion.Managers
                 return;
 
             // download arts
-            await UpdateProfileArts(profile, entry, (int)coverId, (int)artworkId, (int)logoId);
+            await UpdateProfileArts(profile, entry, (int)coverId, (int)artworkId, (int)logoId, includeFullResAssets);
 
             // update profile
-            ManagerFactory.profileManager.UpdateOrCreateProfile(profile, UpdateSource.LibraryUpdate);
+            ManagerFactory.profileManager.UpdateOrCreateProfile(profile, source);
         }
 
-        public async Task UpdateProfileArts(Profile profile, LibraryEntry entry, int coverId = 0, int artworkId = 0, int logoId = 0)
+        public async Task UpdateProfileArts(Profile profile, LibraryEntry entry, int coverId = 0, int artworkId = 0, int logoId = 0, bool includeFullResAssets = true)
         {
             // update status
             ProfileStatusChanged?.Invoke(profile, ManagerStatus.Busy);
@@ -760,8 +793,30 @@ namespace HandheldCompanion.Managers
             profile.LibraryEntry = entry;
             profile.Name = entry.Name;
 
-            // download arts
-            await ManagerFactory.libraryManager.DownloadGameArts(entry, false);
+            if (includeFullResAssets)
+            {
+                // download arts (including thumbnails for library card display)
+                await ManagerFactory.libraryManager.DownloadGameArts(entry, false, includeThumbnails: true);
+            }
+            else if (entry is SteamGridEntry steamGridEntry)
+            {
+                if (steamGridEntry.Grid != null)
+                    await DownloadGameArt(entry.Id, steamGridEntry.Grid, LibraryType.cover | LibraryType.thumbnails);
+
+                if (steamGridEntry.Hero != null)
+                    await DownloadGameArt(entry.Id, steamGridEntry.Hero, LibraryType.artwork | LibraryType.thumbnails);
+
+                if (steamGridEntry.Logo != null)
+                    await DownloadGameArt(entry.Id, steamGridEntry.Logo, LibraryType.logo | LibraryType.thumbnails);
+            }
+            else if (entry is IGDBEntry igdbEntry)
+            {
+                if (igdbEntry.Cover != null)
+                    await DownloadGameArt(entry.Id, igdbEntry.Cover, LibraryType.cover | LibraryType.thumbnails, false);
+
+                if (igdbEntry.Artwork != null)
+                    await DownloadGameArt(entry.Id, igdbEntry.Artwork, LibraryType.artwork | LibraryType.thumbnails, false);
+            }
 
             // update status
             ProfileStatusChanged?.Invoke(profile, ManagerStatus.None);

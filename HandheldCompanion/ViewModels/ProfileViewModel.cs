@@ -10,6 +10,7 @@ using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
@@ -31,13 +32,16 @@ namespace HandheldCompanion.ViewModels
 
         public readonly bool IsQuickTools;
         public bool IsMainPage => !IsQuickTools;
-        private readonly bool deferVisualLoading;
+        private readonly bool IsLibrary;
         private bool areVisualsVisible = true;
         private CancellationTokenSource? visualsLoadCancellationTokenSource;
-        private CancellationTokenSource? visualsUnloadCancellationTokenSource;
         private ImageRequestKey? currentImageRequestKey;
         private bool visualsLoaded;
         private const int VisualUnloadDelayMs = 3000;
+        private const int VisualReloadDelayMs = 150;
+        private readonly HashSet<object> visibleVisualOwners = new(ReferenceEqualityComparer.Instance);
+        private int visualsUnloadVersion;
+        private int visualsReloadVersion;
 
         private readonly record struct ImageRequestKey(
             long Id,
@@ -65,15 +69,24 @@ namespace HandheldCompanion.ViewModels
                 OnPropertyChanged(nameof(Name));
                 OnPropertyChanged(nameof(CanOpenExecutableLocation));
 
-                RefreshImages(forceReload: true);
+                if (IsLibrary)
+                    RefreshImages(forceReload: true);
+                else
+                    ReleaseVisuals(clearRequestKey: true);
             }
         }
 
         private void ApplyPlaceholderImages()
         {
-            Cover = LibraryResources.MissingCover;
-            Artwork = LibraryResources.MissingArtwork;
-            Logo = null;
+            if (!ReferenceEquals(Cover, LibraryResources.MissingCover))
+                Cover = LibraryResources.MissingCover;
+
+            if (!ReferenceEquals(Artwork, LibraryResources.MissingArtwork))
+                Artwork = LibraryResources.MissingArtwork;
+
+            if (Logo is not null)
+                Logo = null;
+
             visualsLoaded = false;
         }
 
@@ -82,8 +95,7 @@ namespace HandheldCompanion.ViewModels
             if (image is null || image == LibraryResources.MissingArtwork)
                 return false;
 
-            string? uri = image.UriSource?.ToString();
-            return !string.IsNullOrEmpty(uri) || image.StreamSource is not null;
+            return image.PixelWidth > 0 && image.PixelHeight > 0;
         }
 
         private static bool HasDisplayLogo(BitmapImage? image)
@@ -91,8 +103,7 @@ namespace HandheldCompanion.ViewModels
             if (image is null)
                 return false;
 
-            string? uri = image.UriSource?.ToString();
-            return !string.IsNullOrEmpty(uri) || image.StreamSource is not null;
+            return image.PixelWidth > 0 && image.PixelHeight > 0;
         }
 
         private BitmapImage? GetLaunchDialogArtwork()
@@ -148,7 +159,13 @@ namespace HandheldCompanion.ViewModels
 
         private void RefreshImages(bool forceReload = false)
         {
-            if (deferVisualLoading && !areVisualsVisible)
+            if (!IsLibrary)
+            {
+                ReleaseVisuals(clearRequestKey: true);
+                return;
+            }
+
+            if (IsLibrary && !areVisualsVisible)
             {
                 ReleaseVisuals();
                 return;
@@ -160,14 +177,18 @@ namespace HandheldCompanion.ViewModels
                 return;
             }
 
+            // Library cards (deferVisualLoading) use the pre-downloaded thumbnail variants to
+            // reduce both decode time and working-set memory compared to the full-resolution files.
+            bool useThumbnails = IsLibrary;
+
             ImageRequestKey nextRequestKey = new(
                 _Profile.LibraryEntry.Id,
                 _Profile.LibraryEntry.GetCoverId(),
-                _Profile.LibraryEntry.GetCoverExtension(false),
+                _Profile.LibraryEntry.GetCoverExtension(useThumbnails),
                 _Profile.LibraryEntry.GetArtworkId(),
-                _Profile.LibraryEntry.GetArtworkExtension(false),
+                _Profile.LibraryEntry.GetArtworkExtension(useThumbnails),
                 _Profile.LibraryEntry.GetLogoId(),
-                _Profile.LibraryEntry.GetLogoExtension(false));
+                _Profile.LibraryEntry.GetLogoExtension(useThumbnails));
 
             if (!forceReload && currentImageRequestKey == nextRequestKey && visualsLoaded)
                 return;
@@ -176,6 +197,8 @@ namespace HandheldCompanion.ViewModels
             currentImageRequestKey = nextRequestKey;
 
             CancelPendingVisualLoad();
+            CancelPendingVisualUnload();
+            CancelPendingVisualReload();
 
             if (requestChanged)
                 ApplyPlaceholderImages();
@@ -192,28 +215,102 @@ namespace HandheldCompanion.ViewModels
             {
                 CancellationToken cancellationToken = cancellationTokenSource.Token;
 
-                (BitmapImage? cover, BitmapImage? artwork, BitmapImage? logo) = await Task.Run(() =>
-                {
-                    BitmapImage? cover = ManagerFactory.libraryManager.GetGameArt(requestKey.Id, LibraryType.cover, requestKey.CoverId, requestKey.CoverExtension);
-                    BitmapImage? artwork = ManagerFactory.libraryManager.GetGameArt(requestKey.Id, LibraryType.artwork, requestKey.ArtworkId, requestKey.ArtworkExtension);
-                    BitmapImage? logo = ManagerFactory.libraryManager.GetGameArt(requestKey.Id, LibraryType.logo, requestKey.LogoId, requestKey.LogoExtension);
-                    return (cover, artwork, logo);
-                }, cancellationToken).ConfigureAwait(false);
+                BitmapImage? cover = await LoadImageAsync(
+                    requestKey.Id,
+                    IsLibrary ? LibraryType.cover | LibraryType.thumbnails : LibraryType.cover,
+                    requestKey.CoverId,
+                    requestKey.CoverExtension,
+                    cancellationToken).ConfigureAwait(false);
 
-                if (cancellationToken.IsCancellationRequested ||
-                    !ReferenceEquals(visualsLoadCancellationTokenSource, cancellationTokenSource) ||
-                    currentImageRequestKey != requestKey)
+                if (!await TryApplyLoadedImagesAsync(requestKey, cancellationTokenSource, cover: cover).ConfigureAwait(false))
                     return;
 
-                // BitmapImages from GetGameArt are frozen (thread-safe), assign directly
-                Cover = cover;
-                Artwork = artwork;
-                Logo = logo;
-                visualsLoaded = true;
+                BitmapImage? artwork = await LoadImageAsync(
+                    requestKey.Id,
+                    IsLibrary ? LibraryType.artwork | LibraryType.thumbnails : LibraryType.artwork,
+                    requestKey.ArtworkId,
+                    requestKey.ArtworkExtension,
+                    cancellationToken).ConfigureAwait(false);
+
+                if (!await TryApplyLoadedImagesAsync(requestKey, cancellationTokenSource, artwork: artwork).ConfigureAwait(false))
+                    return;
+
+                BitmapImage? logo = await LoadImageAsync(
+                    requestKey.Id,
+                    IsLibrary ? LibraryType.logo | LibraryType.thumbnails : LibraryType.logo,
+                    requestKey.LogoId,
+                    requestKey.LogoExtension,
+                    cancellationToken).ConfigureAwait(false);
+
+                await TryApplyLoadedImagesAsync(requestKey, cancellationTokenSource, logo: logo, markVisualsLoaded: true).ConfigureAwait(false);
             }
             catch (OperationCanceledException)
             {
             }
+        }
+
+        private async Task<BitmapImage?> LoadImageAsync(long id, LibraryType libraryType, long imageId, string imageExtension, CancellationToken cancellationToken)
+        {
+            return await Task.Run(() =>
+            {
+                if (cancellationToken.IsCancellationRequested)
+                    return null;
+
+                return ManagerFactory.libraryManager.GetGameArt(id, libraryType, imageId, imageExtension, cancellationToken);
+            }, cancellationToken).ConfigureAwait(false);
+        }
+
+        private bool IsCurrentVisualLoad(ImageRequestKey requestKey, CancellationTokenSource cancellationTokenSource)
+        {
+            if (!ReferenceEquals(visualsLoadCancellationTokenSource, cancellationTokenSource) ||
+                !areVisualsVisible ||
+                currentImageRequestKey != requestKey)
+                return false;
+
+            try
+            {
+                return !cancellationTokenSource.IsCancellationRequested;
+            }
+            catch (ObjectDisposedException)
+            {
+                return false;
+            }
+        }
+
+        private async Task<bool> TryApplyLoadedImagesAsync(
+            ImageRequestKey requestKey,
+            CancellationTokenSource cancellationTokenSource,
+            BitmapImage? cover = null,
+            BitmapImage? artwork = null,
+            BitmapImage? logo = null,
+            bool markVisualsLoaded = false)
+        {
+            if (!IsCurrentVisualLoad(requestKey, cancellationTokenSource))
+                return false;
+
+            bool applied = false;
+
+            await Application.Current.Dispatcher.InvokeAsync(() =>
+            {
+                if (!IsCurrentVisualLoad(requestKey, cancellationTokenSource))
+                    return;
+
+                if (cover is not null)
+                    Cover = cover;
+
+                if (artwork is not null)
+                    Artwork = artwork;
+
+                if (logo is not null || markVisualsLoaded)
+                    Logo = logo;
+
+                if (markVisualsLoaded)
+                    visualsLoaded = true;
+
+                applied = true;
+            });
+
+            return applied;
         }
 
         private void CancelPendingVisualLoad()
@@ -241,6 +338,7 @@ namespace HandheldCompanion.ViewModels
         {
             CancelPendingVisualLoad();
             CancelPendingVisualUnload();
+            CancelPendingVisualReload();
 
             if (clearRequestKey)
                 currentImageRequestKey = null;
@@ -248,27 +346,46 @@ namespace HandheldCompanion.ViewModels
             ApplyPlaceholderImages();
         }
 
-        public void SetVisualsVisible(bool isVisible, bool immediate = false)
+        public void SetVisualsVisible(object owner, bool isVisible, bool immediate = false)
         {
-            if (!deferVisualLoading)
+            if (!IsLibrary)
                 return;
+
+            if (isVisible)
+                visibleVisualOwners.Add(owner);
+            else
+                visibleVisualOwners.Remove(owner);
+
+            bool nextAreVisualsVisible = visibleVisualOwners.Count != 0;
+
+            if (areVisualsVisible == nextAreVisualsVisible)
+            {
+                if (nextAreVisualsVisible)
+                {
+                    CancelPendingVisualUnload();
+                    CancelPendingVisualReload();
+
+                    if (!visualsLoaded)
+                        RefreshImages();
+                }
+
+                return;
+            }
 
             if (!isVisible && immediate)
             {
-                areVisualsVisible = false;
+                areVisualsVisible = nextAreVisualsVisible;
                 ReleaseVisuals();
                 return;
             }
 
-            if (areVisualsVisible == isVisible)
-                return;
+            areVisualsVisible = nextAreVisualsVisible;
 
-            areVisualsVisible = isVisible;
-
-            if (!isVisible)
+            if (!nextAreVisualsVisible)
             {
                 // Cancel any in-flight image load immediately to avoid wasted work.
                 CancelPendingVisualLoad();
+                CancelPendingVisualReload();
 
                 if (!visualsLoaded)
                 {
@@ -280,50 +397,64 @@ namespace HandheldCompanion.ViewModels
                 // (cards passing briefly through the viewport edge) never triggers a
                 // reload cycle.  Only cards that stay off-screen for the full delay
                 // will have their images released.
-                CancelPendingVisualUnload();
-                CancellationTokenSource cts = new();
-                visualsUnloadCancellationTokenSource = cts;
-                _ = DelayedUnloadAsync(cts);
+                int unloadVersion = BeginVisualUnloadDelay();
+                _ = DelayedUnloadAsync(unloadVersion);
             }
             else
             {
                 // Card is back on screen — cancel any pending unload and reload.
                 CancelPendingVisualUnload();
-                RefreshImages();
+                int reloadVersion = BeginVisualReloadDelay();
+                _ = DelayedReloadAsync(reloadVersion);
             }
         }
 
-        private async Task DelayedUnloadAsync(CancellationTokenSource cts)
+        private int BeginVisualUnloadDelay()
         {
-            try
+            unchecked
             {
-                await Task.Delay(VisualUnloadDelayMs, cts.Token).ConfigureAwait(false);
+                return ++visualsUnloadVersion;
+            }
+        }
 
-                if (cts.IsCancellationRequested)
-                    return;
+        private async Task DelayedUnloadAsync(int unloadVersion)
+        {
+            await Task.Delay(VisualUnloadDelayMs).ConfigureAwait(false);
 
-                await Application.Current.Dispatcher.InvokeAsync(() =>
-                {
-                    if (!areVisualsVisible)
-                        ApplyPlaceholderImages();
-                });
-            }
-            catch (OperationCanceledException)
+            await Application.Current.Dispatcher.InvokeAsync(() =>
             {
-            }
-            finally
+                if (unloadVersion == visualsUnloadVersion && !areVisualsVisible)
+                    ApplyPlaceholderImages();
+            });
+        }
+
+        private int BeginVisualReloadDelay()
+        {
+            unchecked
             {
-                cts.Dispose();
+                return ++visualsReloadVersion;
             }
+        }
+
+        private async Task DelayedReloadAsync(int reloadVersion)
+        {
+            await Task.Delay(VisualReloadDelayMs).ConfigureAwait(false);
+
+            await Application.Current.Dispatcher.InvokeAsync(() =>
+            {
+                if (reloadVersion == visualsReloadVersion && areVisualsVisible)
+                    RefreshImages();
+            });
         }
 
         private void CancelPendingVisualUnload()
         {
-            CancellationTokenSource? cts = visualsUnloadCancellationTokenSource;
-            visualsUnloadCancellationTokenSource = null;
-            if (cts is null)
-                return;
-            try { cts.Cancel(); } catch { }
+            unchecked { visualsUnloadVersion++; }
+        }
+
+        private void CancelPendingVisualReload()
+        {
+            unchecked { visualsReloadVersion++; }
         }
 
         public override string ToString()
@@ -496,12 +627,12 @@ namespace HandheldCompanion.ViewModels
             }
         }
 
-        public ProfileViewModel(Profile profile, bool isQuickTools, bool deferVisualLoading = false)
+        public ProfileViewModel(Profile profile, bool isQuickTools, bool isLibrary = false)
         {
             IsQuickTools = isQuickTools;
-            this.deferVisualLoading = deferVisualLoading;
-            areVisualsVisible = !deferVisualLoading;
-            _Profile = profile;
+            IsLibrary = isLibrary;
+
+            areVisualsVisible = !isLibrary;
             Profile = profile;
 
             ManagerFactory.processManager.ProcessStarted += ProcessManager_ProcessStarted;
@@ -701,7 +832,8 @@ namespace HandheldCompanion.ViewModels
 
         public override void Dispose()
         {
-            SetVisualsVisible(false, immediate: true);
+            visibleVisualOwners.Clear();
+            ReleaseVisuals(clearRequestKey: true);
 
             ManagerFactory.processManager.ProcessStarted -= ProcessManager_ProcessStarted;
             ManagerFactory.processManager.ProcessStopped -= ProcessManager_ProcessStopped;
@@ -721,6 +853,21 @@ namespace HandheldCompanion.ViewModels
                 OnPropertyChanged(nameof(IsAvailable));
                 OnPropertyChanged(nameof(CanStopProcess));
                 OnPropertyChanged(nameof(CanToggleProcess));
+            }
+        }
+
+        private sealed class ReferenceEqualityComparer : IEqualityComparer<object>
+        {
+            public static readonly ReferenceEqualityComparer Instance = new();
+
+            public new bool Equals(object? x, object? y)
+            {
+                return ReferenceEquals(x, y);
+            }
+
+            public int GetHashCode(object obj)
+            {
+                return RuntimeHelpers.GetHashCode(obj);
             }
         }
     }

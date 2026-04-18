@@ -18,19 +18,13 @@ public sealed class HasArtworkConverter : IValueConverter
         if (value is not BitmapImage image)
             return Visibility.Collapsed;
 
-        // Check if it's the MissingCover placeholder
+        // Reject known placeholder instances
         if (image == LibraryResources.MissingCover || image == LibraryResources.MissingArtwork)
             return Visibility.Collapsed;
 
-        // Check if UriSource is null or empty
-        if (image.UriSource == null)
-            return Visibility.Collapsed;
-
-        // Check if it's pointing to the MissingCover resource
-        string uri = image.UriSource.ToString();
-        if (uri.Contains("MissingCover.png", StringComparison.OrdinalIgnoreCase))
-            return Visibility.Collapsed;
-        else if (uri.Contains("MissingArtwork.png", StringComparison.OrdinalIgnoreCase))
+        // A decoded, frozen BitmapImage always has a positive pixel dimension.
+        // This works regardless of whether the image was loaded via UriSource or StreamSource.
+        if (image.PixelWidth <= 0 || image.PixelHeight <= 0)
             return Visibility.Collapsed;
 
         return Visibility.Visible;

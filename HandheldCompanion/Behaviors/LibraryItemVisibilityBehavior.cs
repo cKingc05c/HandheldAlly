@@ -1,3 +1,4 @@
+using HandheldCompanion.Shared;
 using HandheldCompanion.ViewModels;
 using System;
 using System.Windows;
@@ -45,15 +46,16 @@ public static class LibraryItemVisibilityBehavior
         return dependencyObject.GetValue(RegistrationProperty) as Registration;
     }
 
-    private static void SetVisualVisibility(object? dataContext, bool isVisible, bool immediate = false)
+    private static void SetVisualVisibility(object? owner, object? dataContext, bool isVisible, bool immediate = false)
     {
         if (dataContext is ProfileViewModel profileViewModel)
-            profileViewModel.SetVisualsVisible(isVisible, immediate);
+            profileViewModel.SetVisualsVisible(owner ?? profileViewModel, isVisible, immediate);
     }
 
     private sealed class Registration : IDisposable
     {
         private readonly FrameworkElement element;
+        private ProfileViewModel? trackedViewModel;
         private bool disposed;
 
         public Registration(FrameworkElement element)
@@ -64,6 +66,7 @@ public static class LibraryItemVisibilityBehavior
             element.DataContextChanged += Element_DataContextChanged;
             element.IsVisibleChanged += Element_IsVisibleChanged;
 
+            trackedViewModel = element.DataContext as ProfileViewModel;
             UpdateCurrentVisibility(immediateWhenHidden: true);
         }
 
@@ -74,25 +77,26 @@ public static class LibraryItemVisibilityBehavior
 
         private void Element_Unloaded(object sender, RoutedEventArgs e)
         {
-            SetVisualVisibility(element.DataContext, false, immediate: true);
+            SetVisualVisibility(this, trackedViewModel, false, immediate: true);
         }
 
         private void Element_DataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
         {
-            SetVisualVisibility(e.OldValue, false, immediate: true);
+            SetVisualVisibility(this, e.OldValue, false, immediate: true);
+            trackedViewModel = e.NewValue as ProfileViewModel;
             UpdateCurrentVisibility(immediateWhenHidden: true);
         }
 
         private void Element_IsVisibleChanged(object sender, DependencyPropertyChangedEventArgs e)
         {
             bool isVisible = (bool)e.NewValue && element.IsLoaded;
-            SetVisualVisibility(element.DataContext, isVisible, immediate: !isVisible);
+            SetVisualVisibility(this, trackedViewModel, isVisible, immediate: !isVisible);
         }
 
         private void UpdateCurrentVisibility(bool immediateWhenHidden = false)
         {
             bool isVisible = element.IsLoaded && element.IsVisible;
-            SetVisualVisibility(element.DataContext, isVisible, immediate: immediateWhenHidden && !isVisible);
+            SetVisualVisibility(this, trackedViewModel, isVisible, immediate: immediateWhenHidden && !isVisible);
         }
 
         public void Dispose()
@@ -105,7 +109,8 @@ public static class LibraryItemVisibilityBehavior
             element.Unloaded -= Element_Unloaded;
             element.DataContextChanged -= Element_DataContextChanged;
             element.IsVisibleChanged -= Element_IsVisibleChanged;
-            SetVisualVisibility(element.DataContext, false, immediate: true);
+            SetVisualVisibility(this, trackedViewModel, false, immediate: true);
+            trackedViewModel = null;
         }
     }
 }
