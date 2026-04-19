@@ -599,6 +599,45 @@ public static class WPFUtils
         return parent;
     }
 
+    public static List<MenuItem> GetDirectMenuItems(MenuFlyout menuFlyout)
+    {
+        List<MenuItem> menuItems = new();
+
+        foreach (object item in menuFlyout.Items)
+            if (item is MenuItem menuItem)
+                menuItems.Add(menuItem);
+
+        return menuItems;
+    }
+
+    public static List<MenuItem> GetDirectMenuItems(ItemsControl? itemsControl)
+    {
+        List<MenuItem> menuItems = new();
+
+        if (itemsControl is null)
+            return menuItems;
+
+        foreach (object item in itemsControl.Items)
+        {
+            if (item is MenuItem menuItem)
+                menuItems.Add(menuItem);
+            else if (itemsControl.ItemContainerGenerator.ContainerFromItem(item) is MenuItem container)
+                menuItems.Add(container);
+        }
+
+        return menuItems;
+    }
+
+    public static List<MenuItem> GetSiblingMenuItems(MenuItem menuItem)
+    {
+        return GetDirectMenuItems(ItemsControl.ItemsControlFromItemContainer(menuItem));
+    }
+
+    public static MenuItem? GetParentMenuItem(MenuItem menuItem)
+    {
+        return ItemsControl.ItemsControlFromItemContainer(menuItem) as MenuItem;
+    }
+
     public static Visual? FindCommonAncestor(Visual visual1, Visual visual2)
     {
         var ancestor1 = visual1;

@@ -175,6 +175,46 @@ namespace HandheldCompanion.Managers
         private List<MenuItem> flyoutMenuItems = new();  // populated from MenuFlyout.Items when open
         private MenuItem? focusedFlyoutItem = null;        // tracks which item is highlighted
 
+        private void FocusFlyoutMenuItem(MenuItem menuItem)
+        {
+            List<MenuItem> siblingMenuItems = WPFUtils.GetSiblingMenuItems(menuItem);
+
+            if (siblingMenuItems.Count == 0 && gamepadWindow.currentFlyoutButton?.Flyout is MenuFlyout menuFlyout)
+                siblingMenuItems = WPFUtils.GetDirectMenuItems(menuFlyout);
+
+            flyoutMenuItems = siblingMenuItems;
+            focusedFlyoutItem = menuItem;
+            Keyboard.Focus(menuItem);
+            gamepadWindow.SetFocusedElement(menuItem);
+        }
+
+        private bool TryOpenFlyoutSubmenu(MenuItem menuItem)
+        {
+            if (!menuItem.HasItems)
+                return false;
+
+            MenuItem? firstChild = WPFUtils.GetDirectMenuItems(menuItem)
+                .FirstOrDefault(m => m.IsEnabled);
+
+            if (firstChild is null)
+                return false;
+
+            menuItem.IsSubmenuOpen = true;
+            menuItem.Dispatcher.BeginInvoke(() => FocusFlyoutMenuItem(firstChild), DispatcherPriority.Loaded);
+            return true;
+        }
+
+        private bool TryCloseFlyoutSubmenu(MenuItem menuItem)
+        {
+            MenuItem? parentMenuItem = WPFUtils.GetParentMenuItem(menuItem);
+            if (parentMenuItem is null)
+                return false;
+
+            parentMenuItem.IsSubmenuOpen = false;
+            FocusFlyoutMenuItem(parentMenuItem);
+            return true;
+        }
+
         private void ContentDialogOpened(ContentDialog contentDialog)
         {
             // Defer: ContentDialog children are not in the visual tree yet when this
@@ -1014,21 +1054,13 @@ namespace HandheldCompanion.Managers
                                         // MenuItems live in a separate popup visual tree — obtain directly
                                         flyoutMenuItems.Clear();
                                         if (dropDownButton.Flyout is MenuFlyout menuFlyout)
-                                        {
-                                            foreach (var item in menuFlyout.Items)
-                                                if (item is MenuItem mi)
-                                                    flyoutMenuItems.Add(mi);
-                                        }
+                                            flyoutMenuItems = WPFUtils.GetDirectMenuItems(menuFlyout);
 
                                         // Highlight first enabled item; avoid Focus() which calls
                                         // FocusManager.SetFocusedElement(gamepadWindow) and can close the popup
-                                        var firstItem = flyoutMenuItems.FirstOrDefault(m => m.IsEnabled);
+                                        var firstItem = flyoutMenuItems.FirstOrDefault(m => m.IsEnabled && m.IsVisible);
                                         if (firstItem is not null)
-                                        {
-                                            focusedFlyoutItem = firstItem;
-                                            Keyboard.Focus(firstItem);
-                                            gamepadWindow.SetFocusedElement(firstItem);
-                                        }
+                                            FocusFlyoutMenuItem(firstItem);
                                     });
                                 };
                                 flyout.Opened += openedHandler;
@@ -1039,6 +1071,9 @@ namespace HandheldCompanion.Managers
                         }
                         else if (focusedElement is MenuItem menuItem && HasFlyoutOpen)
                         {
+                            if (TryOpenFlyoutSubmenu(menuItem))
+                                return;
+
                             // Execute the menu item command
                             if (menuItem.Command?.CanExecute(menuItem.CommandParameter) == true)
                                 menuItem.Command.Execute(menuItem.CommandParameter);
@@ -1051,6 +1086,9 @@ namespace HandheldCompanion.Managers
                     }
                     else if (controllerState.ButtonState.Buttons.Contains(ButtonFlags.B2))
                     {
+                        if (HasFlyoutOpen && focusedElement is MenuItem focusedMenuItem && TryCloseFlyoutSubmenu(focusedMenuItem))
+                            return;
+
                         // close flyout, if any
                         if (HasFlyoutOpen && gamepadWindow.currentFlyoutButton?.Flyout is { } openFlyout)
                         {
@@ -1557,8 +1595,25 @@ namespace HandheldCompanion.Managers
 
                             case "MenuItem":
                                 {
-                                    if (HasFlyoutOpen && flyoutMenuItems.Count > 0 && focusedElement is MenuItem currentMenuItem)
+                                    if (HasFlyoutOpen && focusedElement is MenuItem currentMenuItem)
                                     {
+                                        switch (direction)
+                                        {
+                                            case WPFUtils.Direction.Left:
+                                                TryCloseFlyoutSubmenu(currentMenuItem);
+                                                return;
+                                            case WPFUtils.Direction.Right:
+                                                TryOpenFlyoutSubmenu(currentMenuItem);
+                                                return;
+                                        }
+
+                                        flyoutMenuItems = WPFUtils.GetSiblingMenuItems(currentMenuItem);
+                                        if (flyoutMenuItems.Count == 0 && gamepadWindow.currentFlyoutButton?.Flyout is MenuFlyout menuFlyout)
+                                            flyoutMenuItems = WPFUtils.GetDirectMenuItems(menuFlyout);
+
+                                        if (flyoutMenuItems.Count == 0)
+                                            return;
+
                                         int idx = flyoutMenuItems.IndexOf(currentMenuItem);
                                         if (idx < 0) idx = 0;
 
@@ -1582,11 +1637,9 @@ namespace HandheldCompanion.Managers
 
                                             idx = nextIdx;
                                             var candidate = flyoutMenuItems[idx];
-                                            if (candidate.IsEnabled)
+                                            if (candidate.IsEnabled && candidate.IsVisible)
                                             {
-                                                focusedFlyoutItem = candidate;
-                                                Keyboard.Focus(candidate);
-                                                gamepadWindow.SetFocusedElement(candidate);
+                                                FocusFlyoutMenuItem(candidate);
                                                 return;
                                             }
                                             // disabled item — keep looping
