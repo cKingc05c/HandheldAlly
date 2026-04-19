@@ -501,7 +501,7 @@ namespace HandheldCompanion.Controls
                 if (rawViewportBottom <= 0.0 || rawViewportTop >= extentHeight)
                     return false;
 
-                double overscan = 0.0d; // Math.Max(TargetRowHeight, viewportHeight * OverscanViewportMultiplier);
+                double overscan = TargetRowHeight * OverscanViewportMultiplier;
                 viewportTop = Math.Max(0.0, rawViewportTop - overscan);
                 viewportBottom = Math.Min(extentHeight, rawViewportBottom + overscan);
                 return viewportBottom > viewportTop;

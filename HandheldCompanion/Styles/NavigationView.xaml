@@ -990,7 +990,8 @@
                                             Margin="{DynamicResource TopNavigationViewOverflowButtonMargin}"
                                             Content="More"
                                             Style="{DynamicResource NavigationViewOverflowButtonStyleWhenPaneOnTop}"
-                                            Visibility="Collapsed">
+                                            Visibility="Collapsed"
+                                            IsEnabled="False">
 
                                             <local:FlyoutService.Flyout>
                                                 <local:Flyout Placement="BottomEdgeAlignedRight">
@@ -1395,8 +1396,20 @@
                                 <ui:VisualStateGroupListener.Listener>
                                     <ui:VisualStateGroupListener x:Name="OverflowLabelGroupListener" />
                                 </ui:VisualStateGroupListener.Listener>
-                                <VisualState x:Name="OverflowButtonWithLabel" />
-                                <VisualState x:Name="OverflowButtonNoLabel" />
+                                <VisualState x:Name="OverflowButtonWithLabel">
+                                    <Storyboard>
+                                        <ObjectAnimationUsingKeyFrames Storyboard.TargetName="TopNavOverflowButton" Storyboard.TargetProperty="Visibility">
+                                            <DiscreteObjectKeyFrame KeyTime="0" Value="{x:Static Visibility.Collapsed}" />
+                                        </ObjectAnimationUsingKeyFrames>
+                                    </Storyboard>
+                                </VisualState>
+                                <VisualState x:Name="OverflowButtonNoLabel">
+                                    <Storyboard>
+                                        <ObjectAnimationUsingKeyFrames Storyboard.TargetName="TopNavOverflowButton" Storyboard.TargetProperty="Visibility">
+                                            <DiscreteObjectKeyFrame KeyTime="0" Value="{x:Static Visibility.Collapsed}" />
+                                        </ObjectAnimationUsingKeyFrames>
+                                    </Storyboard>
+                                </VisualState>
                             </VisualStateGroup>
 
                             <VisualStateGroup x:Name="BackButtonGroup">
@@ -1478,7 +1491,10 @@
                         </Trigger>
 
                         <Trigger SourceName="OverflowLabelGroupListener" Property="CurrentStateName" Value="OverflowButtonNoLabel">
-                            <Setter TargetName="TopNavOverflowButton" Property="Style" Value="{DynamicResource NavigationViewOverflowButtonNoLabelStyleWhenPaneOnTop}" />
+                            <Setter TargetName="TopNavOverflowButton" Property="Visibility" Value="Collapsed" />
+                        </Trigger>
+                        <Trigger SourceName="OverflowLabelGroupListener" Property="CurrentStateName" Value="OverflowButtonWithLabel">
+                            <Setter TargetName="TopNavOverflowButton" Property="Visibility" Value="Collapsed" />
                         </Trigger>
 
                         <MultiTrigger>
