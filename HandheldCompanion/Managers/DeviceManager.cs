@@ -98,8 +98,8 @@ public class DeviceManager : IManager
         HidDeviceListener.StartListen(DeviceInterfaceIds.HidDevice);
 
         RefreshDrivers();
-        RefreshDInputAsync().ConfigureAwait(false).GetAwaiter().GetResult();
-        RefreshXInputAsync().ConfigureAwait(false).GetAwaiter().GetResult();
+        RefreshDInput();
+        RefreshXInput();
         RefreshDisplayAdapters(true);
 
         base.Start();
@@ -142,9 +142,8 @@ public class DeviceManager : IManager
         base.Stop();
     }
 
-    public async Task RefreshXInputAsync()
+    public void RefreshXInput()
     {
-        var tasks = new List<Task>();
         var deviceIndex = 0;
         var devices = new Dictionary<string, DateTimeOffset>();
 
@@ -157,25 +156,34 @@ public class DeviceManager : IManager
 
         foreach (var (path, _) in devices.OrderBy(d => d.Value))
         {
-            var args = new DeviceEventArgs { InterfaceGuid = DeviceInterfaceIds.XUsbDevice, SymLink = path };
-            XUsbDevice_DeviceArrived(args); // posts a Task into arrivalInProgress
+            var interfaceGuid = DeviceInterfaceIds.XUsbDevice;
+            var instanceId = SymLinkToInstanceId(path, interfaceGuid.ToString());
+            PnPDetails? deviceEx = FindDevice(instanceId);
+            if (deviceEx is null || !deviceEx.isGaming)
+                continue;
 
-            var instanceId = SymLinkToInstanceId(args.SymLink, args.InterfaceGuid.ToString());
-            Task? t = null;
-            // wait briefly until the arrival task is visible
-            var until = DateTime.UtcNow.AddMilliseconds(500);
-            while (!arrivalInProgress.TryGetValue(instanceId, out t) && DateTime.UtcNow < until)
-                await Task.Delay(10).ConfigureAwait(false);
+            deviceEx.isXInput = true;
+            deviceEx.baseContainerDevicePath = path;
+            deviceEx.XInputDeviceIdx = GetDeviceIndex(deviceEx.baseContainerDevicePath);
 
-            if (t is not null) tasks.Add(t);
+            if (deviceEx.EnumeratorName.Equals("USB", StringComparison.InvariantCultureIgnoreCase))
+                deviceEx.XInputUserIndex = GetXInputIndex(deviceEx.baseContainerDevicePath);
+
+            if (deviceEx.XInputUserIndex == byte.MaxValue)
+                deviceEx.XInputUserIndex = (byte)XInputController.TryGetUserIndex(deviceEx);
+
+            deviceEx.InterfaceGuid = interfaceGuid;
+
+            LogManager.LogDebug("XUsbDevice {4} arrived on slot {5}: {0} (VID:{1}, PID:{2}) {3}",
+                deviceEx.Name, deviceEx.GetVendorID(), deviceEx.GetProductID(), deviceEx.deviceInstanceId,
+                deviceEx.isVirtual ? "virtual" : "physical", deviceEx.XInputUserIndex);
+
+            XUsbDeviceArrived?.Invoke(deviceEx, interfaceGuid);
         }
-
-        await Task.WhenAll(tasks).ConfigureAwait(false);
     }
 
-    public async Task RefreshDInputAsync()
+    public void RefreshDInput()
     {
-        var tasks = new List<Task>();
         var deviceIndex = 0;
         var devices = new Dictionary<string, DateTimeOffset>();
 
@@ -188,19 +196,18 @@ public class DeviceManager : IManager
 
         foreach (var (path, _) in devices.OrderBy(d => d.Value))
         {
-            var args = new DeviceEventArgs { InterfaceGuid = DeviceInterfaceIds.HidDevice, SymLink = path };
-            HidDevice_DeviceArrived(args);
+            PnPDetails? deviceEx = GetDetails(path);
 
-            var instanceId = SymLinkToInstanceId(args.SymLink, args.InterfaceGuid.ToString());
-            Task? t = null;
-            var until = DateTime.UtcNow.AddMilliseconds(500);
-            while (!hidArrivalInProgress.TryGetValue(instanceId, out t) && DateTime.UtcNow < until)
-                await Task.Delay(10).ConfigureAwait(false);
+            // skip if XInput (handled by XUSB logic)
+            if (deviceEx is null || deviceEx.isXInput)
+                continue;
 
-            if (t is not null) tasks.Add(t);
+            deviceEx.InterfaceGuid = DeviceInterfaceIds.HidDevice;
+            LogManager.LogDebug("HidDevice arrived: {0} (VID:{1}, PID:{2}) {3}",
+                deviceEx.Name, deviceEx.GetVendorID(), deviceEx.GetProductID(), deviceEx.deviceInstanceId);
+
+            HidDeviceArrived?.Invoke(deviceEx, DeviceInterfaceIds.HidDevice);
         }
-
-        await Task.WhenAll(tasks).ConfigureAwait(false);
     }
 
     public PnPDetails? FindDevice(string InstanceId)
@@ -281,9 +288,11 @@ public class DeviceManager : IManager
             if (hidDevice is null)
                 return null;
 
+            using Kernel32.SafeObjectHandle handle = OpenHidDeviceHandle(path);
+
             // get attributes
-            Attributes? attributes = GetHidAttributes(path);
-            Capabilities? capabilities = GetHidCapabilities(path);
+            Attributes? attributes = GetHidAttributes(handle);
+            Capabilities? capabilities = GetHidCapabilities(handle);
 
             if (!attributes.HasValue || !capabilities.HasValue)
                 return null;
@@ -471,21 +480,35 @@ public class DeviceManager : IManager
 
     private Attributes? GetHidAttributes(string path)
     {
-        using var handle = Kernel32.CreateFile(path,
-            Kernel32.ACCESS_MASK.GenericRight.GENERIC_READ | Kernel32.ACCESS_MASK.GenericRight.GENERIC_WRITE,
-            Kernel32.FileShare.FILE_SHARE_READ | Kernel32.FileShare.FILE_SHARE_WRITE,
-            IntPtr.Zero,
-            Kernel32.CreationDisposition.OPEN_EXISTING,
-            Kernel32.CreateFileFlags.FILE_ATTRIBUTE_NORMAL,
-            Kernel32.SafeObjectHandle.Null
-        );
+        using var handle = OpenHidDeviceHandle(path);
+        return GetHidAttributes(handle);
+    }
+
+    private Attributes? GetHidAttributes(Kernel32.SafeObjectHandle handle)
+    {
+        if (handle.IsInvalid)
+            return null;
 
         return GetAttributes.Get(handle.DangerousGetHandle());
     }
 
     private Capabilities? GetHidCapabilities(string path)
     {
-        using var handle = Kernel32.CreateFile(path,
+        using var handle = OpenHidDeviceHandle(path);
+        return GetHidCapabilities(handle);
+    }
+
+    private Capabilities? GetHidCapabilities(Kernel32.SafeObjectHandle handle)
+    {
+        if (handle.IsInvalid)
+            return null;
+
+        return GetCapabilities.Get(handle.DangerousGetHandle());
+    }
+
+    private static Kernel32.SafeObjectHandle OpenHidDeviceHandle(string path)
+    {
+        return Kernel32.CreateFile(path,
             Kernel32.ACCESS_MASK.GenericRight.GENERIC_READ | Kernel32.ACCESS_MASK.GenericRight.GENERIC_WRITE,
             Kernel32.FileShare.FILE_SHARE_READ | Kernel32.FileShare.FILE_SHARE_WRITE,
             IntPtr.Zero,
@@ -493,8 +516,6 @@ public class DeviceManager : IManager
             Kernel32.CreateFileFlags.FILE_ATTRIBUTE_NORMAL,
             Kernel32.SafeObjectHandle.Null
         );
-
-        return GetCapabilities.Get(handle.DangerousGetHandle());
     }
 
     private bool IsGaming(Attributes attributes, Capabilities capabilities)
@@ -612,7 +633,7 @@ public class DeviceManager : IManager
                 deviceEx.XInputDeviceIdx = GetDeviceIndex(deviceEx.baseContainerDevicePath);
 
                 if (deviceEx.EnumeratorName.Equals("USB", StringComparison.InvariantCultureIgnoreCase))
-                    deviceEx.XInputUserIndex = await GetXInputIndexAsync(deviceEx.baseContainerDevicePath).ConfigureAwait(false);
+                    deviceEx.XInputUserIndex = GetXInputIndex(deviceEx.baseContainerDevicePath);
 
                 if (deviceEx.XInputUserIndex == byte.MaxValue)
                     deviceEx.XInputUserIndex = (byte)XInputController.TryGetUserIndex(deviceEx);
@@ -790,7 +811,7 @@ public class DeviceManager : IManager
         catch { }
     }
 
-    public static PnPDetails? GetDeviceFromInstanceId(string instanceId)
+    public static async Task<PnPDetails?> GetDeviceFromInstanceIdAsync(string instanceId)
     {
         PnPDetails? details = null;
 
@@ -817,7 +838,7 @@ public class DeviceManager : IManager
             }
 
             if (details is null)
-                Thread.Sleep(250);
+                await Task.Delay(250).ConfigureAwait(false);
         }
 
         return details;
@@ -828,55 +849,23 @@ public class DeviceManager : IManager
         uint size = 520;                 // max chars in buffer (incl. terminating \0)
         StringBuilder sb = new StringBuilder((int)size);
 
-        string? result = OpenXInput.GetDevicePath(userIndex);
-        if (!string.IsNullOrEmpty(result))
-            return result;
-
+        if (OpenXInput.IsAvailable)
+        {
+            string? result = OpenXInput.GetDevicePath(userIndex);
+            if (!string.IsNullOrEmpty(result))
+                return result;
+        }
         return string.Empty;
     }
 
-    public static async Task<byte> GetXInputIndexAsync(string symLink)
+    public static byte GetXInputIndex(string symLink)
     {
-        const int maxAttempts = 4;
-
-        // new method: try to get user index directly from OpenXInput
         if (OpenXInput.IsAvailable)
         {
             uint result = OpenXInput.GetUserIndex(symLink, out byte userIndex);
             if (result == OpenXInput.ERROR_SUCCESS)
                 return userIndex;
-            else
-                return byte.MaxValue;
         }
-
-        // old method: query LED state and map back to port (works because the LED state reflects the assigned port)
-        using SafeFileHandle handle = CreateFileW(symLink, GENERIC_WRITE | GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE, IntPtr.Zero, OPEN_EXISTING, 0, IntPtr.Zero);
-        if (handle.IsInvalid)
-            return byte.MaxValue;
-
-        byte[] request = new byte[] { 0x01, 0x01, 0x00 };
-        byte[] response = new byte[3];
-
-        for (int i = 0; i < maxAttempts; i++)
-        {
-            uint returned = 0;
-            if (DeviceIoControl(handle, IOCTL_XUSB_GET_LED_STATE, request, request.Length, response, response.Length, ref returned, IntPtr.Zero))
-            {
-                byte ledState = response[2];
-                if (ledState >= 2 && ledState <= 9)
-                    return XINPUT_LED_TO_PORT_MAP[ledState];
-
-                // LED states 10-15 are non-transitional animations (rotate, blink, etc.)
-                // that will never resolve to a valid port — exit immediately instead of
-                // wasting up to 3 seconds on futile retries.
-                if (ledState >= 10)
-                    return byte.MaxValue;
-            }
-
-            if (i < maxAttempts - 1)
-                await Task.Delay(1000).ConfigureAwait(false);
-        }
-
         return byte.MaxValue;
     }
 

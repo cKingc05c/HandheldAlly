@@ -453,7 +453,7 @@ public static class ControllerManager
                     if (DeviceManager.TryExtractInterfaceGuid(path, out Guid interfaceGuid))
                         path = DeviceManager.SymLinkToInstanceId(path, interfaceGuid.ToString());
 
-                    PnPDetails? details = DeviceManager.GetDeviceFromInstanceId(path);
+                    PnPDetails? details = await DeviceManager.GetDeviceFromInstanceIdAsync(path).ConfigureAwait(false);
                     if (details is null)
                     {
                         LogManager.LogError("Failed to retrieve PnPDetails for controller {0}", deviceIndex);
@@ -1279,15 +1279,32 @@ public static class ControllerManager
         ManagerFactory.deviceManager.HidDeviceArrived += HidDeviceArrived;
         ManagerFactory.deviceManager.HidDeviceRemoved += HidDeviceRemoved;
 
-        Rescan();
+        HydrateKnownDevices();
+    }
+
+    private static void HydrateKnownDevices()
+    {
+        foreach (PnPDetails details in ManagerFactory.deviceManager.PnPDevices.Values.Where(details => details.isGaming))
+        {
+            if (details.isXInput)
+                XUsbDeviceArrived(details, details.InterfaceGuid);
+            else
+                HidDeviceArrived(details, details.InterfaceGuid);
+        }
+
+        ReopenSDLGamepads();
     }
 
     public static void Rescan()
     {
-        ManagerFactory.deviceManager.RefreshDInputAsync().ConfigureAwait(false).GetAwaiter().GetResult();
-        ManagerFactory.deviceManager.RefreshXInputAsync().ConfigureAwait(false).GetAwaiter().GetResult();
+        ManagerFactory.deviceManager.RefreshDInput();
+        ManagerFactory.deviceManager.RefreshXInput();
 
-        // Reopen all SDL gamepads
+        ReopenSDLGamepads();
+    }
+
+    private static void ReopenSDLGamepads()
+    {
         uint[]? gamepads = SDL.GetGamepads(out int count);
         if (gamepads != null)
         {
@@ -1582,9 +1599,9 @@ public static class ControllerManager
 
             var tasks = GetControllers<XInputController>()
                 .Where(c => !c.IsDummy() && !c.IsBusy)
-                .Select(async controller =>
+                .Select(controller => Task.Run(() =>
                 {
-                    byte index = await DeviceManager.GetXInputIndexAsync(controller.GetContainerPath()).ConfigureAwait(false);
+                    byte index = DeviceManager.GetXInputIndex(controller.GetContainerPath());
                     if (index == byte.MaxValue && controller.Details is not null)
                         index = (byte)XInputController.TryGetUserIndex(controller.Details);
 
@@ -1613,7 +1630,7 @@ public static class ControllerManager
                             slotOwners[index] = controller;
                         }
                     }
-                });
+                }));
 
             await Task.WhenAll(tasks).ConfigureAwait(false);
             InvalidSlotAssignments = newInvalid;
