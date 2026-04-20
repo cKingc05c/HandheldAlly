@@ -932,11 +932,11 @@ public partial class MainWindow : GamepadWindow
             NavigationViewItem navItem = (NavigationViewItem)args.InvokedItemContainer;
             string navItemTag = (string)navItem.Tag;
 
-            NavView_Navigate(navItemTag);
+            NavView_Navigate(navItemTag, true);
         }
     }
 
-    private void NavView_Navigate(string navItemTag)
+    private void NavView_Navigate(string navItemTag, bool focusNavigationItem)
     {
         NavigationViewItem? selectedItem = navView.MenuItems
             .OfType<NavigationViewItem>()
@@ -951,8 +951,8 @@ public partial class MainWindow : GamepadWindow
         // Find and select the matching menu item
         navView.SelectedItem = selectedItem;
 
-        // Give gamepad focus
-        gamepadFocusManager.Focus(selectedItem);
+        if (focusNavigationItem)
+            gamepadFocusManager.Focus(selectedItem);
 
         // Debounce: update visual selection immediately, defer actual page load
         _pendingNavTag = navItemTag;
@@ -980,7 +980,7 @@ public partial class MainWindow : GamepadWindow
             return;
 
         // Navigate to the specified page
-        NavView_Navigate(navItemTag);
+        NavView_Navigate(navItemTag, false);
     }
 
     public static void NavView_Navigate(Page _page)

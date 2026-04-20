@@ -614,20 +614,22 @@ public partial class OverlayQuickTools : GamepadWindow
             string navItemTag = (string)navItem.Tag;
 
             // navigate
-            NavView_Navigate(navItemTag);
+            NavView_Navigate(navItemTag, true);
         }
     }
 
-    private void NavView_Navigate(string navItemTag)
+    private void NavView_Navigate(string navItemTag, bool focusNavigationItem)
     {
         // Find and select the matching menu item
         navView.SelectedItem = navView.MenuItems
             .OfType<NavigationViewItem>()
             .FirstOrDefault(item => item.Tag?.ToString() == navItemTag);
 
-        // Give gamepad focus
-        NavigationViewItem? selectedItem = navView.SelectedItem as NavigationViewItem;
-        gamepadFocusManager.Focus(selectedItem);
+        if (focusNavigationItem)
+        {
+            NavigationViewItem? selectedItem = navView.SelectedItem as NavigationViewItem;
+            gamepadFocusManager.Focus(selectedItem);
+        }
 
         // Debounce: update visual selection immediately, defer actual page load
         _pendingNavTag = navItemTag;
@@ -655,7 +657,7 @@ public partial class OverlayQuickTools : GamepadWindow
             return;
 
         // Navigate to the specified page
-        NavView_Navigate(navItemTag);
+        NavView_Navigate(navItemTag, false);
     }
 
     public void NavView_Navigate(Page _page)
@@ -716,12 +718,12 @@ public partial class OverlayQuickTools : GamepadWindow
 
     private void QuicKeyboard_Click(object sender, RoutedEventArgs e)
     {
-        NavView_Navigate("QuickKeyboardPage");
+        NavigateToPage("QuickKeyboardPage");
     }
 
     private void QuickTrackpad_Click(object sender, RoutedEventArgs e)
     {
-        NavView_Navigate("QuickTrackpadPage");
+        NavigateToPage("QuickTrackpadPage");
     }
 
     private void QuickGoBack_Click(object sender, RoutedEventArgs e)

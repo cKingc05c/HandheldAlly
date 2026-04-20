@@ -989,9 +989,9 @@
                                             Grid.Column="4"
                                             Margin="{DynamicResource TopNavigationViewOverflowButtonMargin}"
                                             Content="More"
+                                            IsEnabled="False"
                                             Style="{DynamicResource NavigationViewOverflowButtonStyleWhenPaneOnTop}"
-                                            Visibility="Collapsed"
-                                            IsEnabled="False">
+                                            Visibility="Collapsed">
 
                                             <local:FlyoutService.Flyout>
                                                 <local:Flyout Placement="BottomEdgeAlignedRight">
