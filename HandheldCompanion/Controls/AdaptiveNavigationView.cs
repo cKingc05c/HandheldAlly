@@ -21,9 +21,6 @@ namespace HandheldCompanion.Controls
         private bool m_isIconOnlyMode = false;
         private double m_lastMeasuredWidth = 0;
 
-        // Hysteresis: different thresholds to prevent oscillation
-        private const double ICON_ONLY_WIDTH_PER_ITEM = 60.0;  // Width when in IconOnly mode
-        private const double ICON_TEXT_WIDTH_PER_ITEM = 120.0; // Width when showing text
         private const double RESERVED_SPACE = 200.0;            // Space for padding, footer, etc.
         private const double HYSTERESIS_MARGIN = 20.0;          // Extra margin to prevent rapid switching (reduced from 50)
 
@@ -100,19 +97,10 @@ namespace HandheldCompanion.Controls
                 if (items.Count == 0)
                     return;
 
-                // Calculate width needed based on TARGET mode, not current mode
-                // This prevents feedback loops
+                double widthIfIconText = MeasureRequiredWidth(items, iconOnly: false);
+                double widthIfIconOnly = MeasureRequiredWidth(items, iconOnly: true);
 
-                // If currently showing text (IconOnLeft mode):
-                // - Calculate width needed if we STAY in IconOnLeft mode
-                // - Switch to IconOnly ONLY if we need more space than available + margin
-
-                // If currently in IconOnly mode:
-                // - Calculate width needed if we SWITCH to IconOnLeft mode  
-                // - Switch to IconOnLeft ONLY if we have enough space + margin
-
-                double widthIfIconOnly = items.Count * ICON_ONLY_WIDTH_PER_ITEM;
-                double widthIfIconText = items.Count * ICON_TEXT_WIDTH_PER_ITEM;
+                ApplyDisplayModeToItems(items, m_isIconOnlyMode, useTransitions: false);
 
                 double availableForItems = availableWidth - RESERVED_SPACE;
 
@@ -136,16 +124,10 @@ namespace HandheldCompanion.Controls
                 {
                     m_isIconOnlyMode = shouldBeIconOnly;
                     ApplyDisplayModeToItems(items, shouldBeIconOnly);
-
-                    System.Diagnostics.Debug.WriteLine(
-                        $"AdaptiveNavigationView: Switched to {(shouldBeIconOnly ? "IconOnly" : "IconOnLeft")} " +
-                        $"(Available: {availableForItems:F0}px, IconOnly needs: {widthIfIconOnly:F0}px, IconText needs: {widthIfIconText:F0}px)");
                 }
             }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"AdaptiveNavigationView: Error in UpdateItemDisplayMode: {ex.Message}");
-            }
+            catch
+            { }
         }
 
         private List<NavigationViewItem> GetTopNavigationViewItems()
@@ -167,7 +149,7 @@ namespace HandheldCompanion.Controls
             return items;
         }
 
-        private NavigationViewItemPresenter FindNavigationViewItemPresenter(NavigationViewItem item)
+        private NavigationViewItemPresenter? FindNavigationViewItemPresenter(NavigationViewItem item)
         {
             if (item == null)
                 return null;
@@ -175,7 +157,7 @@ namespace HandheldCompanion.Controls
             return FindVisualChild<NavigationViewItemPresenter>(item);
         }
 
-        private T FindVisualChild<T>(DependencyObject parent) where T : DependencyObject
+        private T? FindVisualChild<T>(DependencyObject parent) where T : DependencyObject
         {
             if (parent == null)
                 return null;
@@ -205,6 +187,39 @@ namespace HandheldCompanion.Controls
 
         private void ApplyDisplayModeToItems(List<NavigationViewItem> items, bool iconOnly)
         {
+            ApplyDisplayModeToItems(items, iconOnly, useTransitions: true);
+        }
+
+        private double MeasureRequiredWidth(List<NavigationViewItem> items, bool iconOnly)
+        {
+            ApplyDisplayModeToItems(items, iconOnly, useTransitions: false);
+
+            double totalWidth = 0.0;
+            Size measureSize = new Size(double.PositiveInfinity, double.PositiveInfinity);
+
+            foreach (NavigationViewItem item in items)
+            {
+                try
+                {
+                    item.InvalidateMeasure();
+                    item.UpdateLayout();
+                    item.Measure(measureSize);
+
+                    double itemWidth = item.DesiredSize.Width;
+                    if (double.IsNaN(itemWidth) || itemWidth <= 0)
+                        itemWidth = item.ActualWidth;
+
+                    totalWidth += itemWidth;
+                }
+                catch
+                { }
+            }
+
+            return totalWidth;
+        }
+
+        private void ApplyDisplayModeToItems(List<NavigationViewItem> items, bool iconOnly, bool useTransitions)
+        {
             foreach (var item in items)
             {
                 try
@@ -220,30 +235,21 @@ namespace HandheldCompanion.Controls
                             // Set the CurrentStateName property directly via reflection
                             string stateName = iconOnly ? "IconOnly" : "IconOnLeft";
                             SetListenerState(listener, stateName);
-
-                            System.Diagnostics.Debug.WriteLine(
-                                $"AdaptiveNavigationView: Set state to '{stateName}' via listener");
                         }
                         else
                         {
                             // Fallback to standard visual state manager
                             string stateName = iconOnly ? "IconOnly" : "IconOnLeft";
-                            bool success = VisualStateManager.GoToState(presenter, stateName, useTransitions: true);
-
-                            System.Diagnostics.Debug.WriteLine(
-                                $"AdaptiveNavigationView: VSM GoToState '{stateName}' result: {success}");
+                            bool success = VisualStateManager.GoToState(presenter, stateName, useTransitions);
                         }
                     }
                 }
-                catch (Exception ex)
-                {
-                    System.Diagnostics.Debug.WriteLine(
-                        $"AdaptiveNavigationView: Error applying display mode to item: {ex.Message}");
-                }
+                catch
+                { }
             }
         }
 
-        private object FindVisualStateGroupListener(DependencyObject element, string listenerName)
+        private object? FindVisualStateGroupListener(DependencyObject element, string listenerName)
         {
             if (element == null)
                 return null;
@@ -269,8 +275,7 @@ namespace HandheldCompanion.Controls
                 }
             }
             catch
-            {
-            }
+            { }
 
             return null;
         }
@@ -288,11 +293,8 @@ namespace HandheldCompanion.Controls
                     currentStateProperty.SetValue(listener, stateName);
                 }
             }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine(
-                    $"AdaptiveNavigationView: Error setting listener state: {ex.Message}");
-            }
+            catch
+            { }
         }
     }
 }
