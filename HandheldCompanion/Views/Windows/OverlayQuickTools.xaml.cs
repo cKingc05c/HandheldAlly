@@ -161,10 +161,10 @@ public partial class OverlayQuickTools : GamepadWindow
 
     private void ProcessManager_RawForeground(nint hWnd)
     {
-        if (hWnd != hwndSource.Handle && AutoHide)
+        if (hWnd != hwndSource.Handle && AutoHide && !isClosing)
         {
-            // UI thread
-            UIHelper.TryInvoke(() =>
+            // Use async dispatch to avoid deadlock during shutdown
+            UIHelper.TryBeginInvoke(() =>
             {
                 HideInstant();
             });
