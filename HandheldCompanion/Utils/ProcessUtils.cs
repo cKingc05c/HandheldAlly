@@ -125,7 +125,7 @@ public static class ProcessUtils
             Task removalTask = Task.Run(removalAction);
             return removalTask.Wait(timeout);
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             // Log exception details
             return false;
@@ -210,7 +210,7 @@ public static class ProcessUtils
     public static Process? FindProcessByWindowName(IntPtr hWnd)
     {
         // Get window name
-            string? windowName = GetWindowTitle(hWnd);
+        string? windowName = GetWindowTitle(hWnd);
 
         if (string.IsNullOrEmpty(windowName))
             return null;
@@ -481,8 +481,10 @@ public static class ProcessUtils
     public static extern bool EnumChildWindows(IntPtr hwnd, WindowEnumProc callback, IntPtr lParam);
     public delegate bool WindowEnumProc(IntPtr hwnd, IntPtr lparam);
 
-    [DllImport("User32.dll")]
-    public static extern bool SetForegroundWindow(IntPtr handle);
+    public static bool SetForegroundWindow(IntPtr handle)
+    {
+        return WinAPI.SetForegroundWindow(handle);
+    }
 
     [DllImport("user32.dll")]
     public static extern bool IsWindowVisible(IntPtr hWnd);
@@ -491,15 +493,19 @@ public static class ProcessUtils
     public static extern bool EnumThreadWindows(uint dwThreadId, EnumThreadDelegate lpfn, IntPtr lParam);
     public delegate bool EnumThreadDelegate(IntPtr hWnd, IntPtr lParam);
 
-    [DllImport("User32.dll")]
-    public static extern bool ShowWindow(IntPtr handle, int nCmdShow);
+    public static bool ShowWindow(IntPtr handle, int nCmdShow)
+    {
+        return WinAPI.ShowWindow(handle, nCmdShow);
+    }
 
     [DllImport("user32.dll", SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
     public static extern bool GetWindowPlacement(IntPtr hWnd, ref WINDOWPLACEMENT lpwndpl);
 
-    [DllImport("User32.dll")]
-    public static extern bool IsIconic(IntPtr handle);
+    public static bool IsIconic(IntPtr handle)
+    {
+        return WinAPI.IsIconic(handle);
+    }
 
     [DllImport("kernel32.dll", SetLastError = true)]
     private static extern bool CloseHandle(
@@ -534,8 +540,10 @@ public static class ProcessUtils
         void Toggle(IntPtr hwnd);
     }
 
-    [DllImport("user32.dll", SetLastError = false)]
-    public static extern IntPtr GetDesktopWindow();
+    public static IntPtr GetDesktopWindow()
+    {
+        return WinAPI.GetDesktopWindow();
+    }
 
     [DllImport("ntdll.dll", EntryPoint = "NtSuspendProcess", SetLastError = true, ExactSpelling = false)]
     public static extern UIntPtr NtSuspendProcess(IntPtr processHandle);
@@ -548,9 +556,6 @@ public static class ProcessUtils
 
 public static class IconUtilities
 {
-    [DllImport("gdi32.dll", SetLastError = true)]
-    private static extern bool DeleteObject(IntPtr hObject);
-
     public static ImageSource ToImageSource(this Icon icon)
     {
         var bitmap = icon.ToBitmap();
@@ -562,7 +567,7 @@ public static class IconUtilities
             Int32Rect.Empty,
             BitmapSizeOptions.FromEmptyOptions());
 
-        if (!DeleteObject(hBitmap)) throw new Win32Exception();
+        if (!WinAPI.DeleteObject(hBitmap)) throw new Win32Exception();
 
         return wpfBitmap;
     }

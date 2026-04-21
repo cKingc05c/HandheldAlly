@@ -16,7 +16,7 @@ namespace HandheldCompanion.Converters
             if (values[1] == DependencyProperty.UnsetValue)
                 return DependencyProperty.UnsetValue;
 
-        string? text = values[0] as string;
+            string? text = values[0] as string;
             bool isEnabled = (bool)values[1];
 
             ComboBoxItem comboBoxItem = new ComboBoxItem() { IsEnabled = isEnabled, Margin = new(0), Padding = new(0) };

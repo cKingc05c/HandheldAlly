@@ -16,6 +16,7 @@ using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Threading;
 using WpfScreenHelper;
+using static HandheldCompanion.WinAPI;
 
 namespace HandheldCompanion.Views.Classes
 {
@@ -60,11 +61,6 @@ namespace HandheldCompanion.Views.Classes
         private AdornerLayer? _adornerLayer;
         private HighlightAdorner? _highlightAdorner;
 
-        protected const int WM_DISPLAYCHANGE = 0x007E;
-        protected const int WM_DPICHANGED = 0x02E0;
-        protected const int WM_POWERBROADCAST = 0x0218;
-        protected const int WM_PAINT = 0x000F;
-
         // hack variables
         private Timer WMPaintTimer = new(100) { AutoReset = false };
         private bool WMPaintPending = false;
@@ -75,12 +71,6 @@ namespace HandheldCompanion.Views.Classes
 
         [DllImport("dwmapi.dll")]
         private static extern int DwmFlush();
-
-        [return: MarshalAs(UnmanagedType.Bool)]
-        [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Auto)]
-        private static extern bool PostMessage(IntPtr hWnd, uint Msg, IntPtr wParam, IntPtr lParam);
-
-        private const uint WM_MOUSELEAVE = 0x02A3;
 
         public GamepadWindow()
         {
@@ -219,7 +209,7 @@ namespace HandheldCompanion.Views.Classes
         public void ClearMouseHover()
         {
             if (hwndSource?.Handle is IntPtr hwnd && hwnd != IntPtr.Zero)
-                PostMessage(hwnd, WM_MOUSELEAVE, IntPtr.Zero, IntPtr.Zero);
+                WinAPI.PostMessage(hwnd, WM_MOUSELEAVE, IntPtr.Zero, IntPtr.Zero);
         }
 
         private void OnLayoutUpdated(object? sender, EventArgs e)

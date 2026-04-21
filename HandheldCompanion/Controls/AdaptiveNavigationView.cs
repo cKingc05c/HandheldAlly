@@ -2,8 +2,6 @@
 using iNKORE.UI.WPF.Modern.Controls.Primitives;
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Reflection;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -60,7 +58,7 @@ namespace HandheldCompanion.Controls
                 if (Math.Abs(currentWidth - m_lastMeasuredWidth) > 1)
                 {
                     m_lastMeasuredWidth = currentWidth;
-                    Dispatcher.BeginInvoke(new Action(() => UpdateItemDisplayMode(currentWidth)), 
+                    Dispatcher.BeginInvoke(new Action(() => UpdateItemDisplayMode(currentWidth)),
                         System.Windows.Threading.DispatcherPriority.Loaded);
                 }
             }

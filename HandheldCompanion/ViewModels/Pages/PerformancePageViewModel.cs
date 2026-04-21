@@ -1118,8 +1118,7 @@ namespace HandheldCompanion.ViewModels
 
             if (IsMainPage)
             {
-                if (_fanGraphLineSeries is not null)
-                    _fanGraphLineSeries.ActualValues.CollectionChanged -= ActualValues_CollectionChanged;
+                _fanGraphLineSeries?.ActualValues.CollectionChanged -= ActualValues_CollectionChanged;
 
                 if (_fanGraph is not null)
                 {

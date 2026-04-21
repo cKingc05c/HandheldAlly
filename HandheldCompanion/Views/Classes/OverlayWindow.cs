@@ -1,11 +1,11 @@
 ﻿using HandheldCompanion.Helpers;
 using System;
-using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Threading;
+using static HandheldCompanion.WinAPI;
 
 namespace HandheldCompanion.Views.Classes;
 
@@ -13,9 +13,6 @@ public class OverlayWindow : Window
 {
     public HorizontalAlignment _HorizontalAlignment;
     public VerticalAlignment _VerticalAlignment;
-
-    private const int WM_MOUSEACTIVATE = 0x0021;
-    private const int MA_NOACTIVATE = 0x0003;
 
     public OverlayWindow()
     {
@@ -76,7 +73,7 @@ public class OverlayWindow : Window
 
         //Set the window style to noactivate.
         var helper = new WindowInteropHelper(this);
-        SetWindowLong(helper.Handle, GWL_EXSTYLE, GetWindowLong(helper.Handle, GWL_EXSTYLE) | WS_EX_NOACTIVATE);
+        WinAPI.SetWindowLong(helper.Handle, GWL_EXSTYLE, WinAPI.GetWindowLong(helper.Handle, GWL_EXSTYLE) | WS_EX_NOACTIVATE);
     }
 
     private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
@@ -163,16 +160,4 @@ public class OverlayWindow : Window
         }, DispatcherPriority.Normal);
     }
 
-    #region import
-
-    private const int GWL_EXSTYLE = -20;
-    private const int WS_EX_NOACTIVATE = 0x08000000;
-
-    [DllImport("user32.dll")]
-    public static extern IntPtr SetWindowLong(IntPtr hWnd, int nIndex, int dwNewLong);
-
-    [DllImport("user32.dll")]
-    public static extern int GetWindowLong(IntPtr hWnd, int nIndex);
-
-    #endregion
 }
