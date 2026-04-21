@@ -80,8 +80,20 @@ namespace hidapi
                             try
                             {
                                 ushort inputReportLength = GetInputReportByteLength(hidDeviceInfo.Path);
-                                if (inputReportLength == _inputBufferLen)
+
+                                // Accept devices within ±1 byte tolerance (handles Windows quirks and firmware variations)
+                                if (Math.Abs(inputReportLength - _inputBufferLen) <= 1)
                                 {
+                                    // Resize buffers to match actual device report length
+                                    if (inputReportLength != _inputBufferLen)
+                                    {
+                                        _inputBufferLen = inputReportLength;
+                                        _buffer = new byte[inputReportLength];
+                                        _writeBuffer = new byte[inputReportLength];
+                                        _readReturnBuffer = new byte[inputReportLength];
+                                        _eventArgs = new HidDeviceInputReceivedEventArgs(this, new byte[inputReportLength], true);
+                                    }
+
                                     _releaseNumber = hidDeviceInfo.ReleaseNumber;
                                     break;
                                 }
