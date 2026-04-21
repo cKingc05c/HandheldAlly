@@ -76,6 +76,12 @@ namespace HandheldCompanion.Views.Classes
         [DllImport("dwmapi.dll")]
         private static extern int DwmFlush();
 
+        [return: MarshalAs(UnmanagedType.Bool)]
+        [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Auto)]
+        private static extern bool PostMessage(IntPtr hWnd, uint Msg, IntPtr wParam, IntPtr lParam);
+
+        private const uint WM_MOUSELEAVE = 0x02A3;
+
         public GamepadWindow()
         {
             LayoutUpdated += OnLayoutUpdated;
@@ -120,18 +126,7 @@ namespace HandheldCompanion.Views.Classes
             hwndSource = HwndSource.FromHwnd(hwnd);
             hwndSource.AddHook(WndProc);
 
-            // Block hit-testing so the first WM_ACTIVATE cannot set IsMouseOver
-            // from the stale cursor position (see _startupGracePending).
-            IsHitTestVisible = false;
-
             base.OnSourceInitialized(e);
-        }
-
-        protected override void OnActivated(EventArgs e)
-        {
-            IsHitTestVisible = true;
-
-            base.OnActivated(e);
         }
 
         protected virtual IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
@@ -219,6 +214,12 @@ namespace HandheldCompanion.Views.Classes
         public Screen GetScreen()
         {
             return Screen.FromHandle(hwndSource.Handle);
+        }
+
+        public void ClearMouseHover()
+        {
+            if (hwndSource?.Handle is IntPtr hwnd && hwnd != IntPtr.Zero)
+                PostMessage(hwnd, WM_MOUSELEAVE, IntPtr.Zero, IntPtr.Zero);
         }
 
         private void OnLayoutUpdated(object? sender, EventArgs e)

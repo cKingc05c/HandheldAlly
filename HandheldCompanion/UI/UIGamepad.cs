@@ -886,6 +886,9 @@ namespace HandheldCompanion.Managers
             {
                 try
                 {
+                    // clear any mouse/touch hover state so gamepad navigation is visually clean
+                    gamepadWindow.ClearMouseHover();
+
                     // get current focused element
                     Control? focusedElement = GetFocusedElement();
 
