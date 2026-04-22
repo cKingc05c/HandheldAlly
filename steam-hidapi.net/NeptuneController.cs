@@ -14,9 +14,9 @@ namespace steam_hidapi.net
 
         public Func<NeptuneControllerInputEventArgs, Task> OnControllerInputReceived;
 
-        public NeptuneController(ushort vid, ushort pid, short index) : base(vid, pid, index)
+        public NeptuneController(ushort vid, ushort pid, ushort inputBufferLen, short index) : base(vid, pid, inputBufferLen, index)
         {
-            _hidDevice = new HidDevice(_vid, _pid, 64, index)
+            _hidDevice = new HidDevice(_vid, _pid, inputBufferLen, index)
             {
                 OnInputReceived = input =>
                 {

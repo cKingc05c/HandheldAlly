@@ -67,12 +67,18 @@ public class NeptuneController : SteamController
         bool WasPlugged = IsConnected();
         if (WasPlugged) Unplug();
 
-        // create controller
-        Controller = new(details.VendorID, details.ProductID, details.GetMI());
         UserIndex = (byte)details.GetMI();
 
-        // (re)plug controller if needed or open it
-        if (WasPlugged) Plug(); else Open();
+        // try known buffer lengths to support different firmware versions (65 current, 64 legacy)
+        foreach (ushort bufLen in (ushort[])[64, 65])
+        {
+            Controller = new(details.VendorID, details.ProductID, bufLen, details.GetMI());
+            Open();
+            if (IsConnected()) break;
+        }
+
+        // (re)plug controller if needed; Open() inside Plug() is a no-op when already connected
+        if (WasPlugged) Plug();
     }
 
     public override string ToString()
