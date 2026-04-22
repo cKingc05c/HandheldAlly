@@ -814,7 +814,6 @@
 
                     <ui:SettingsCard
                         Name="LegionGoControllerSwap"
-                        IsEnabled="False"
                         Description="{l:Static resx:Resources.ControllerPage_LegionGoControllerSwapDesc}"
                         Header="{l:Static resx:Resources.ControllerPage_LegionGoControllerSwap}">
                         <ui:SettingsCard.HeaderIcon>

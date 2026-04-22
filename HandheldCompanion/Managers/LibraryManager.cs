@@ -726,8 +726,8 @@ namespace HandheldCompanion.Managers
             // download arts
             await UpdateProfileArts(profile, entry, (int)coverId, (int)artworkId, (int)logoId, includeFullResAssets);
 
-            // update profile
-            ManagerFactory.profileManager.UpdateOrCreateProfile(profile, source);
+            // update profile (always use LibraryUpdate to avoid re-entering creation logic)
+            ManagerFactory.profileManager.UpdateOrCreateProfile(profile, UpdateSource.LibraryUpdate);
         }
 
         public async Task UpdateProfileArts(Profile profile, LibraryEntry entry, int coverId = 0, int artworkId = 0, int logoId = 0, bool includeFullResAssets = true)

@@ -397,12 +397,12 @@ public class RTSSPlatform : IPlatform
 
     private void PostMessage(uint Msg, nint wParam, nint lParam)
     {
-        var hWnd = FindWindow(null, "RTSS");
+        var hWnd = WinAPI.FindWindow(null, "RTSS");
         if (hWnd == nint.Zero)
-            hWnd = FindWindow(null, "RivaTuner Statistics Server");
+            hWnd = WinAPI.FindWindow(null, "RivaTuner Statistics Server");
 
         if (hWnd != nint.Zero)
-            PostMessage(hWnd, Msg, wParam, lParam);
+            WinAPI.PostMessage(hWnd, Msg, wParam, lParam);
     }
 
     public uint EnableFlag(uint flag, bool status)
@@ -568,13 +568,6 @@ public class RTSSPlatform : IPlatform
     }
 
     #region struct
-
-    [return: MarshalAs(UnmanagedType.Bool)]
-    [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Auto)]
-    private static extern bool PostMessage(nint hWnd, uint Msg, nint wParam, nint lParam);
-
-    [DllImport("user32.dll", SetLastError = true)]
-    private static extern nint FindWindow(string? lpClassName, string lpWindowName);
 
     [DllImport("RTSSHooks64.dll")]
     public static extern uint SetFlags(uint dwAND, uint dwXOR);

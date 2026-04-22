@@ -9,7 +9,7 @@ using System.Runtime.InteropServices;
 
 namespace HandheldCompanion.Controllers.Lenovo
 {
-    public class LegionController : XInputController
+    public class LegionController : LegionControllerBase
     {
         // Import the user32.dll library
         [DllImport("user32.dll", SetLastError = true)]
@@ -68,18 +68,17 @@ namespace HandheldCompanion.Controllers.Lenovo
         private byte TOUCH_IDX = 26;
 
         private byte LCONTROLLER_STATE_IDX = 12;
+        private byte RCONTROLLER_STATE_IDX = 13;
+
+        private byte LCONTROLLER_TIMESTAMP = 32;
         private byte LCONTROLLER_ACCE_IDX = 35;
         private byte LCONTROLLER_GYRO_IDX = 41;
 
-        private byte RCONTROLLER_STATE_IDX = 13;
+        private byte RCONTROLLER_TIMESTAMP = 45;
         private byte RCONTROLLER_ACCE_IDX = 48;
         private byte RCONTROLLER_GYRO_IDX = 54;
 
-        private controller_hidapi.net.LegionController? Controller;
-        private byte[] data = new byte[64];
-
         #region TouchVariables
-        private bool ControllerPassthrough = false;
         private bool touchpadTouched = false;
         private DateTime touchStartTime;
         private DateTime lastTapTime = DateTime.MinValue;
@@ -148,12 +147,17 @@ namespace HandheldCompanion.Controllers.Lenovo
             Controller?.GetStatus(LCONTROLLER_STATE_IDX) == (byte)ControllerState.Wireless ||
             Controller?.GetStatus(RCONTROLLER_STATE_IDX) == (byte)ControllerState.Wireless;
 
+        /// <summary>
+        /// Detects if the HID report is misaligned (borked state).
+        /// When byte 1 equals 0, the report is shifted by 2 bytes.
+        /// </summary>
+        public bool IsHidReportMisaligned() => Controller?.GetStatus(1) == 0;
+
         public override bool IsExternal() => false;
 
         protected override void QuerySettings()
         {
             SettingsManager_SettingValueChanged("LegionControllerGyroIndex", ManagerFactory.settingsManager.GetInt("LegionControllerGyroIndex"), false);
-            SettingsManager_SettingValueChanged("LegionControllerPassthrough", ManagerFactory.settingsManager.GetBoolean("LegionControllerPassthrough"), false);
             base.QuerySettings();
         }
 
@@ -163,9 +167,6 @@ namespace HandheldCompanion.Controllers.Lenovo
             {
                 case "LegionControllerGyroIndex":
                     SetGyroIndex(Convert.ToInt32(value));
-                    break;
-                case "LegionControllerPassthrough":
-                    ControllerPassthrough = Convert.ToBoolean(value);
                     break;
             }
 
@@ -183,105 +184,29 @@ namespace HandheldCompanion.Controllers.Lenovo
             // create controller
             Controller = new(details.VendorID, details.ProductID);
 
+            // open controller as we need to check if it's ready by polling the hiddevice
+            Open();
+
             switch (Controller.DeviceVersion)
             {
                 case 256: // as of 04/02/2026
                     break;
             }
 
-            // open controller as we need to check if it's ready by polling the hiddevice
-            Open();
+            if (IsHidReportMisaligned())
+            {
+                LogManager.LogWarning("Legion Controller HID report misalignment detected. Device should be restarted.");
+
+                LCONTROLLER_STATE_IDX -= 2;
+                RCONTROLLER_STATE_IDX -= 2;
+                TOUCH_IDX -= 2;
+                FRONT_IDX -= 2;
+                BACK_IDX -= 2;
+                EXTRA_IDX -= 2;
+            }
 
             // manage gamepad motion from right controller
             gamepadMotions[1] = new($"{details.baseContainerDeviceInstanceId}\\{LegionGoTablet.RightJoyconIndex}");
-        }
-
-        /*
-        public override void Hide(bool powerCycle = true)
-        {
-            lock (hidLock)
-            {
-                Close();
-                base.Hide(powerCycle);
-                Open();
-            }
-        }
-
-        public override void Unhide(bool powerCycle = true)
-        {
-            lock (hidLock)
-            {
-                Close();
-                base.Unhide(powerCycle);
-                Open();
-            }
-        }
-        */
-
-        private void Open()
-        {
-            lock (hidLock)
-            {
-                try
-                {
-                    if (Controller is not null)
-                    {
-                        // open controller
-                        Controller.OnControllerInputReceived += Controller_OnControllerInputReceived;
-                        Controller.Open();
-                    }
-                }
-                catch (Exception ex)
-                {
-                    LogManager.LogError("Couldn't initialize {0}. Exception: {1}", typeof(LegionController), ex.Message);
-                    return;
-                }
-            }
-        }
-
-        private void Close()
-        {
-            lock (hidLock)
-            {
-                if (Controller is not null)
-                {
-                    // close controller
-                    Controller.OnControllerInputReceived -= Controller_OnControllerInputReceived;
-                    Controller.Close();
-                }
-            }
-        }
-
-        public override void Gone()
-        {
-            lock (hidLock)
-            {
-                if (Controller is not null)
-                {
-                    Controller.OnControllerInputReceived -= Controller_OnControllerInputReceived;
-                    Controller.EndRead();
-                    Controller = null;
-                }
-            }
-        }
-
-        public override void Plug()
-        {
-            Open();
-
-            base.Plug();
-        }
-
-        public override void Unplug()
-        {
-            Close();
-
-            base.Unplug();
-        }
-
-        private void Controller_OnControllerInputReceived(byte[] Data)
-        {
-            Buffer.BlockCopy(Data, 0, this.data, 0, Data.Length);
         }
 
         public override void Tick(long ticks, float delta, bool commit)
@@ -295,6 +220,9 @@ namespace HandheldCompanion.Controllers.Lenovo
             FrontEnum frontButton = (FrontEnum)data[FRONT_IDX];
             Inputs.ButtonState[ButtonFlags.OEM1] = frontButton.HasFlag(FrontEnum.LegionR);
             Inputs.ButtonState[ButtonFlags.OEM2] = frontButton.HasFlag(FrontEnum.LegionL);
+
+            if (IsControllerSwap)
+                ApplyControllerSwap();
 
             BackEnum backButton = (BackEnum)data[BACK_IDX];
             Inputs.ButtonState[ButtonFlags.R4] = backButton.HasFlag(BackEnum.M3);
@@ -314,7 +242,7 @@ namespace HandheldCompanion.Controllers.Lenovo
             Inputs.ButtonState[ButtonFlags.B8] = scrollEnum.HasFlag(ScrollEnum.ScrollDown);
 
             // handle touchpad if passthrough is off
-            if (!ControllerPassthrough)
+            if (!IsPassthrough)
             {
                 // Right Pad
                 ushort TouchpadX = (ushort)(data[TOUCH_IDX] << 8 | data[TOUCH_IDX + 1]);
@@ -372,7 +300,7 @@ namespace HandheldCompanion.Controllers.Lenovo
 
         public void HandleTouchpadInput(bool touched, ushort TouchpadX, ushort TouchpadY)
         {
-            if (ControllerPassthrough)
+            if (IsPassthrough)
                 return;
 
             DateTime now = DateTime.UtcNow;

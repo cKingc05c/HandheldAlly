@@ -214,7 +214,6 @@ public class LegionGo : IDevice
     // todo: find the right value, this is placeholder
     protected const byte INPUT_HID_ID = 0x01;
     protected bool ControllerPassThrough = false;
-    protected bool ControllerSwap = false;
 
     public LegionGo()
     {
@@ -341,7 +340,6 @@ public class LegionGo : IDevice
         // raise events
         SettingsManager_SettingValueChanged("BatteryChargeLimit", ManagerFactory.settingsManager.GetBoolean("BatteryChargeLimit"), false);
         SettingsManager_SettingValueChanged("LegionControllerPassthrough", ManagerFactory.settingsManager.GetBoolean("LegionControllerPassthrough"), false);
-        SettingsManager_SettingValueChanged("LegionControllerSwap", ManagerFactory.settingsManager.GetBoolean("LegionControllerSwap"), false);
 
         base.QuerySettings();
     }
@@ -355,9 +353,6 @@ public class LegionGo : IDevice
                 break;
             case "LegionControllerPassthrough":
                 SetPassthrough(Convert.ToBoolean(value));
-                break;
-            case "LegionControllerSwap":
-                SetControllerSwap(Convert.ToBoolean(value));
                 break;
         }
 
@@ -432,11 +427,6 @@ public class LegionGo : IDevice
     {
         SetCPUPowerLimit(CapabilityID.CPUShortTermPowerLimit, limit);
         SetCPUPowerLimit(CapabilityID.CPUPeakPowerLimit, limit);
-    }
-
-    public virtual void SetControllerSwap(bool enabled)
-    {
-        ControllerSwap = enabled;
     }
 
     public virtual void SetPassthrough(bool enabled)

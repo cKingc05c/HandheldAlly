@@ -99,12 +99,12 @@ namespace HandheldCompanion.Managers
                 if (collection is null || collection.IsBuiltIn)
                     return false;
 
-                    _collections.Remove(collection);
-                }
+                _collections.Remove(collection);
+            }
 
-                Save();
-                ManagerFactory.profileManager.RemoveCollectionFromProfiles(id);
-                CollectionRemoved?.Invoke(collection);
+            Save();
+            ManagerFactory.profileManager.RemoveCollectionFromProfiles(id);
+            CollectionRemoved?.Invoke(collection);
             LogManager.LogInformation("Deleted collection: {0}", collection.Name);
             return true;
         }

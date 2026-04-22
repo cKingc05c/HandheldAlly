@@ -1,8 +1,10 @@
 ﻿using HandheldCompanion.Devices;
 using HandheldCompanion.Devices.Zotac;
+using HandheldCompanion.Helpers;
 using HandheldCompanion.Managers;
 using HandheldCompanion.Misc;
 using HandheldCompanion.Processors;
+using HandheldCompanion.Utils;
 using HandheldCompanion.Views;
 using HandheldCompanion.Watchers;
 using iNKORE.UI.WPF.Modern.Controls;
@@ -197,8 +199,9 @@ namespace HandheldCompanion.ViewModels
                 // update flag
                 ManufacturerAppBusy = true;
 
-                _ = Task.Run(() =>
+                _ = Task.Run(async () =>
                 {
+                    // Enable or disable the manufacturer software
                     if (value)
                         manufacturerWatcher?.Enable();
                     else
@@ -350,7 +353,33 @@ namespace HandheldCompanion.ViewModels
                     ManagerFactory.notificationManager.Add(notification);
                     break;
                 case false:
-                    ManagerFactory.notificationManager.Discard(notification);
+                    {
+                        ManagerFactory.notificationManager.Discard(notification);
+
+                        // UI thread
+                        _ = UIHelper.TryInvoke(async () =>
+                        {
+                            Task<ContentDialogResult> dialogTask = new Dialog(MainWindow.GetCurrent())
+                            {
+                                Title = Properties.Resources.Dialog_ForceRestartTitle,
+                                Content = Properties.Resources.Dialog_ForceRestartDesc,
+                                DefaultButton = ContentDialogButton.Close,
+                                CloseButtonText = Properties.Resources.Dialog_No,
+                                PrimaryButtonText = Properties.Resources.Dialog_Yes
+                            }.ShowAsync();
+
+                            await dialogTask; // sync call
+
+                            switch (dialogTask.Result)
+                            {
+                                case ContentDialogResult.Primary:
+                                    DeviceUtils.RestartComputer();
+                                    break;
+                                case ContentDialogResult.Secondary:
+                                    break;
+                            }
+                        });
+                    }
                     break;
             }
 

@@ -10,17 +10,17 @@ namespace HandheldCompanion.Watchers
     public class CoreIsolationWatcher : ISpaceWatcher
     {
         private static WqlEventQuery HypervisorQuery = new WqlEventQuery(@"SELECT * FROM RegistryValueChangeEvent WHERE Hive = 'HKEY_LOCAL_MACHINE' AND KeyPath = 'SYSTEM\\CurrentControlSet\\Control\\DeviceGuard\\Scenarios\\HypervisorEnforcedCodeIntegrity' AND ValueName='Enabled'");
-            private static WqlEventQuery VulnerableDriverQuery = new WqlEventQuery(@"SELECT * FROM RegistryValueChangeEvent WHERE Hive = 'HKEY_LOCAL_MACHINE' AND KeyPath = 'SYSTEM\\CurrentControlSet\\Control\\CI\\Config' AND ValueName='VulnerableDriverBlocklistEnable'");
-            private static WqlEventQuery SmartAppControlQuery = new WqlEventQuery(@"SELECT * FROM RegistryValueChangeEvent WHERE Hive = 'HKEY_LOCAL_MACHINE' AND KeyPath = 'SYSTEM\\CurrentControlSet\\Control\\CI\\Policy' AND ValueName='VerifiedAndReputablePolicyState'");
+        private static WqlEventQuery VulnerableDriverQuery = new WqlEventQuery(@"SELECT * FROM RegistryValueChangeEvent WHERE Hive = 'HKEY_LOCAL_MACHINE' AND KeyPath = 'SYSTEM\\CurrentControlSet\\Control\\CI\\Config' AND ValueName='VulnerableDriverBlocklistEnable'");
+        private static WqlEventQuery SmartAppControlQuery = new WqlEventQuery(@"SELECT * FROM RegistryValueChangeEvent WHERE Hive = 'HKEY_LOCAL_MACHINE' AND KeyPath = 'SYSTEM\\CurrentControlSet\\Control\\CI\\Policy' AND ValueName='VerifiedAndReputablePolicyState'");
 
-            private ManagementEventWatcher VulnerableDriverWatcher = new ManagementEventWatcher(VulnerableDriverQuery);
-            private ManagementEventWatcher HypervisorWatcher = new ManagementEventWatcher(HypervisorQuery);
-            private ManagementEventWatcher SmartAppControlWatcher = new ManagementEventWatcher(SmartAppControlQuery);
+        private ManagementEventWatcher VulnerableDriverWatcher = new ManagementEventWatcher(VulnerableDriverQuery);
+        private ManagementEventWatcher HypervisorWatcher = new ManagementEventWatcher(HypervisorQuery);
+        private ManagementEventWatcher SmartAppControlWatcher = new ManagementEventWatcher(SmartAppControlQuery);
 
-            public bool HypervisorEnforcedCodeIntegrityEnabled => RegistryUtils.GetBoolean(@"SYSTEM\CurrentControlSet\Control\DeviceGuard\Scenarios\HypervisorEnforcedCodeIntegrity", "Enabled");
-            public bool VulnerableDriverBlocklistEnable => RegistryUtils.GetBoolean(@"SYSTEM\CurrentControlSet\Control\CI\Config", "VulnerableDriverBlocklistEnable");
-            // VerifiedAndReputablePolicyState: 0 = Off, 1 = Evaluation, 2 = On
-            public bool SmartAppControlEnabled => RegistryUtils.GetInt(@"SYSTEM\CurrentControlSet\Control\CI\Policy", "VerifiedAndReputablePolicyState") != 0;
+        public bool HypervisorEnforcedCodeIntegrityEnabled => RegistryUtils.GetBoolean(@"SYSTEM\CurrentControlSet\Control\DeviceGuard\Scenarios\HypervisorEnforcedCodeIntegrity", "Enabled");
+        public bool VulnerableDriverBlocklistEnable => RegistryUtils.GetBoolean(@"SYSTEM\CurrentControlSet\Control\CI\Config", "VulnerableDriverBlocklistEnable");
+        // VerifiedAndReputablePolicyState: 0 = Off, 1 = Evaluation, 2 = On
+        public bool SmartAppControlEnabled => RegistryUtils.GetInt(@"SYSTEM\CurrentControlSet\Control\CI\Policy", "VerifiedAndReputablePolicyState") != 0;
 
         public CoreIsolationWatcher()
         {
