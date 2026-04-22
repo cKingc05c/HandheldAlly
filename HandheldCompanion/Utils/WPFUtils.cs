@@ -2,28 +2,19 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Documents;
 using System.Windows.Interop;
 using System.Windows.Media;
+using static HandheldCompanion.WinAPI;
 using Control = System.Windows.Controls.Control;
 
 namespace HandheldCompanion.Utils;
 
 public static class WPFUtils
 {
-    public const int WM_KEYDOWN = 0x0100;
-    public const int WM_CHANGEUISTATE = 0x0127;
-    public const int UIS_SET = 1;
-    public const int UIS_CLEAR = 2;
-    public const int UISF_HIDEFOCUS = 0x1;
-
-    [DllImport("user32.dll")]
-    public static extern IntPtr SendMessage(IntPtr hWnd, int Msg, IntPtr wParam, IntPtr lParam);
-
     public static HwndSource? GetControlHandle(Control control)
     {
         return PresentationSource.FromVisual(control) as HwndSource;
@@ -597,6 +588,45 @@ public static class WPFUtils
             CurrentParent = VisualTreeHelper.GetParent(CurrentParent);
         }
         return parent;
+    }
+
+    public static List<MenuItem> GetDirectMenuItems(MenuFlyout menuFlyout)
+    {
+        List<MenuItem> menuItems = new();
+
+        foreach (object item in menuFlyout.Items)
+            if (item is MenuItem menuItem)
+                menuItems.Add(menuItem);
+
+        return menuItems;
+    }
+
+    public static List<MenuItem> GetDirectMenuItems(ItemsControl? itemsControl)
+    {
+        List<MenuItem> menuItems = new();
+
+        if (itemsControl is null)
+            return menuItems;
+
+        foreach (object item in itemsControl.Items)
+        {
+            if (item is MenuItem menuItem)
+                menuItems.Add(menuItem);
+            else if (itemsControl.ItemContainerGenerator.ContainerFromItem(item) is MenuItem container)
+                menuItems.Add(container);
+        }
+
+        return menuItems;
+    }
+
+    public static List<MenuItem> GetSiblingMenuItems(MenuItem menuItem)
+    {
+        return GetDirectMenuItems(ItemsControl.ItemsControlFromItemContainer(menuItem));
+    }
+
+    public static MenuItem? GetParentMenuItem(MenuItem menuItem)
+    {
+        return ItemsControl.ItemsControlFromItemContainer(menuItem) as MenuItem;
     }
 
     public static Visual? FindCommonAncestor(Visual visual1, Visual visual2)

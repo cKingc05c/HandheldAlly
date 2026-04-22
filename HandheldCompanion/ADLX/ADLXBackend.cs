@@ -1,5 +1,4 @@
-﻿using System;
-using System.Runtime.InteropServices;
+﻿using System.Runtime.InteropServices;
 using System.Security;
 using System.Text;
 
@@ -48,35 +47,35 @@ namespace HandheldCompanion.ADLX
 
         public enum ADLX_AFMF_ALGORITHM
         {
-            AFMF_ALGORITHM_AUTO     = 0, /**< @ENG_START_DOX The algorithm used by AMD Fluid Motion Frames is auto. @ENG_END_DOX */
+            AFMF_ALGORITHM_AUTO = 0, /**< @ENG_START_DOX The algorithm used by AMD Fluid Motion Frames is auto. @ENG_END_DOX */
             AFMF_ALGORITHM_ENHANCED = 1, /**< @ENG_START_DOX The algorithm used by AMD Fluid Motion Frames is enhanced mode. @ENG_END_DOX */
             AFMF_ALGORITHM_STANDARD = 2, /**< @ENG_START_DOX The algorithm used by AMD Fluid Motion Frames is standard mode. @ENG_END_DOX */
         }
 
         public enum ADLX_AFMF_SEARCH_MODE_TYPE
         {
-            AFMF_SEARCH_MODE_AUTO     = 0, /**< @ENG_START_DOX The AMD Fluid Motion Frames search mode is auto. @ENG_END_DOX */
+            AFMF_SEARCH_MODE_AUTO = 0, /**< @ENG_START_DOX The AMD Fluid Motion Frames search mode is auto. @ENG_END_DOX */
             AFMF_SEARCH_MODE_STANDARD = 1, /**< @ENG_START_DOX The AMD Fluid Motion Frames search mode is standard. @ENG_END_DOX */
-            AFMF_SEARCH_MODE_HIGH     = 2, /**< @ENG_START_DOX The AMD Fluid Motion Frames search mode is high. @ENG_END_DOX */
+            AFMF_SEARCH_MODE_HIGH = 2, /**< @ENG_START_DOX The AMD Fluid Motion Frames search mode is high. @ENG_END_DOX */
         }
 
         public enum ADLX_AFMF_PERFORMANCE_MODE_TYPE
         {
-            AFMF_PERFORMANCE_MODE_AUTO        = 0, /**< @ENG_START_DOX The AMD Fluid Motion Frames performance mode is auto. @ENG_END_DOX */
-            AFMF_PERFORMANCE_MODE_QUALITY     = 1, /**< @ENG_START_DOX The AMD Fluid Motion Frames performance mode is quality. @ENG_END_DOX */
+            AFMF_PERFORMANCE_MODE_AUTO = 0, /**< @ENG_START_DOX The AMD Fluid Motion Frames performance mode is auto. @ENG_END_DOX */
+            AFMF_PERFORMANCE_MODE_QUALITY = 1, /**< @ENG_START_DOX The AMD Fluid Motion Frames performance mode is quality. @ENG_END_DOX */
             AFMF_PERFORMANCE_MODE_PERFORMANCE = 2, /**< @ENG_START_DOX The AMD Fluid Motion Frames performance mode is performance. @ENG_END_DOX */
         }
 
         public enum ADLX_AFMF_FAST_MOTION_RESP
         {
-            AFMF_RESP_REPEAT_FRAMES  = 0, /**< @ENG_START_DOX The AMD Fluid Motion Frames approach to fast-motion content is to repeat the frames. @ENG_END_DOX */
+            AFMF_RESP_REPEAT_FRAMES = 0, /**< @ENG_START_DOX The AMD Fluid Motion Frames approach to fast-motion content is to repeat the frames. @ENG_END_DOX */
             AFMF_RESP_BLENDED_FRAMES = 1, /**< @ENG_START_DOX The AMD Fluid Motion Frames approach to fast-motion content is to blend the frames. @ENG_END_DOX */
         }
 
         public enum ADLX_FFX_FRAME_GEN_RATIO
         {
             FFX_FRAME_GEN_UNKNOWN = 0, /**< @ENG_START_DOX The frame generation ratio is unknown. @ENG_END_DOX */
-            FFX_FRAME_GEN_2X      = 1, /**< @ENG_START_DOX The frame generation ratio is 2X. @ENG_END_DOX */
+            FFX_FRAME_GEN_2X = 1, /**< @ENG_START_DOX The frame generation ratio is 2X. @ENG_END_DOX */
         }
 
         [DllImport(ADLX_Wrapper, CallingConvention = CallingConvention.Cdecl)] public static extern bool HasAFMFSupport();

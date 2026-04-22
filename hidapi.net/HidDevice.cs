@@ -13,7 +13,7 @@ namespace hidapi
         private byte[] _buffer;
         private byte[] _writeBuffer;
         private byte[] _readReturnBuffer;
-        private short _mi;
+        private short _index;
         private IntPtr _deviceHandle;
         private object _lock = new object();
         private bool _reading = false;
@@ -26,7 +26,7 @@ namespace hidapi
         public ushort ReleaseNumber => _releaseNumber;
         public Func<HidDeviceInputReceivedEventArgs, Task> OnInputReceived;
 
-        public HidDevice(ushort vendorId, ushort productId, ushort inputBufferLen = 64, short mi = -1)
+        public HidDevice(ushort vendorId, ushort productId, ushort inputBufferLen, short index)
         {
             _vid = vendorId;
             _pid = productId;
@@ -35,7 +35,7 @@ namespace hidapi
             _writeBuffer = new byte[inputBufferLen];
             _readReturnBuffer = new byte[inputBufferLen];
             _eventArgs = new HidDeviceInputReceivedEventArgs(this, new byte[inputBufferLen], true);
-            _mi = mi;
+            _index = index;
         }
 
         private void ThrowIfDeviceInvalid()
@@ -71,7 +71,7 @@ namespace hidapi
                     while (deviceInfo != IntPtr.Zero)
                     {
                         HidDeviceInfo hidDeviceInfo = new HidDeviceInfo(deviceInfo);
-                        if (_mi != -1 && _mi != GetMI(hidDeviceInfo.Path))
+                        if (_index != -1 && _index != GetMI(hidDeviceInfo.Path))
                             goto next;
 
                         _deviceHandle = HidApiNative.hid_open_path(hidDeviceInfo.Path);

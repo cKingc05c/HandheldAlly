@@ -82,6 +82,8 @@ namespace HandheldCompanion.Managers
         private Control? prevPageNavigation;
         // key: Page, store the latest control that had focus on this page
         private Dictionary<object, Control> prevControl = [];
+        // key: Page, store a stable profile Guid for controls that can be virtualized/recreated
+        private Dictionary<object, Guid> prevProfileControl = [];
         // key: Window, store which window has focus
         private static ConcurrentDictionary<string, bool> _focused = new();
 
@@ -164,9 +166,10 @@ namespace HandheldCompanion.Managers
 
         private void ContentDialogClosed(ContentDialog contentDialog)
         {
-            if (gamepadPage is not null && prevControl.TryGetValue(gamepadPage.Tag, out Control? control))
+            if (gamepadPage is not null)
             {
-                if (_focused[windowName])
+                Control? control = ResolveStoredControl(gamepadPage.Tag);
+                if (_focused[windowName] && control is not null)
                     Focus(control);
             }
         }
@@ -174,6 +177,46 @@ namespace HandheldCompanion.Managers
         private bool HasFlyoutOpen = false;
         private List<MenuItem> flyoutMenuItems = new();  // populated from MenuFlyout.Items when open
         private MenuItem? focusedFlyoutItem = null;        // tracks which item is highlighted
+
+        private void FocusFlyoutMenuItem(MenuItem menuItem)
+        {
+            List<MenuItem> siblingMenuItems = WPFUtils.GetSiblingMenuItems(menuItem);
+
+            if (siblingMenuItems.Count == 0 && gamepadWindow.currentFlyoutButton?.Flyout is MenuFlyout menuFlyout)
+                siblingMenuItems = WPFUtils.GetDirectMenuItems(menuFlyout);
+
+            flyoutMenuItems = siblingMenuItems;
+            focusedFlyoutItem = menuItem;
+            Keyboard.Focus(menuItem);
+            gamepadWindow.SetFocusedElement(menuItem);
+        }
+
+        private bool TryOpenFlyoutSubmenu(MenuItem menuItem)
+        {
+            if (!menuItem.HasItems)
+                return false;
+
+            MenuItem? firstChild = WPFUtils.GetDirectMenuItems(menuItem)
+                .FirstOrDefault(m => m.IsEnabled);
+
+            if (firstChild is null)
+                return false;
+
+            menuItem.IsSubmenuOpen = true;
+            menuItem.Dispatcher.BeginInvoke(() => FocusFlyoutMenuItem(firstChild), DispatcherPriority.Loaded);
+            return true;
+        }
+
+        private bool TryCloseFlyoutSubmenu(MenuItem menuItem)
+        {
+            MenuItem? parentMenuItem = WPFUtils.GetParentMenuItem(menuItem);
+            if (parentMenuItem is null)
+                return false;
+
+            parentMenuItem.IsSubmenuOpen = false;
+            FocusFlyoutMenuItem(parentMenuItem);
+            return true;
+        }
 
         private void ContentDialogOpened(ContentDialog contentDialog)
         {
@@ -335,22 +378,19 @@ namespace HandheldCompanion.Managers
                 if (gamepadPage != (Page)gamepadFrame.Content)
                 {
                     Page newPage = (Page)gamepadFrame.Content;
+                    Control? navigationSource = gamepadWindow.GetFocusedElement();
 
-                    // Update navigation history based on navigation type
                     if (_goingBack)
                     {
-                        // Going back: history was already updated by the B2 handler
+                        // Going back: history was already updated by the B2 handler.
                     }
-                    else if (IsTopLevelPage(newPage))
+                    else if (IsWindowNavigationItem(navigationSource))
                     {
-                        // Top-level lateral navigation: reset the drill-down history
                         _navigationHistory.Clear();
                     }
                     else if (gamepadPage is not null)
                     {
-                        // Drill-down into a sub-page: push the current page
-                        _navigationHistory.Push(gamepadPage);
-                        _goingForward = true;
+                        RecordNestedNavigation(gamepadPage);
                     }
 
                     gamepadFrame = (Frame)sender;
@@ -407,13 +447,19 @@ namespace HandheldCompanion.Managers
                     IgnoreList.Add(typeof(AppBarButton));
                 }
 
-                Control? control;
-                if (prevControl.TryGetValue(gamepadPage.Tag, out control))
+                bool hasStoredControl = prevControl.ContainsKey(gamepadPage.Tag) || prevProfileControl.ContainsKey(gamepadPage.Tag);
+                Control? control = ResolveStoredControl(gamepadPage.Tag);
+                if (hasStoredControl)
                 {
                     if (_goingBack)
                     {
                         if (control is not null)
                             Focus(control);
+                        else
+                        {
+                            control = WPFUtils.GetTopLeftControl<Control>(gamepadWindow.controlElements, IgnoreList);
+                            Focus(control);
+                        }
 
                         // remove state
                         _goingBack = false;
@@ -555,7 +601,7 @@ namespace HandheldCompanion.Managers
                         {
                             // store current control if not part of a dialog or open flyout
                             if (gamepadPage is not null && gamepadWindow.currentDialog is null && !HasFlyoutOpen)
-                                prevControl[gamepadPage.Tag] = controlFocused;
+                                StoreFocusedControl(gamepadPage.Tag, controlFocused);
                         }
                         break;
                 }
@@ -578,6 +624,124 @@ namespace HandheldCompanion.Managers
             }
 
             return null;
+        }
+
+        private void StoreFocusedControl(object pageTag, Control control)
+        {
+            prevControl[pageTag] = control;
+
+            if (TryGetProfileGuid(control, out Guid profileGuid))
+                prevProfileControl[pageTag] = profileGuid;
+            else
+                prevProfileControl.Remove(pageTag);
+        }
+
+        private Control? ResolveStoredControl(object pageTag)
+        {
+            if (prevControl.TryGetValue(pageTag, out Control? control) && IsUsableStoredControl(control))
+                return control;
+
+            if (prevProfileControl.TryGetValue(pageTag, out Guid profileGuid))
+            {
+                Control? resolvedControl = FindProfileControl(profileGuid);
+                if (resolvedControl is not null)
+                {
+                    prevControl[pageTag] = resolvedControl;
+                    return resolvedControl;
+                }
+            }
+
+            return null;
+        }
+
+        private bool IsUsableStoredControl(Control? control)
+        {
+            return control is not null
+                && control.IsLoaded
+                && control.IsEnabled
+                && control.IsVisible
+                && Window.GetWindow(control) == gamepadWindow;
+        }
+
+        private static bool TryGetProfileGuid(Control? control, out Guid profileGuid)
+        {
+            profileGuid = Guid.Empty;
+
+            ProfileViewModel? profileViewModel = control?.Tag as ProfileViewModel
+                ?? control?.DataContext as ProfileViewModel;
+
+            if (profileViewModel?.Profile is null)
+                return false;
+
+            profileGuid = profileViewModel.Profile.Guid;
+            return true;
+        }
+
+        private Control? FindProfileControl(Guid profileGuid)
+        {
+            DependencyObject searchRoot = gamepadPage is not null ? gamepadPage : gamepadWindow;
+
+            return WPFUtils.FindVisualChildren<Button>(searchRoot)
+                .FirstOrDefault(button => button.IsEnabled
+                    && button.IsVisible
+                    && TryGetProfileGuid(button, out Guid guid)
+                    && guid == profileGuid);
+        }
+
+        private void PushNavigationHistory(Page page)
+        {
+            if (_navigationHistory.Count > 0 && ReferenceEquals(_navigationHistory.Peek(), page))
+                return;
+
+            _navigationHistory.Push(page);
+        }
+
+        private void RecordNestedNavigation(Page page)
+        {
+            PushNavigationHistory(page);
+            _goingForward = true;
+        }
+
+        private void BeginBackNavigation()
+        {
+            _goingBack = true;
+            _goingForward = false;
+        }
+
+        private bool TryNavigateBackInHistory()
+        {
+            if (IsQuicktools || _navigationHistory.Count == 0)
+                return false;
+
+            BeginBackNavigation();
+            Page previousPage = _navigationHistory.Pop();
+            MainWindow.NavView_Navigate(previousPage);
+            return true;
+        }
+
+        private void FocusWindowNavigationAnchor(Control? control)
+        {
+            if (control is null)
+                return;
+
+            _navigationHistory.Clear();
+            Focus(control);
+        }
+
+        private bool TryFocusWindowNavigationAnchor()
+        {
+            if (prevNavigation is null)
+                return false;
+
+            FocusWindowNavigationAnchor(prevNavigation);
+            return true;
+        }
+
+        private bool IsWindowNavigationItem(Control? control)
+        {
+            return control is NavigationViewItem navigationViewItem
+                && windowNavigationView is not null
+                && WPFUtils.FindParent<NavigationView>(navigationViewItem) == windowNavigationView;
         }
 
         private static List<Control> GetNavigationItems(NavigationView navView)
@@ -625,20 +789,6 @@ namespace HandheldCompanion.Managers
                            .Where(i => i is Control c && c.IsEnabled && c.IsVisible)
                            .Cast<Control>()
                            .ToList();
-        }
-
-        private bool IsTopLevelPage(Page page)
-        {
-            if (page is null || windowNavigationView is null)
-                return true;
-
-            string? pageTag = page.Tag?.ToString();
-            if (string.IsNullOrEmpty(pageTag))
-                return false;
-
-            // A page is top-level if its tag matches a window NavigationViewItem.
-            // Sub-pages (e.g. LayoutItemPage, HotkeySettingsPage) have no matching nav item.
-            return GetNavigationItems(windowNavigationView).Any(nvi => nvi.Tag?.ToString() == pageTag);
         }
 
         private static bool IsTopPaneNavigationView(NavigationView navView)
@@ -736,6 +886,9 @@ namespace HandheldCompanion.Managers
             {
                 try
                 {
+                    // clear any mouse/touch hover state so gamepad navigation is visually clean
+                    gamepadWindow.ClearMouseHover();
+
                     // get current focused element
                     Control? focusedElement = GetFocusedElement();
 
@@ -1014,21 +1167,13 @@ namespace HandheldCompanion.Managers
                                         // MenuItems live in a separate popup visual tree — obtain directly
                                         flyoutMenuItems.Clear();
                                         if (dropDownButton.Flyout is MenuFlyout menuFlyout)
-                                        {
-                                            foreach (var item in menuFlyout.Items)
-                                                if (item is MenuItem mi)
-                                                    flyoutMenuItems.Add(mi);
-                                        }
+                                            flyoutMenuItems = WPFUtils.GetDirectMenuItems(menuFlyout);
 
                                         // Highlight first enabled item; avoid Focus() which calls
                                         // FocusManager.SetFocusedElement(gamepadWindow) and can close the popup
-                                        var firstItem = flyoutMenuItems.FirstOrDefault(m => m.IsEnabled);
+                                        var firstItem = flyoutMenuItems.FirstOrDefault(m => m.IsEnabled && m.IsVisible);
                                         if (firstItem is not null)
-                                        {
-                                            focusedFlyoutItem = firstItem;
-                                            Keyboard.Focus(firstItem);
-                                            gamepadWindow.SetFocusedElement(firstItem);
-                                        }
+                                            FocusFlyoutMenuItem(firstItem);
                                     });
                                 };
                                 flyout.Opened += openedHandler;
@@ -1039,6 +1184,9 @@ namespace HandheldCompanion.Managers
                         }
                         else if (focusedElement is MenuItem menuItem && HasFlyoutOpen)
                         {
+                            if (TryOpenFlyoutSubmenu(menuItem))
+                                return;
+
                             // Execute the menu item command
                             if (menuItem.Command?.CanExecute(menuItem.CommandParameter) == true)
                                 menuItem.Command.Execute(menuItem.CommandParameter);
@@ -1051,6 +1199,9 @@ namespace HandheldCompanion.Managers
                     }
                     else if (controllerState.ButtonState.Buttons.Contains(ButtonFlags.B2))
                     {
+                        if (HasFlyoutOpen && focusedElement is MenuItem focusedMenuItem && TryCloseFlyoutSubmenu(focusedMenuItem))
+                            return;
+
                         // close flyout, if any
                         if (HasFlyoutOpen && gamepadWindow.currentFlyoutButton?.Flyout is { } openFlyout)
                         {
@@ -1111,19 +1262,11 @@ namespace HandheldCompanion.Managers
                                     // Second press (already on a page NavigationViewItem): leave the page if possible.
                                     if (!IsQuicktools)
                                     {
-                                        if (_navigationHistory.Count > 0)
-                                        {
-                                            _goingBack = true;
-                                            _goingForward = false;
-                                            Page previousPage = _navigationHistory.Pop();
-                                            MainWindow.NavView_Navigate(previousPage);
+                                        if (TryNavigateBackInHistory())
                                             return;
-                                        }
-                                        else if (prevNavigation is not null)
-                                        {
-                                            Focus(prevNavigation);
+
+                                        if (TryFocusWindowNavigationAnchor())
                                             return;
-                                        }
                                     }
                                 }
                             }
@@ -1180,16 +1323,10 @@ namespace HandheldCompanion.Managers
                         }
 
                         // go back to previous page using navigation history
-                        if (!IsQuicktools && _navigationHistory.Count > 0)
-                        {
-                            _goingBack = true;
-                            _goingForward = false;
-                            Page previousPage = _navigationHistory.Pop();
-                            MainWindow.NavView_Navigate(previousPage);
+                        if (TryNavigateBackInHistory())
                             return;
-                        }
-                        else if (prevNavigation is not null)
-                            Focus(prevNavigation);
+
+                        TryFocusWindowNavigationAnchor();
                     }
                     else if (controllerState.ButtonState.Buttons.Contains(ButtonFlags.B3))
                     {
@@ -1325,8 +1462,7 @@ namespace HandheldCompanion.Managers
                             switch (mainWindow.navView.IsPaneOpen)
                             {
                                 case false:
-                                    if (prevNavigation is not null)
-                                        Focus(prevNavigation);
+                                    TryFocusWindowNavigationAnchor();
                                     break;
                                 case true:
                                     {
@@ -1395,7 +1531,12 @@ namespace HandheldCompanion.Managers
                                         }
 
                                         if (target is not null)
-                                            Focus(target);
+                                        {
+                                            if (scope is not null && scope == windowNavigationView)
+                                                FocusWindowNavigationAnchor(target);
+                                            else
+                                                Focus(target);
+                                        }
 
                                         // update navigation caches
                                         if (target is NavigationViewItem)
@@ -1557,8 +1698,25 @@ namespace HandheldCompanion.Managers
 
                             case "MenuItem":
                                 {
-                                    if (HasFlyoutOpen && flyoutMenuItems.Count > 0 && focusedElement is MenuItem currentMenuItem)
+                                    if (HasFlyoutOpen && focusedElement is MenuItem currentMenuItem)
                                     {
+                                        switch (direction)
+                                        {
+                                            case WPFUtils.Direction.Left:
+                                                TryCloseFlyoutSubmenu(currentMenuItem);
+                                                return;
+                                            case WPFUtils.Direction.Right:
+                                                TryOpenFlyoutSubmenu(currentMenuItem);
+                                                return;
+                                        }
+
+                                        flyoutMenuItems = WPFUtils.GetSiblingMenuItems(currentMenuItem);
+                                        if (flyoutMenuItems.Count == 0 && gamepadWindow.currentFlyoutButton?.Flyout is MenuFlyout menuFlyout)
+                                            flyoutMenuItems = WPFUtils.GetDirectMenuItems(menuFlyout);
+
+                                        if (flyoutMenuItems.Count == 0)
+                                            return;
+
                                         int idx = flyoutMenuItems.IndexOf(currentMenuItem);
                                         if (idx < 0) idx = 0;
 
@@ -1582,11 +1740,9 @@ namespace HandheldCompanion.Managers
 
                                             idx = nextIdx;
                                             var candidate = flyoutMenuItems[idx];
-                                            if (candidate.IsEnabled)
+                                            if (candidate.IsEnabled && candidate.IsVisible)
                                             {
-                                                focusedFlyoutItem = candidate;
-                                                Keyboard.Focus(candidate);
-                                                gamepadWindow.SetFocusedElement(candidate);
+                                                FocusFlyoutMenuItem(candidate);
                                                 return;
                                             }
                                             // disabled item — keep looping
@@ -1651,19 +1807,13 @@ namespace HandheldCompanion.Managers
             // Use Dispatcher to ensure UI has updated after the profile change
             gamepadWindow.Dispatcher.BeginInvoke(() =>
             {
-                // Search for the button with the matching profile Guid
-                // It will be in either the Favorites or Library section depending on IsLiked
-                var buttons = WPFUtils.FindVisualChildren<Button>(gamepadWindow)
-                    .Where(b => b.Tag is ProfileViewModel)
-                    .ToList();
-
-                foreach (var button in buttons)
+                Control? control = FindProfileControl(guidToRestore);
+                if (control is not null)
                 {
-                    if (button.Tag is ProfileViewModel vm && vm.Profile.Guid == guidToRestore)
-                    {
-                        Focus(button);
-                        break;
-                    }
+                    if (gamepadPage is not null)
+                        StoreFocusedControl(gamepadPage.Tag, control);
+
+                    Focus(control);
                 }
             }, DispatcherPriority.Loaded);
         }

@@ -150,8 +150,6 @@ namespace HandheldCompanion.GraphicsProcessingUnit
         {
             if (!IsInitialized)
                 return new();
-
-            ctl_endurance_gaming_caps_t caps = new ctl_endurance_gaming_caps_t();
             return Execute(() => IGCLBackend.GetEnduranceGamingCapacities(deviceIdx), new());
         }
 

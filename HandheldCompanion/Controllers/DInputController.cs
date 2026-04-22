@@ -59,7 +59,7 @@ public class DInputController : IController
                     if (SymLink.Equals(details.SymLink, StringComparison.InvariantCultureIgnoreCase))
                     {
                         joystick = lookup_joystick;
-                        controller = new GenericController(details.VendorID, details.ProductID);
+                        controller = new GenericController(details.VendorID, details.ProductID, 64, -1);
                         break;
                     }
                 }
