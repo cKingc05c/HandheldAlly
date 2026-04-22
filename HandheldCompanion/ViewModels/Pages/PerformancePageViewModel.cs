@@ -714,7 +714,6 @@ namespace HandheldCompanion.ViewModels
             nameof(FramerateLimits),
             nameof(SelectedFrameLimit),
             nameof(HasWarning),
-            nameof(PerformanceManagerEnabled),
             string.Empty,
         ];
 
@@ -1119,7 +1118,8 @@ namespace HandheldCompanion.ViewModels
 
             if (IsMainPage)
             {
-                _fanGraphLineSeries?.ActualValues.CollectionChanged -= ActualValues_CollectionChanged;
+                if (_fanGraphLineSeries is not null)
+                    _fanGraphLineSeries.ActualValues.CollectionChanged -= ActualValues_CollectionChanged;
 
                 if (_fanGraph is not null)
                 {

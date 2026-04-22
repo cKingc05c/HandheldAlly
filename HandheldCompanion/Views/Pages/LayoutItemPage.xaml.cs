@@ -76,7 +76,8 @@ public partial class LayoutItemPage : Page
         }
 
         // Update the settings page with the mapping
-        actionSettingsPage?.SetMapping(mapping);
+        if (actionSettingsPage is not null)
+            actionSettingsPage.SetMapping(mapping);
     }
 
     private void Page_Loaded(object sender, RoutedEventArgs e)

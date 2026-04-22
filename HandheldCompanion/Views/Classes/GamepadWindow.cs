@@ -16,7 +16,6 @@ using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Threading;
 using WpfScreenHelper;
-using static HandheldCompanion.WinAPI;
 
 namespace HandheldCompanion.Views.Classes
 {
@@ -60,6 +59,11 @@ namespace HandheldCompanion.Views.Classes
 
         private AdornerLayer? _adornerLayer;
         private HighlightAdorner? _highlightAdorner;
+
+        protected const int WM_DISPLAYCHANGE = 0x007E;
+        protected const int WM_DPICHANGED = 0x02E0;
+        protected const int WM_POWERBROADCAST = 0x0218;
+        protected const int WM_PAINT = 0x000F;
 
         // hack variables
         private Timer WMPaintTimer = new(100) { AutoReset = false };
@@ -116,7 +120,18 @@ namespace HandheldCompanion.Views.Classes
             hwndSource = HwndSource.FromHwnd(hwnd);
             hwndSource.AddHook(WndProc);
 
+            // Block hit-testing so the first WM_ACTIVATE cannot set IsMouseOver
+            // from the stale cursor position (see _startupGracePending).
+            IsHitTestVisible = false;
+
             base.OnSourceInitialized(e);
+        }
+
+        protected override void OnActivated(EventArgs e)
+        {
+            IsHitTestVisible = true;
+
+            base.OnActivated(e);
         }
 
         protected virtual IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
@@ -204,12 +219,6 @@ namespace HandheldCompanion.Views.Classes
         public Screen GetScreen()
         {
             return Screen.FromHandle(hwndSource.Handle);
-        }
-
-        public void ClearMouseHover()
-        {
-            if (hwndSource?.Handle is IntPtr hwnd && hwnd != IntPtr.Zero)
-                WinAPI.PostMessage(hwnd, WM_MOUSELEAVE, IntPtr.Zero, IntPtr.Zero);
         }
 
         private void OnLayoutUpdated(object? sender, EventArgs e)

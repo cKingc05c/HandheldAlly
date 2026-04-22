@@ -9,7 +9,6 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media.Animation;
 using System.Windows.Threading;
-using static HandheldCompanion.WinAPI;
 using Page = System.Windows.Controls.Page;
 
 namespace HandheldCompanion.Views.QuickPages
@@ -69,6 +68,8 @@ namespace HandheldCompanion.Views.QuickPages
         private const uint MAPVK_VSC_TO_VK_EX = 3;
         private const uint KEYEVENTF_SCANCODE_EXT = KEYEVENTF_SCANCODE | KEYEVENTF_EXTENDEDKEY;
 
+        [DllImport("user32.dll")] static extern IntPtr GetForegroundWindow();
+        [DllImport("user32.dll", SetLastError = true)] static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint pid);
         [DllImport("user32.dll")] static extern IntPtr GetKeyboardLayout(uint threadId);
         [DllImport("user32.dll")] static extern uint MapVirtualKeyEx(uint code, uint mapType, IntPtr layout);
         [DllImport("user32.dll")] static extern bool GetKeyboardState(byte[] state);
@@ -77,6 +78,7 @@ namespace HandheldCompanion.Views.QuickPages
         [DllImport("user32.dll", SetLastError = true)]
         static extern uint SendInput(uint nInputs, [MarshalAs(UnmanagedType.LPArray), In] INPUT[] pInputs, int cbSize);
         [DllImport("user32.dll")] static extern UIntPtr GetMessageExtraInfo();
+        [DllImport("user32.dll")] static extern bool SetForegroundWindow(IntPtr hWnd);
 
         [StructLayout(LayoutKind.Sequential)]
         struct INPUT { public uint type; public InputUnion U; }
@@ -108,7 +110,7 @@ namespace HandheldCompanion.Views.QuickPages
             nint _targetHwnd = GetForegroundWindow();
             if (_targetHwnd == IntPtr.Zero) return;
 
-            uint tid = WinAPI.GetWindowThreadProcessId(_targetHwnd, out uint _);
+            uint tid = GetWindowThreadProcessId(_targetHwnd, out _);
             nint h = GetKeyboardLayout(tid);
             if (h != _lastHkl)
             {

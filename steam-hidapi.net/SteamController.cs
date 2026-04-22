@@ -22,7 +22,7 @@ namespace steam_hidapi.net
 
         public string SerialNumber { get; private set; }
 
-        public SteamController(ushort vid, ushort pid, ushort inputBufferLen = 64, short index = -1)
+        public SteamController(ushort vid, ushort pid, short index)
         {
             _vid = vid;
             _pid = pid;

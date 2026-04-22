@@ -37,6 +37,13 @@ public partial class App : Application
         set { /* noop */ }
     }
 
+    [return: MarshalAs(UnmanagedType.Bool)]
+    [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Auto)]
+    private static extern bool PostMessage(IntPtr hWnd, uint Msg, IntPtr wParam, IntPtr lParam);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern IntPtr FindWindow(string? lpClassName, string lpWindowName);
+
     [DllImport("kernel32.dll", SetLastError = true)]
     public static extern bool AllocConsole();
 
@@ -65,7 +72,8 @@ public partial class App : Application
         // Initialize LogManager before accessing ManagerFactory to prevent initialization order issues
         Environment.SetEnvironmentVariable("LOG_PATH", LogsPath);
 #if DEBUG
-        AllocConsole();
+        if (!ManagerFactory.settingsManager.GetBoolean("MuteConsole"))
+            AllocConsole();
 #endif
         LogManager.Initialize(ApplicationName);
     }
@@ -197,7 +205,7 @@ public partial class App : Application
                     using (Process prevProcess = processes[0])
                     {
                         // Find the window by its title
-                        IntPtr hWnd = WinAPI.FindWindow(null, $"Handheld Companion ({fileVersionInfo.FileVersion})");
+                        IntPtr hWnd = FindWindow(null, $"Handheld Companion ({fileVersionInfo.FileVersion})");
                         if (hWnd == IntPtr.Zero || !prevProcess.Responding)
                         {
                             MessageBox.Show("Another instance of Handheld Companion is already running.\n\nPlease close the other instance and try again.", "Error");

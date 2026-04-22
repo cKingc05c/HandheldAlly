@@ -4,6 +4,7 @@ using HandheldCompanion.Inputs;
 using HandheldCompanion.Managers;
 using HandheldCompanion.Managers.Desktop;
 using HandheldCompanion.Misc;
+using HandheldCompanion.Utils;
 using HandheldCompanion.ViewModels;
 using HandheldCompanion.Views.Classes;
 using HandheldCompanion.Views.QuickPages;
@@ -20,7 +21,6 @@ using System.Windows.Threading;
 using Windows.System.Power;
 using WpfScreenHelper;
 using WpfScreenHelper.Enum;
-using static HandheldCompanion.WinAPI;
 using Page = System.Windows.Controls.Page;
 using PowerLineStatus = System.Windows.Forms.PowerLineStatus;
 using Screen = WpfScreenHelper.Screen;
@@ -34,6 +34,38 @@ namespace HandheldCompanion.Views.Windows;
 /// </summary>
 public partial class OverlayQuickTools : GamepadWindow
 {
+    private const int SC_MOVE = 0xF010;
+    private readonly IntPtr HWND_TOPMOST = new IntPtr(-1);
+
+    private const int SWP_NOSIZE = 0x0001;
+    private const int SWP_NOMOVE = 0x0002;
+    private const int SWP_NOACTIVATE = 0x0010;
+    private const int SWP_NOZORDER = 0x0004;
+
+    // Define the Win32 API constants and functions
+    private const int WM_PAINT = 0x000F;
+    private const int WM_ACTIVATEAPP = 0x001C;
+    private const int WM_ACTIVATE = 0x0006;
+    private const int WM_SETFOCUS = 0x0007;
+    private const int WM_KILLFOCUS = 0x0008;
+    private const int WM_NCACTIVATE = 0x0086;
+    private const int WM_INPUTLANGCHANGE = 0x0051;
+    private const int WM_SYSCOMMAND = 0x0112;
+    private const int WM_WINDOWPOSCHANGING = 0x0046;
+    private const int WM_SHOWWINDOW = 0x0018;
+    private const int WM_MOUSEACTIVATE = 0x0021;
+    private const int MA_NOACTIVATE = 0x0003;
+    private const int WM_NCHITTEST = 0x0084;
+    private const int HTCAPTION = 0x02;
+    private const int MA_NOACTIVATEANDEAT = 4;
+
+    private const int WS_EX_NOACTIVATE = 0x08000000;
+    private const int WS_EX_TOOLWINDOW = 0x00000080;
+    private const int WS_SIZEBOX = 0x00040000;
+
+    private const int GWL_STYLE = -16;
+    private const int GWL_EXSTYLE = -20;
+
     // animation state
     private double _targetTop;   // on-screen Y
 
@@ -129,10 +161,10 @@ public partial class OverlayQuickTools : GamepadWindow
 
     private void ProcessManager_RawForeground(nint hWnd)
     {
-        if (hWnd != hwndSource.Handle && AutoHide && !isClosing)
+        if (hWnd != hwndSource.Handle && AutoHide)
         {
-            // Use async dispatch to avoid deadlock during shutdown
-            UIHelper.TryBeginInvoke(() =>
+            // UI thread
+            UIHelper.TryInvoke(() =>
             {
                 HideInstant();
             });
@@ -542,7 +574,7 @@ public partial class OverlayQuickTools : GamepadWindow
 
     public void UpdateStyle()
     {
-        WinAPI.SendMessage(hwndSource.Handle, WM_NCACTIVATE, (IntPtr)WM_NCACTIVATE, IntPtr.Zero);
+        WPFUtils.SendMessage(hwndSource.Handle, WM_NCACTIVATE, WM_NCACTIVATE, 0);
     }
 
     private void Window_Closing(object sender, CancelEventArgs e)
@@ -582,22 +614,20 @@ public partial class OverlayQuickTools : GamepadWindow
             string navItemTag = (string)navItem.Tag;
 
             // navigate
-            NavView_Navigate(navItemTag, true);
+            NavView_Navigate(navItemTag);
         }
     }
 
-    private void NavView_Navigate(string navItemTag, bool focusNavigationItem)
+    private void NavView_Navigate(string navItemTag)
     {
         // Find and select the matching menu item
         navView.SelectedItem = navView.MenuItems
             .OfType<NavigationViewItem>()
             .FirstOrDefault(item => item.Tag?.ToString() == navItemTag);
 
-        if (focusNavigationItem)
-        {
-            NavigationViewItem? selectedItem = navView.SelectedItem as NavigationViewItem;
-            gamepadFocusManager.Focus(selectedItem);
-        }
+        // Give gamepad focus
+        NavigationViewItem? selectedItem = navView.SelectedItem as NavigationViewItem;
+        gamepadFocusManager.Focus(selectedItem);
 
         // Debounce: update visual selection immediately, defer actual page load
         _pendingNavTag = navItemTag;
@@ -625,7 +655,7 @@ public partial class OverlayQuickTools : GamepadWindow
             return;
 
         // Navigate to the specified page
-        NavView_Navigate(navItemTag, false);
+        NavView_Navigate(navItemTag);
     }
 
     public void NavView_Navigate(Page _page)
@@ -686,12 +716,12 @@ public partial class OverlayQuickTools : GamepadWindow
 
     private void QuicKeyboard_Click(object sender, RoutedEventArgs e)
     {
-        NavigateToPage("QuickKeyboardPage");
+        NavView_Navigate("QuickKeyboardPage");
     }
 
     private void QuickTrackpad_Click(object sender, RoutedEventArgs e)
     {
-        NavigateToPage("QuickTrackpadPage");
+        NavView_Navigate("QuickTrackpadPage");
     }
 
     private void QuickGoBack_Click(object sender, RoutedEventArgs e)

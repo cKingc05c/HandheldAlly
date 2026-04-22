@@ -2,7 +2,7 @@
 {
     public class LegionController : GenericController
     {
-        public LegionController(ushort vid, ushort pid, ushort inputBufferLen = 64, short index = -1) : base(vid, pid, inputBufferLen, index)
+        public LegionController(ushort vid, ushort pid, ushort inputBufferLen = 64, short mi = -1) : base(vid, pid, inputBufferLen, mi)
         { }
 
         public byte GetStatus(int idx)

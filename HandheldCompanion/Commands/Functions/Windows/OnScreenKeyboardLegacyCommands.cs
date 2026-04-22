@@ -2,6 +2,7 @@
 using System;
 using System.Diagnostics;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using WpfScreenHelper.Enum;
@@ -11,6 +12,9 @@ namespace HandheldCompanion.Commands.Functions.Windows
     [Serializable]
     public class OnScreenKeyboardLegacyCommands : FunctionCommands
     {
+        [DllImport("user32.dll", SetLastError = true)]
+        public static extern IntPtr FindWindow(string className, string windowTitle);
+
         public int KeyboardPosition = 0;
 
         public OnScreenKeyboardLegacyCommands()
@@ -39,7 +43,7 @@ namespace HandheldCompanion.Commands.Functions.Windows
                     await Task.Delay(200).ConfigureAwait(false); // Avoid blocking the synchronization context
 
                     // Find the OSK window. 
-                    IntPtr hwndOSK = WinAPI.FindWindow("OSKMainClass", string.Empty);
+                    IntPtr hwndOSK = FindWindow("OSKMainClass", string.Empty);
 
                     Screen screen = Screen.FromHandle(OverlayQuickTools.GetCurrent().hwndSource.Handle);
 

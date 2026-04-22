@@ -283,6 +283,7 @@
                 x:Name="ImageContainer"
                 Padding="0"
                 BorderThickness="0"
+                CacheMode="BitmapCache"
                 Command="{Binding Navigate}"
                 ContextMenu="{StaticResource LibraryActionContextMenu}"
                 IsEnabled="{Binding IsBusy, Mode=OneWay, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource InverseBooleanToVisibilityConverter}}"
@@ -454,6 +455,7 @@
                 x:Name="ImageContainer"
                 Padding="0"
                 BorderThickness="0"
+                CacheMode="BitmapCache"
                 Command="{Binding Navigate}"
                 ContextMenu="{StaticResource LibraryActionContextMenu}"
                 IsEnabled="{Binding IsBusy, Mode=OneWay, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource InverseBooleanToVisibilityConverter}}"
@@ -838,9 +840,6 @@
                                             <Style TargetType="Border">
                                                 <Setter Property="Background" Value="{DynamicResource SystemControlForegroundBaseLowBrush}" />
                                                 <Style.Triggers>
-                                                    <DataTrigger Binding="{Binding VisibleUserIndexCount}" Value="4">
-                                                        <Setter Property="Visibility" Value="Collapsed" />
-                                                    </DataTrigger>
                                                     <DataTrigger Binding="{Binding UserIndex}" Value="4">
                                                         <Setter Property="Background" Value="{DynamicResource AccentAAFillColorDefaultBrush}" />
                                                     </DataTrigger>
@@ -857,9 +856,6 @@
                                             <Style TargetType="Border">
                                                 <Setter Property="Background" Value="{DynamicResource SystemControlForegroundBaseLowBrush}" />
                                                 <Style.Triggers>
-                                                    <DataTrigger Binding="{Binding VisibleUserIndexCount}" Value="4">
-                                                        <Setter Property="Visibility" Value="Collapsed" />
-                                                    </DataTrigger>
                                                     <DataTrigger Binding="{Binding UserIndex}" Value="5">
                                                         <Setter Property="Background" Value="{DynamicResource AccentAAFillColorDefaultBrush}" />
                                                     </DataTrigger>
@@ -876,9 +872,6 @@
                                             <Style TargetType="Border">
                                                 <Setter Property="Background" Value="{DynamicResource SystemControlForegroundBaseLowBrush}" />
                                                 <Style.Triggers>
-                                                    <DataTrigger Binding="{Binding VisibleUserIndexCount}" Value="4">
-                                                        <Setter Property="Visibility" Value="Collapsed" />
-                                                    </DataTrigger>
                                                     <DataTrigger Binding="{Binding UserIndex}" Value="6">
                                                         <Setter Property="Background" Value="{DynamicResource AccentAAFillColorDefaultBrush}" />
                                                     </DataTrigger>
@@ -895,10 +888,39 @@
                                             <Style TargetType="Border">
                                                 <Setter Property="Background" Value="{DynamicResource SystemControlForegroundBaseLowBrush}" />
                                                 <Style.Triggers>
-                                                    <DataTrigger Binding="{Binding VisibleUserIndexCount}" Value="4">
-                                                        <Setter Property="Visibility" Value="Collapsed" />
-                                                    </DataTrigger>
                                                     <DataTrigger Binding="{Binding UserIndex}" Value="7">
+                                                        <Setter Property="Background" Value="{DynamicResource AccentAAFillColorDefaultBrush}" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Border.Style>
+                                    </Border>
+
+                                    <Border
+                                        Width="12"
+                                        Height="12"
+                                        CornerRadius="2">
+                                        <Border.Style>
+                                            <Style TargetType="Border">
+                                                <Setter Property="Background" Value="{DynamicResource SystemControlForegroundBaseLowBrush}" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding UserIndex}" Value="8">
+                                                        <Setter Property="Background" Value="{DynamicResource AccentAAFillColorDefaultBrush}" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Border.Style>
+                                    </Border>
+
+                                    <Border
+                                        Width="12"
+                                        Height="12"
+                                        CornerRadius="2">
+                                        <Border.Style>
+                                            <Style TargetType="Border">
+                                                <Setter Property="Background" Value="{DynamicResource SystemControlForegroundBaseLowBrush}" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding UserIndex}" Value="9">
                                                         <Setter Property="Background" Value="{DynamicResource AccentAAFillColorDefaultBrush}" />
                                                     </DataTrigger>
                                                 </Style.Triggers>

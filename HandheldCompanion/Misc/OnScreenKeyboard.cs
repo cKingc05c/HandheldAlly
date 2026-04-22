@@ -2,7 +2,6 @@
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Threading;
-using static HandheldCompanion.WinAPI;
 
 namespace HandheldCompanion.Misc
 {
@@ -29,8 +28,8 @@ namespace HandheldCompanion.Misc
         private static void StartTabTip()
         {
             var p = Process.Start(@"C:\Program Files\Common Files\Microsoft Shared\ink\TabTip.exe");
-            nint handle = IntPtr.Zero;
-            while ((handle = FindWindow("IPTIP_Main_Window", string.Empty)) == IntPtr.Zero)
+            int handle = 0;
+            while ((handle = NativeMethods.FindWindow("IPTIP_Main_Window", "")) <= 0)
             {
                 Thread.Sleep(100);
             }
@@ -48,7 +47,7 @@ namespace HandheldCompanion.Misc
                 if (instance is null)
                     return;
 
-                instance.Toggle(GetDesktopWindow());
+                instance.Toggle(NativeMethods.GetDesktopWindow());
                 Marshal.ReleaseComObject(instance);
             }
             catch { }
@@ -56,8 +55,8 @@ namespace HandheldCompanion.Misc
 
         public static void Show()
         {
-            nint handle = FindWindow("IPTIP_Main_Window", string.Empty);
-            if (handle == IntPtr.Zero) // nothing found
+            int handle = NativeMethods.FindWindow("IPTIP_Main_Window", "");
+            if (handle <= 0) // nothing found
             {
                 StartTabTip();
                 Thread.Sleep(100);
@@ -81,12 +80,12 @@ namespace HandheldCompanion.Misc
         public static bool Close()
         {
             // find it
-            nint handle = FindWindow("IPTIP_Main_Window", string.Empty);
-            bool active = handle != IntPtr.Zero;
+            int handle = NativeMethods.FindWindow("IPTIP_Main_Window", "");
+            bool active = handle > 0;
             if (active)
             {
                 // don't check style - just close
-                SendMessage(handle, WM_SYSCOMMAND, (IntPtr)SC_CLOSE, IntPtr.Zero);
+                NativeMethods.SendMessage(handle, NativeMethods.WM_SYSCOMMAND, NativeMethods.SC_CLOSE, 0);
             }
             return active;
         }
@@ -95,6 +94,13 @@ namespace HandheldCompanion.Misc
         {
             return GetIsOpen1709() ?? GetIsOpenLegacy();
         }
+
+
+        [DllImport("user32.dll", SetLastError = false)]
+        private static extern IntPtr FindWindowEx(IntPtr parent, IntPtr after, string className, string? title = null);
+
+        [DllImport("user32.dll", SetLastError = false)]
+        private static extern uint GetWindowLong(IntPtr wnd, int index);
 
         private static bool? GetIsOpen1709()
         {
@@ -140,7 +146,7 @@ namespace HandheldCompanion.Misc
 
         private static WindowStyle GetWindowStyle(IntPtr wnd)
         {
-            return (WindowStyle)GetWindowLong(wnd, GWL_STYLE);
+            return (WindowStyle)GetWindowLong(wnd, -16);
         }
 
     }
@@ -152,5 +158,30 @@ namespace HandheldCompanion.Misc
     interface ITipInvocation
     {
         void Toggle(IntPtr hwnd);
+    }
+
+    internal static class NativeMethods
+    {
+        [DllImport("user32.dll", EntryPoint = "FindWindow")]
+        internal static extern int FindWindow(string lpClassName, string lpWindowName);
+
+        [DllImport("user32.dll", EntryPoint = "SendMessage")]
+        internal static extern int SendMessage(int hWnd, uint Msg, int wParam, int lParam);
+
+        [DllImport("user32.dll", EntryPoint = "GetDesktopWindow", SetLastError = false)]
+        internal static extern IntPtr GetDesktopWindow();
+
+        [DllImport("user32.dll", EntryPoint = "GetWindowLong")]
+        internal static extern int GetWindowLong(int hWnd, int nIndex);
+
+        internal const int GWL_STYLE = -16;
+        internal const int GWL_EXSTYLE = -20;
+        internal const int WM_SYSCOMMAND = 0x0112;
+        internal const int SC_CLOSE = 0xF060;
+
+        internal const int WS_DISABLED = 0x08000000;
+
+        internal const int WS_VISIBLE = 0x10000000;
+
     }
 }

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Drawing;
 using System.Globalization;
+using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Data;
 using System.Windows.Interop;
@@ -10,6 +11,10 @@ namespace HandheldCompanion.Converters
 {
     public class DrawingImageToImageSourceConverter : IValueConverter
     {
+        [DllImport("gdi32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        static extern bool DeleteObject(IntPtr hObject);
+
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
             if (value is System.Drawing.Image img)
@@ -25,7 +30,7 @@ namespace HandheldCompanion.Converters
                 }
                 finally
                 {
-                    WinAPI.DeleteObject(hBmp);
+                    DeleteObject(hBmp);
                 }
             }
             return DependencyProperty.UnsetValue;

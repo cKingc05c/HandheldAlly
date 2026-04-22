@@ -1,9 +1,6 @@
 ﻿using System;
 using System.Drawing;
-using System.Runtime.ConstrainedExecution;
 using System.Runtime.InteropServices;
-using System.Security;
-using System.Text;
 using System.Windows.Forms;
 using WpfScreenHelper.Enum;
 using static PInvoke.Kernel32;
@@ -24,39 +21,19 @@ public static class WinAPI
     public const int WM_ACTIVATEAPP = 0x001C;
     public const int WM_ACTIVATE = 0x0006;
     public const int WM_SETFOCUS = 0x0007;
-    public const int WM_KILLFOCUS = 0x0008;
-    public const int WM_SHOWWINDOW = 0x0018;
     public const int WM_WINDOWPOSCHANGING = 0x0046;
     public const int WM_SYSCOMMAND = 0x0112;
-    public const int WM_INPUTLANGCHANGE = 0x0051;
-    public const int WM_DISPLAYCHANGE = 0x007E;
-    public const int WM_NCACTIVATE = 0x0086;
-    public const int WM_NCHITTEST = 0x0084;
-    public const int WM_KEYDOWN = 0x0100;
-    public const int WM_CHANGEUISTATE = 0x0127;
-    public const int WM_POWERBROADCAST = 0x0218;
-    public const int WM_MOUSELEAVE = 0x02A3;
-    public const int WM_DPICHANGED = 0x02E0;
-    public const int WM_PAINT = 0x000F;
-    public const int WM_MOUSEACTIVATE = 0x0021;
 
     public const int WS_VISIBLE = 0x10000000;
     public const int WS_OVERLAPPED = 0x00000000;
 
     public const int SC_MOVE = 0xF010;
-    public const int SC_CLOSE = 0xF060;
     public const int SW_MAXIMIZE = 3;
-    public const int HTCAPTION = 0x02;
-    public const int MA_NOACTIVATE = 0x0003;
-    public const int MA_NOACTIVATEANDEAT = 4;
-    public const int UIS_SET = 1;
-    public const int UIS_CLEAR = 2;
-    public const int UISF_HIDEFOCUS = 0x1;
 
     public static readonly IntPtr HWND_BOTTOM = new IntPtr(1);
     public static readonly IntPtr HWND_TOPMOST = new IntPtr(-1);
 
-    public const int GWL_STYLE = -16;
+    private const int GWL_STYLE = -16;
     private const int WS_BORDER = 0x00800000;
     private const int WS_CAPTION = 0x00C00000;
     private const int WS_SYSMENU = 0x00080000;
@@ -66,8 +43,6 @@ public static class WinAPI
 
     public const int GWL_EXSTYLE = -20;
     public const int WS_EX_NOACTIVATE = 0x08000000;
-    public const int WS_EX_TOOLWINDOW = 0x00000080;
-    public const int WS_SIZEBOX = 0x00040000;
 
     [Flags]
     public enum PriorityClass : uint
@@ -120,64 +95,16 @@ public static class WinAPI
         bool bInheritHandle,
         uint processId);
 
-    [DllImport("setupapi.dll", CallingConvention = CallingConvention.Winapi, SetLastError = true)]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    internal static extern bool SetupDiCallClassInstaller(DiFunction installFunction, SafeDeviceInfoSetHandle deviceInfoSet, [In] ref DeviceInfoData deviceInfoData);
-
-    [DllImport("setupapi.dll", CallingConvention = CallingConvention.Winapi, SetLastError = true)]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    internal static extern bool SetupDiEnumDeviceInfo(SafeDeviceInfoSetHandle deviceInfoSet, int memberIndex, ref DeviceInfoData deviceInfoData);
-
-    [DllImport("setupapi.dll", CallingConvention = CallingConvention.Winapi, CharSet = CharSet.Unicode, SetLastError = true)]
-    internal static extern SafeDeviceInfoSetHandle SetupDiGetClassDevs([In] ref Guid classGuid, [MarshalAs(UnmanagedType.LPWStr)] string? enumerator, IntPtr hwndParent, SetupDiGetClassDevsFlags flags);
-
-    [DllImport("setupapi.dll", SetLastError = true, CharSet = CharSet.Auto)]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    internal static extern bool SetupDiGetDeviceInstanceId(IntPtr DeviceInfoSet, ref DeviceInfoData did, [MarshalAs(UnmanagedType.LPTStr)] StringBuilder DeviceInstanceId, int DeviceInstanceIdSize, out int RequiredSize);
-
-    [SuppressUnmanagedCodeSecurity]
-    [ReliabilityContract(Consistency.WillNotCorruptState, Cer.Success)]
-    [DllImport("setupapi.dll", CallingConvention = CallingConvention.Winapi, SetLastError = true)]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    internal static extern bool SetupDiDestroyDeviceInfoList(IntPtr deviceInfoSet);
-
-    [DllImport("setupapi.dll", CallingConvention = CallingConvention.Winapi, SetLastError = true)]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    internal static extern bool SetupDiSetClassInstallParams(SafeDeviceInfoSetHandle deviceInfoSet, [In] ref DeviceInfoData deviceInfoData, [In] ref PropertyChangeParameters classInstallParams, int classInstallParamsSize);
-
     [DllImport("user32.dll", CharSet = CharSet.Auto)]
     public static extern HANDLE GetForegroundWindow();
 
     [DllImport("user32.dll")]
     public static extern bool SetForegroundWindow(nint hWnd);
 
-    [return: MarshalAs(UnmanagedType.Bool)]
-    [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Auto)]
-    public static extern bool PostMessage(IntPtr hWnd, uint Msg, IntPtr wParam, IntPtr lParam);
-
-    [DllImport("user32.dll", SetLastError = true)]
-    public static extern IntPtr FindWindow(string? lpClassName, string lpWindowName);
-
-    [DllImport("user32.dll", SetLastError = false)]
-    public static extern IntPtr FindWindowEx(IntPtr parent, IntPtr after, string className, string? title = null);
-
-    [DllImport("user32.dll")]
-    public static extern IntPtr SendMessage(IntPtr hWnd, uint Msg, IntPtr wParam, IntPtr lParam);
-
-    public static IntPtr SendMessage(IntPtr hWnd, int Msg, IntPtr wParam, IntPtr lParam)
-    {
-        return SendMessage(hWnd, unchecked((uint)Msg), wParam, lParam);
-    }
-
     [DllImport("user32.dll", CharSet = CharSet.Auto)]
     public static extern int GetWindowThreadProcessId(
         HANDLE hWnd,
         out int lpdwProcessId);
-
-    [DllImport("user32.dll", CharSet = CharSet.Auto)]
-    public static extern uint GetWindowThreadProcessId(
-        HANDLE hWnd,
-        out uint lpdwProcessId);
 
     [DllImport("kernel32.dll", SetLastError = true)]
     public static extern int SetPriorityClass(HANDLE hProcess, int dwPriorityClass);
@@ -203,16 +130,9 @@ public static class WinAPI
     [DllImport("user32.dll", SetLastError = true)]
     private static extern bool GetWindowRect(IntPtr hWnd, out RECT lpRect);
 
-    [DllImport("user32.dll", EntryPoint = "GetDesktopWindow", SetLastError = false)]
-    public static extern IntPtr GetDesktopWindow();
-
     [DllImport("user32.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
     public static extern bool PrintWindow(IntPtr hwnd, IntPtr hdcBlt, uint nFlags);
-
-    [DllImport("gdi32.dll", SetLastError = true)]
-    [return: MarshalAs(UnmanagedType.Bool)]
-    public static extern bool DeleteObject(IntPtr hObject);
 
     [DllImport("user32.dll")]
     public static extern IntPtr GetActiveWindow();
@@ -267,10 +187,7 @@ public static class WinAPI
     private static extern bool MoveWindow(nint hWnd, int X, int Y, int nWidth, int nHeight, bool bRepaint);
 
     [DllImport("user32.dll", SetLastError = true)]
-    public static extern bool ShowWindow(nint hWnd, int nCmdShow);
-
-    [DllImport("user32.dll", SetLastError = true)]
-    public static extern bool IsIconic(IntPtr handle);
+    private static extern bool ShowWindow(nint hWnd, int nCmdShow);
 
     [DllImport("user32.dll", SetLastError = true)]
     public static extern bool IsProcessDPIAware();

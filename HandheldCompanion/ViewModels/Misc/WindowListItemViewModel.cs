@@ -5,6 +5,7 @@ using iNKORE.UI.WPF.Modern.Controls;
 using Microsoft.Win32;
 using System;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Windows.Forms;
 using System.Windows.Input;
 using WpfScreenHelper.Enum;

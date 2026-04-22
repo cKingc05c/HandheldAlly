@@ -2,7 +2,9 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Runtime.ConstrainedExecution;
 using System.Runtime.InteropServices;
+using System.Security;
 using System.Text;
 
 namespace HandheldCompanion
@@ -173,6 +175,62 @@ namespace HandheldCompanion
         public int HwProfile;
     }
 
+    internal class NativeMethods
+    {
+
+        private const string setupapi = "setupapi.dll";
+
+        private NativeMethods()
+        {
+        }
+
+        [DllImport(setupapi, CallingConvention = CallingConvention.Winapi, SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        public static extern bool SetupDiCallClassInstaller(DiFunction installFunction, SafeDeviceInfoSetHandle deviceInfoSet, [In()]
+        ref DeviceInfoData deviceInfoData);
+
+        [DllImport(setupapi, CallingConvention = CallingConvention.Winapi, SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        public static extern bool SetupDiEnumDeviceInfo(SafeDeviceInfoSetHandle deviceInfoSet, int memberIndex, ref DeviceInfoData deviceInfoData);
+
+        [DllImport(setupapi, CallingConvention = CallingConvention.Winapi, CharSet = CharSet.Unicode, SetLastError = true)]
+        public static extern SafeDeviceInfoSetHandle SetupDiGetClassDevs([In()]
+            ref Guid classGuid,
+            [MarshalAs(UnmanagedType.LPWStr)] string? enumerator,
+            IntPtr hwndParent, SetupDiGetClassDevsFlags flags);
+
+        /*
+        [DllImport(setupapi, CallingConvention = CallingConvention.Winapi, CharSet = CharSet.Unicode, SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        public static extern bool SetupDiGetDeviceInstanceId(SafeDeviceInfoSetHandle deviceInfoSet, [In()]
+ref DeviceInfoData did, [MarshalAs(UnmanagedType.LPTStr)]
+StringBuilder deviceInstanceId, int deviceInstanceIdSize, [Out()]
+ref int requiredSize);
+        */
+        [DllImport("setupapi.dll", SetLastError = true, CharSet = CharSet.Auto)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        public static extern bool SetupDiGetDeviceInstanceId(
+           IntPtr DeviceInfoSet,
+           ref DeviceInfoData did,
+           [MarshalAs(UnmanagedType.LPTStr)] StringBuilder DeviceInstanceId,
+           int DeviceInstanceIdSize,
+           out int RequiredSize
+        );
+
+        [SuppressUnmanagedCodeSecurity()]
+        [ReliabilityContract(Consistency.WillNotCorruptState, Cer.Success)]
+        [DllImport(setupapi, CallingConvention = CallingConvention.Winapi, SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        public static extern bool SetupDiDestroyDeviceInfoList(IntPtr deviceInfoSet);
+
+        [DllImport(setupapi, CallingConvention = CallingConvention.Winapi, SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        public static extern bool SetupDiSetClassInstallParams(SafeDeviceInfoSetHandle deviceInfoSet, [In()]
+ref DeviceInfoData deviceInfoData, [In()]
+ref PropertyChangeParameters classInstallParams, int classInstallParamsSize);
+
+    }
+
     internal class SafeDeviceInfoSetHandle : SafeHandleZeroOrMinusOneIsInvalid
     {
 
@@ -183,7 +241,7 @@ namespace HandheldCompanion
 
         protected override bool ReleaseHandle()
         {
-            return WinAPI.SetupDiDestroyDeviceInfoList(this.handle);
+            return NativeMethods.SetupDiDestroyDeviceInfoList(this.handle);
         }
 
     }
@@ -209,7 +267,7 @@ namespace HandheldCompanion
             {
                 // Get the handle to a device information set for all devices matching classGuid that are present on the 
                 // system.
-                diSetHandle = WinAPI.SetupDiGetClassDevs(ref classGuid, null, IntPtr.Zero, SetupDiGetClassDevsFlags.Present);
+                diSetHandle = NativeMethods.SetupDiGetClassDevs(ref classGuid, null, IntPtr.Zero, SetupDiGetClassDevsFlags.Present);
                 // Get the device information data for each matching device.
                 DeviceInfoData[] diData = GetDeviceInfoData(diSetHandle);
                 // Find the index of our instance. i.e. the touchpad mouse - I have 3 mice attached...
@@ -234,7 +292,7 @@ namespace HandheldCompanion
         {
             SafeDeviceInfoSetHandle? diSetHandle = null;
 
-            diSetHandle = WinAPI.SetupDiGetClassDevs(ref classGuid, null, IntPtr.Zero, SetupDiGetClassDevsFlags.Present);
+            diSetHandle = NativeMethods.SetupDiGetClassDevs(ref classGuid, null, IntPtr.Zero, SetupDiGetClassDevsFlags.Present);
             // Get the device information data for each matching device.
             DeviceInfoData[] diData = GetDeviceInfoData(diSetHandle);
             // Find the index of our instance.
@@ -250,7 +308,7 @@ namespace HandheldCompanion
             int didSize = Marshal.SizeOf(did);
             did.Size = didSize;
             int index = 0;
-            while (WinAPI.SetupDiEnumDeviceInfo(handle, index, ref did))
+            while (NativeMethods.SetupDiEnumDeviceInfo(handle, index, ref did))
             {
                 data.Add(did);
                 index += 1;
@@ -270,11 +328,11 @@ namespace HandheldCompanion
             {
                 StringBuilder sb = new StringBuilder(1);
                 int requiredSize = 0;
-                bool result = WinAPI.SetupDiGetDeviceInstanceId(handle.DangerousGetHandle(), ref diData[index], sb, sb.Capacity, out requiredSize);
+                bool result = NativeMethods.SetupDiGetDeviceInstanceId(handle.DangerousGetHandle(), ref diData[index], sb, sb.Capacity, out requiredSize);
                 if (result == false && Marshal.GetLastWin32Error() == ERROR_INSUFFICIENT_BUFFER)
                 {
                     sb.Capacity = requiredSize;
-                    result = WinAPI.SetupDiGetDeviceInstanceId(handle.DangerousGetHandle(), ref diData[index], sb, sb.Capacity, out requiredSize);
+                    result = NativeMethods.SetupDiGetDeviceInstanceId(handle.DangerousGetHandle(), ref diData[index], sb, sb.Capacity, out requiredSize);
                 }
                 if (result == false)
                     throw new Win32Exception();
@@ -307,9 +365,9 @@ namespace HandheldCompanion
                 @params.StateChange = StateChangeAction.Disable;
             }
 
-            bool result = WinAPI.SetupDiSetClassInstallParams(handle, ref diData, ref @params, Marshal.SizeOf(@params));
+            bool result = NativeMethods.SetupDiSetClassInstallParams(handle, ref diData, ref @params, Marshal.SizeOf(@params));
             if (result == false) throw new Win32Exception();
-            result = WinAPI.SetupDiCallClassInstaller(DiFunction.PropertyChange, handle, ref diData);
+            result = NativeMethods.SetupDiCallClassInstaller(DiFunction.PropertyChange, handle, ref diData);
             if (result == false)
             {
                 int err = Marshal.GetLastWin32Error();

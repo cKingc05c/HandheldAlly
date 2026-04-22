@@ -126,6 +126,14 @@ namespace HandheldCompanion.Devices
             base.SetPassthrough(enabled);
         }
 
+        public override void SetControllerSwap(bool enabled)
+        {
+            if (hidDevices.TryGetValue(INPUT_HID_ID, out HidDevice? device))
+                device.Write(WithReportID([0x05, 0x06, 0x69, 0x04, 0x01, (byte)(enabled ? 0x02 : 0x01)]));
+
+            base.SetControllerSwap(enabled);
+        }
+
         #region RGB
         private byte[] RgbLoadProfile(byte profile) => [0x10, 0x02, profile];
         private byte[] RgbEnable(bool enable) => [0x04, 0x06, (byte)(enable ? 1 : 0)];

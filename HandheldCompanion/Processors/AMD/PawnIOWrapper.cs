@@ -17,8 +17,7 @@ namespace HandheldCompanion.Processors.AMD
     public class PawnIOWrapper : IDisposable
     {
         private const int FN_NAME_LENGTH = 32;
-        private Version VERSION_LAST = new(2, 2, 0, 0);
-        private Version VERSION_2100 = new(2, 1, 0, 0);
+        private Version VERSION_LAST = new(2, 1, 0, 0);
 
         // IOCTL codes based on ZenStates-Core
         private const uint DEVICE_TYPE = 41394u << 16;  // 0xA1B20000
@@ -102,7 +101,7 @@ namespace HandheldCompanion.Processors.AMD
             try
             {
                 Version? version = GetVersion();
-                if (version < VERSION_2100)
+                if (version < VERSION_LAST)
                 {
                     // PawnIO pre 2.1.0.0
                     _rawHandle = CreateFile(
@@ -353,7 +352,7 @@ namespace HandheldCompanion.Processors.AMD
         /// <param name="inputArgs">Input arguments (array of UInt64).</param>
         /// <param name="outputArgs">Output buffer for results (array of UInt64).</param>
         /// <returns>True if execution succeeded.</returns>
-        public bool ExecuteFunction(string functionName, ulong[] inputArgs, ulong[] outputArgs)
+        public bool ExecuteFunction(string functionName, ulong[]? inputArgs, ulong[]? outputArgs)
         {
             if (!IsModuleLoaded)
             {
@@ -380,7 +379,10 @@ namespace HandheldCompanion.Processors.AMD
                     Buffer.BlockCopy(inBuffer, 0, totalInput, FN_NAME_LENGTH, inSize * 8);
                 }
 
-                byte[] outBuffer = outSize > 0 ? new byte[outSize * 8] : null;
+                if (outSize == 0)
+                    return false;
+
+                byte[] outBuffer = new byte[outSize * 8];
 
                 // Use SafeFileHandle for execute calls
                 bool result = DeviceIoControl(
@@ -389,13 +391,13 @@ namespace HandheldCompanion.Processors.AMD
                     totalInput,
                     (uint)totalInput.Length,
                     outBuffer,
-                    (uint)(outBuffer?.Length ?? 0),
+                    (uint)(outBuffer.Length),
                     out uint bytesReturned,
                     IntPtr.Zero);
 
                 if (result)
                 {
-                    if (outputArgs != null && outBuffer != null && bytesReturned > 0)
+                    if (outputArgs != null && bytesReturned > 0)
                     {
                         int elementsReturned = (int)Math.Min(bytesReturned / 8, (uint)outSize);
                         Buffer.BlockCopy(outBuffer, 0, outputArgs, 0, elementsReturned * 8);

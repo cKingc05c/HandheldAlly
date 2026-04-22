@@ -19,12 +19,12 @@ namespace controller_hidapi.net
         public event OnControllerInputReceivedEventHandler OnControllerInputReceived;
         public delegate void OnControllerInputReceivedEventHandler(byte[] Data);
 
-        public GenericController(ushort vid, ushort pid, ushort inputBufferLen, short index)
+        public GenericController(ushort vid, ushort pid, ushort inputBufferLen = 64, short mi = -1)
         {
             _vid = vid;
             _pid = pid;
 
-            _hidDevice = new HidDevice(_vid, _pid, inputBufferLen, index)
+            _hidDevice = new HidDevice(_vid, _pid, inputBufferLen, mi)
             {
                 OnInputReceived = input =>
                 {

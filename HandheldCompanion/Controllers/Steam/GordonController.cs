@@ -71,15 +71,12 @@ namespace HandheldCompanion.Controllers.Steam
             bool WasPlugged = IsConnected();
             if (WasPlugged) Close();
 
+            // create controller
+            Controller = new(details.VendorID, details.ProductID, details.GetMI());
             UserIndex = (byte)details.GetMI();
 
-            // try known buffer lengths to support different firmware versions (65 current, 64 legacy)
-            foreach (ushort bufLen in (ushort[])[64, 65])
-            {
-                Controller = new(details.VendorID, details.ProductID, bufLen, details.GetMI());
-                Open();
-                if (IsConnected()) break;
-            }
+            // (re)plug controller if needed
+            Open();
         }
 
         public override string ToString()

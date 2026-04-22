@@ -400,7 +400,7 @@ public class ProcessEx : IDisposable, ICloneable
     private void Window_Closed(object? sender, EventArgs e)
     {
         // get object
-        ProcessWindow? processWindow = (ProcessWindow?)sender;
+        ProcessWindow? processWindow = (ProcessWindow?)sender;        
         if (processWindow is null)
             return;
 

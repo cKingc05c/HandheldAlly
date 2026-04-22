@@ -16,9 +16,9 @@ namespace steam_hidapi.net
 
         public Func<GordonControllerInputEventArgs, Task> OnControllerInputReceived;
 
-        public GordonController(ushort vid, ushort pid, ushort inputBufferLen, short index) : base(vid, pid, inputBufferLen, index)
+        public GordonController(ushort vid, ushort pid, short index) : base(vid, pid, index)
         {
-            _hidDevice = new HidDevice(_vid, _pid, inputBufferLen, index)
+            _hidDevice = new HidDevice(_vid, _pid, 64, index)
             {
                 OnInputReceived = input =>
                 {

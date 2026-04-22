@@ -95,7 +95,7 @@ namespace HandheldCompanion
                 inParamsData = inParams["Data"] as ManagementBaseObject;
                 parametersAvailable = (inParams != null && inParamsData != null);
             }
-            catch (Exception) { }
+            catch (Exception ex) { }
 
             // If the "Data" parameter was not obtained, try the fallback method "Get_WMI"
             if (!parametersAvailable)
@@ -105,8 +105,8 @@ namespace HandheldCompanion
                     inParams = managementObject.InvokeMethod("Get_WMI", null, null);
                     inParamsData = inParams["Data"] as ManagementBaseObject;
                 }
-                catch (ManagementException) { }
-                catch (Exception) { }
+                catch (ManagementException mex) { }
+                catch (Exception ex) { }
             }
 
             // If we still don't have valid input parameters, throw an exception

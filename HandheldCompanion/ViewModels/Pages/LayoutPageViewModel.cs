@@ -95,6 +95,7 @@ namespace HandheldCompanion.ViewModels
         {
             lock (_collectionLock)
             {
+                int index;
                 LayoutTemplateViewModel? foundPreset = layoutList.FirstOrDefault(p => p.Guid == layoutTemplate.Guid);
                 if (foundPreset is not null)
                 {

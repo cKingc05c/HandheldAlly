@@ -26,7 +26,7 @@ namespace HandheldCompanion.Sensors
             CalibrationPath = Path.Combine(App.SettingsPath, "calibration.json");
 
             Dictionary<string, IMUCalibration>? _calibrations = DeserializeCollection();
-            if (_calibrations != null)
+            if ( _calibrations != null)
                 Calibrations = _calibrations;
         }
 

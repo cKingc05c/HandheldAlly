@@ -11,8 +11,7 @@ namespace HandheldCompanion.Controls
 {
     public sealed class JustifiedWrapPanel : VirtualizingPanel
     {
-        private const double OverscanViewportMultiplier = 0.5d;
-        private const double MinimumOverscan = 64.0d;
+        private const double OverscanViewportMultiplier = 0.5;
 
         public static readonly DependencyProperty TargetRowHeightProperty = DependencyProperty.Register(
             nameof(TargetRowHeight),
@@ -103,7 +102,7 @@ namespace HandheldCompanion.Controls
             if (firstIndex >= 0)
                 RealizeItems(itemsOwner, firstIndex, lastIndex);
 
-            return CoerceSize(currentLayout.DesiredWidth, currentLayout.DesiredHeight);
+            return new Size(currentLayout.DesiredWidth, currentLayout.DesiredHeight);
         }
 
         protected override Size ArrangeOverride(Size finalSize)
@@ -119,11 +118,10 @@ namespace HandheldCompanion.Controls
                     continue;
                 }
 
-                child.Arrange(CoerceRect(itemLayout.Bounds));
+                child.Arrange(itemLayout.Bounds);
             }
 
-            double finalWidth = Math.Max(CoerceNonNegativeFinite(finalSize.Width), CoerceNonNegativeFinite(currentLayout.DesiredWidth));
-            return CoerceSize(finalWidth, currentLayout.DesiredHeight);
+            return new Size(Math.Max(finalSize.Width, currentLayout.DesiredWidth), currentLayout.DesiredHeight);
         }
 
         protected override void OnItemsChanged(object sender, ItemsChangedEventArgs args)
@@ -202,31 +200,6 @@ namespace HandheldCompanion.Controls
             }
 
             return ActualWidth > 0.0 ? ActualWidth : 0.0;
-        }
-
-        private static double CoerceNonNegativeFinite(double value)
-        {
-            return double.IsNaN(value) || double.IsInfinity(value) || value < 0.0 ? 0.0 : value;
-        }
-
-        private static double CoerceFiniteCoordinate(double value)
-        {
-            return double.IsNaN(value) || double.IsInfinity(value) ? 0.0 : value;
-        }
-
-        private static Size CoerceSize(double width, double height)
-        {
-            return new Size(CoerceNonNegativeFinite(width), CoerceNonNegativeFinite(height));
-        }
-
-        private static Rect CoerceRect(Rect bounds)
-        {
-            double width = CoerceNonNegativeFinite(bounds.Width);
-            double height = CoerceNonNegativeFinite(bounds.Height);
-            if (width <= 0.0 || height <= 0.0)
-                return Rect.Empty;
-
-            return new Rect(CoerceFiniteCoordinate(bounds.X), CoerceFiniteCoordinate(bounds.Y), width, height);
         }
 
         private LayoutInfo BuildLayout(ItemsControl itemsOwner, double availableWidth)
@@ -437,7 +410,7 @@ namespace HandheldCompanion.Controls
 
             foreach (RowLayout row in layout.Rows)
             {
-                if (row.Bottom <= viewportTop || row.Top >= viewportBottom)
+                if (row.Bottom < viewportTop || row.Top > viewportBottom)
                     continue;
 
                 firstIndex = firstIndex < 0 ? row.FirstIndex : Math.Min(firstIndex, row.FirstIndex);
@@ -471,10 +444,10 @@ namespace HandheldCompanion.Controls
 
         private static double GetViewportDistance(RowLayout row, double viewportTop, double viewportBottom)
         {
-            if (row.Bottom <= viewportTop)
+            if (row.Bottom < viewportTop)
                 return viewportTop - row.Bottom;
 
-            if (row.Top >= viewportBottom)
+            if (row.Top > viewportBottom)
                 return row.Top - viewportBottom;
 
             return 0.0;
@@ -501,7 +474,7 @@ namespace HandheldCompanion.Controls
                 if (rawViewportBottom <= 0.0 || rawViewportTop >= extentHeight)
                     return false;
 
-                double overscan = TargetRowHeight * OverscanViewportMultiplier;
+                double overscan = Math.Max(TargetRowHeight, viewportHeight * OverscanViewportMultiplier);
                 viewportTop = Math.Max(0.0, rawViewportTop - overscan);
                 viewportBottom = Math.Min(extentHeight, rawViewportBottom + overscan);
                 return viewportBottom > viewportTop;
@@ -580,7 +553,7 @@ namespace HandheldCompanion.Controls
                     }
 
                     if (currentLayout.TryGetItemLayout(itemIndex, out ItemLayout? itemLayout))
-                        element.Measure(CoerceSize(itemLayout.Bounds.Width, itemLayout.Bounds.Height));
+                        element.Measure(new Size(itemLayout.Bounds.Width, itemLayout.Bounds.Height));
                 }
             }
         }

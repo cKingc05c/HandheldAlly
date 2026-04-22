@@ -1,3 +1,4 @@
+using HandheldCompanion.Helpers;
 using HandheldCompanion.Misc;
 using HandheldCompanion.Shared;
 using HandheldCompanion.Utils;
@@ -524,15 +525,19 @@ public class ProcessManager : IManager
                     string exec = Path.GetFileName(path);
                     ProcessFilter filter = GetFilter(exec, path);
 
-                    // Create process directly
-                    try
+                    // Create process 
+                    // UI thread (synchronous)
+                    UIHelper.TryInvoke(() =>
                     {
-                        processEx = new ProcessEx(proc, path, exec, filter);
-                    }
-                    catch
-                    {
-                        // Handle exception if needed
-                    }
+                        try
+                        {
+                            processEx = new ProcessEx(proc, path, exec, filter);
+                        }
+                        catch
+                        {
+                            // Handle exception if needed
+                        }
+                    });
 
                     if (processEx is null)
                         return false;

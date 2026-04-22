@@ -106,7 +106,7 @@ public sealed class WindowsPlatform : IPlatform
                 EnhancedSleepEnabled = enabled;
                 return true;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
                 LogManager.LogError("Failed to set EnhancedSleep = {0}", enabled);
                 return false;
@@ -136,7 +136,7 @@ public sealed class WindowsPlatform : IPlatform
                 GoBackToSleepEnabled = enabled;
                 return true;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
                 LogManager.LogError("Failed to set GoBackToSleep = {0}", enabled);
                 return false;
@@ -298,7 +298,7 @@ public sealed class WindowsPlatform : IPlatform
                 var json = JsonSerializer.Serialize(_snapshot, new JsonSerializerOptions { WriteIndented = true });
                 File.WriteAllText(cacheFile, json);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
                 LogManager.LogWarning("[EnhancedSleep] Failed to persist snapshot to disk.");
             }
