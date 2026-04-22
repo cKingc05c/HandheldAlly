@@ -1,21 +1,12 @@
 ﻿using HandheldCompanion.Helpers;
 using HandheldCompanion.Inputs;
-using HandheldCompanion.Managers;
-using HandheldCompanion.Shared;
 using HandheldCompanion.Utils;
 using System;
 
 namespace HandheldCompanion.Controllers.Lenovo
 {
-    public class LegionControllerS : XInputController
+    public class LegionControllerS : LegionControllerBase
     {
-        private controller_hidapi.net.LegionController? Controller;
-        private byte[] data = new byte[64];
-
-        #region TouchVariables
-        private bool IsPassthrough = false;
-        #endregion
-
         public override bool IsReady => true;
         public override string ToString() => "Legion Controller";
 
@@ -43,24 +34,6 @@ namespace HandheldCompanion.Controllers.Lenovo
             SourceAxis.Add(AxisLayoutFlags.Gyroscope);
         }
 
-        protected override void QuerySettings()
-        {
-            SettingsManager_SettingValueChanged("LegionControllerPassthrough", ManagerFactory.settingsManager.GetBoolean("LegionControllerPassthrough"), false);
-            base.QuerySettings();
-        }
-
-        protected override void SettingsManager_SettingValueChanged(string name, object? value, bool temporary)
-        {
-            switch (name)
-            {
-                case "LegionControllerPassthrough":
-                    IsPassthrough = Convert.ToBoolean(value);
-                    break;
-            }
-
-            base.SettingsManager_SettingValueChanged(name, value, temporary);
-        }
-
         public override void AttachDetails(PnPDetails details)
         {
             base.AttachDetails(details);
@@ -75,75 +48,6 @@ namespace HandheldCompanion.Controllers.Lenovo
 
             // open controller as we need to check if it's ready by polling the hiddevice
             Open();
-        }
-
-        private void Open()
-        {
-            lock (hidLock)
-            {
-                try
-                {
-                    if (Controller is not null)
-                    {
-                        // open controller
-                        Controller.OnControllerInputReceived += Controller_OnControllerInputReceived;
-                        if (Controller.Open())
-                        {
-                            // do something
-                        }
-                    }
-                }
-                catch (Exception ex)
-                {
-                    LogManager.LogError("Couldn't initialize {0}. Exception: {1}", typeof(LegionController), ex.Message);
-                    return;
-                }
-            }
-        }
-
-        private void Close()
-        {
-            lock (hidLock)
-            {
-                if (Controller is not null)
-                {
-                    // close controller
-                    Controller.OnControllerInputReceived -= Controller_OnControllerInputReceived;
-                    Controller.Close();
-                }
-            }
-        }
-
-        public override void Gone()
-        {
-            lock (hidLock)
-            {
-                if (Controller is not null)
-                {
-                    Controller.OnControllerInputReceived -= Controller_OnControllerInputReceived;
-                    Controller.EndRead();
-                    Controller = null;
-                }
-            }
-        }
-
-        private void Controller_OnControllerInputReceived(byte[] Data)
-        {
-            Buffer.BlockCopy(Data, 0, this.data, 0, Data.Length);
-        }
-
-        public override void Plug()
-        {
-            Open();
-
-            base.Plug();
-        }
-
-        public override void Unplug()
-        {
-            Close();
-
-            base.Unplug();
         }
 
         [Flags]
@@ -179,6 +83,9 @@ namespace HandheldCompanion.Controllers.Lenovo
             BackButtons backButtons = (BackButtons)data[2];
             Inputs.ButtonState[ButtonFlags.L4] = backButtons.HasFlag(BackButtons.Y1);
             Inputs.ButtonState[ButtonFlags.R4] = backButtons.HasFlag(BackButtons.Y2);
+
+            if (IsControllerSwap)
+                ApplyControllerSwap();
 
             // Example parsing assuming positions from const.py
             aX = BitConverter.ToInt16(data, 14) * -(4.0f / short.MaxValue);

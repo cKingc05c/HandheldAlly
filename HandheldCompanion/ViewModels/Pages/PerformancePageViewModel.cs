@@ -714,6 +714,7 @@ namespace HandheldCompanion.ViewModels
             nameof(FramerateLimits),
             nameof(SelectedFrameLimit),
             nameof(HasWarning),
+            nameof(PerformanceManagerEnabled),
             string.Empty,
         ];
 

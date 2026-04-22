@@ -180,14 +180,6 @@ namespace HandheldCompanion.Devices
             base.SetPassthrough(enabled);
         }
 
-        public override void SetControllerSwap(bool enabled)
-        {
-            if (hidDevices.TryGetValue(INPUT_HID_ID, out HidDevice? device))
-                device.Write([0x05, 0x06, 0x69, 0x04, 0x01, (byte)(enabled ? 0x02 : 0x01)]);
-
-            base.SetControllerSwap(enabled);
-        }
-
         private IEnumerable<byte[]> ControllerFactoryReset()
         {
             // hex strings from Python, parsed into byte[]

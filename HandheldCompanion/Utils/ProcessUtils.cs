@@ -561,13 +561,16 @@ public static class IconUtilities
         var bitmap = icon.ToBitmap();
         var hBitmap = bitmap.GetHbitmap();
 
-        ImageSource wpfBitmap = Imaging.CreateBitmapSourceFromHBitmap(
+        BitmapSource wpfBitmap = Imaging.CreateBitmapSourceFromHBitmap(
             hBitmap,
             IntPtr.Zero,
             Int32Rect.Empty,
             BitmapSizeOptions.FromEmptyOptions());
 
         if (!WinAPI.DeleteObject(hBitmap)) throw new Win32Exception();
+
+        // Freeze to make it cross-thread accessible
+        wpfBitmap.Freeze();
 
         return wpfBitmap;
     }

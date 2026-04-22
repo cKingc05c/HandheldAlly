@@ -525,7 +525,7 @@ public static class ControllerManager
                         }
 
                         while (!controller.IsReady && controller.IsConnected())
-                            await Task.Delay(250).ConfigureAwait(false);
+                            await Task.Delay(1000).ConfigureAwait(false);
 
                         // controller is gone ?
                         if (!controller.IsConnected() && !controller.IsVirtual())
@@ -716,7 +716,7 @@ public static class ControllerManager
                     }
 
                     while (!controller.IsReady && controller.IsConnected())
-                        await Task.Delay(250).ConfigureAwait(false);
+                        await Task.Delay(1000).ConfigureAwait(false);
 
                     // controller is gone ?
                     if (!controller.IsConnected() && !controller.IsVirtual())
@@ -868,6 +868,7 @@ public static class ControllerManager
                                 }
                                 break;
 
+                            // Lenovo
                             case "0x17EF":
                             case "0x1A86":
                                 switch (details.GetProductID())
@@ -935,7 +936,7 @@ public static class ControllerManager
                     }
 
                     while (!controller.IsReady && controller.IsConnected())
-                        await Task.Delay(250).ConfigureAwait(false);
+                        await Task.Delay(1000).ConfigureAwait(false);
 
                     // controller is gone ?
                     if (!controller.IsConnected() && !controller.IsVirtual())
