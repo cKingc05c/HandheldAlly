@@ -16,7 +16,7 @@
     Title="{l:Static resx:Resources.MainWindow_HandheldCompanion}"
     Width="1280"
     Height="720"
-    MinWidth="852"
+    MinWidth="640"
     MinHeight="480"
     d:DataContext="{d:DesignInstance Type=viewmodels:MainWindowViewModel}"
     d:Visibility="Visible"

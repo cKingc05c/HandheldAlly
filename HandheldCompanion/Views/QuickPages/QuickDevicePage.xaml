@@ -35,8 +35,8 @@
                     <ComboBox
                         Name="ComboBoxResolution"
                         IsReadOnly="True"
-                        ItemsSource="{Binding Resolutions}"
-                        SelectedItem="{Binding SelectedResolution, Mode=TwoWay}" />
+                        ItemsSource="{Binding Resolutions, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}"
+                        SelectedItem="{Binding SelectedResolution, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
                 </ui:SettingsCard>
                 <ui:SettingsCard Description="{l:Static resx:Resources.QuickDevicePage_DisplayFrequencyDesc}" Header="{l:Static resx:Resources.QuickDevicePage_DisplayFrequency}">
                     <ui:SettingsCard.HeaderIcon>
@@ -45,8 +45,9 @@
                     <ComboBox
                         Name="ComboBoxFrequency"
                         IsReadOnly="True"
-                        ItemsSource="{Binding Frequencies}"
-                        SelectedItem="{Binding SelectedFrequency, Mode=TwoWay}" />
+                        ItemsSource="{Binding Frequencies, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}"
+                        SelectedValuePath="Frequency"
+                        SelectedValue="{Binding SelectedFrequencyValue, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
                 </ui:SettingsCard>
             </ikw:SimpleStackPanel>
 

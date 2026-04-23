@@ -254,12 +254,33 @@ namespace HandheldCompanion.ViewModels
                 {
                     _SelectedFrequency = value;
                     OnPropertyChanged(nameof(SelectedFrequency));
+                    OnPropertyChanged(nameof(SelectedFrequencyValue));
 
-                    if (!isLoadingDisplay && value != null)
-                    {
+                    if (!isLoadingDisplay)
                         ApplyResolution();
-                    }
                 }
+            }
+        }
+
+        public int? SelectedFrequencyValue
+        {
+            get => _SelectedFrequency?.Frequency;
+            set
+            {
+                if (!value.HasValue)
+                    return;
+
+                if (_SelectedFrequency?.Frequency == value.Value)
+                    return;
+
+                ScreenFrequencyViewModel? matchingFrequency;
+                lock (_collectionLock2)
+                {
+                    matchingFrequency = Frequencies.FirstOrDefault(f => f.Frequency == value.Value);
+                }
+
+                if (matchingFrequency is not null)
+                    SelectedFrequency = matchingFrequency;
             }
         }
 
@@ -466,18 +487,6 @@ namespace HandheldCompanion.ViewModels
                     SelectedResolution = resolution;
                     UpdateFrequenciesForResolution(resolution, screenFrequency);
                 }
-
-                lock (_collectionLock2)
-                {
-                    foreach (ScreenFrequencyViewModel item in Frequencies)
-                    {
-                        if (item.Frequency == screenFrequency)
-                        {
-                            SelectedFrequency = item;
-                            break;
-                        }
-                    }
-                }
             }
             finally
             {
@@ -502,7 +511,6 @@ namespace HandheldCompanion.ViewModels
                     Frequencies.Add(new ScreenFrequencyViewModel(frequency));
                 }
 
-                // Restore selection if it exists in the new list
                 if (currentSelectedFrequency.HasValue && Frequencies.Any())
                 {
                     var matchingFrequency = Frequencies.FirstOrDefault(f => f.Frequency == currentSelectedFrequency.Value);
