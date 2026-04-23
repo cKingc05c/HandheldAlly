@@ -205,13 +205,13 @@ namespace HandheldCompanion.ViewModels
 
                 (BitmapImage? cover, BitmapImage? artwork, BitmapImage? logo) = await Task.Run(() =>
                 {
-                    LibraryType coverType  = IsLibrary ? LibraryType.cover   | LibraryType.thumbnails : LibraryType.cover;
+                    LibraryType coverType = IsLibrary ? LibraryType.cover | LibraryType.thumbnails : LibraryType.cover;
                     LibraryType artworkType = IsLibrary ? LibraryType.artwork | LibraryType.thumbnails : LibraryType.artwork;
-                    LibraryType logoType   = IsLibrary ? LibraryType.logo    | LibraryType.thumbnails : LibraryType.logo;
+                    LibraryType logoType = IsLibrary ? LibraryType.logo | LibraryType.thumbnails : LibraryType.logo;
 
-                    BitmapImage? cover = ManagerFactory.libraryManager.GetGameArt(requestKey.Id, coverType,   requestKey.CoverId,   requestKey.CoverExtension);
+                    BitmapImage? cover = ManagerFactory.libraryManager.GetGameArt(requestKey.Id, coverType, requestKey.CoverId, requestKey.CoverExtension);
                     BitmapImage? artwork = ManagerFactory.libraryManager.GetGameArt(requestKey.Id, artworkType, requestKey.ArtworkId, requestKey.ArtworkExtension);
-                    BitmapImage? logo = ManagerFactory.libraryManager.GetGameArt(requestKey.Id, logoType,   requestKey.LogoId,   requestKey.LogoExtension);
+                    BitmapImage? logo = ManagerFactory.libraryManager.GetGameArt(requestKey.Id, logoType, requestKey.LogoId, requestKey.LogoExtension);
                     return (cover, artwork, logo);
                 }, cancellationToken).ConfigureAwait(false);
 
@@ -385,30 +385,30 @@ namespace HandheldCompanion.ViewModels
                             OnPropertyChanged(nameof(CollectionMenuItems));
                             ManagerFactory.profileManager.UpdateOrCreateProfile(Profile);
                         })));
-                        }
+                }
 
-                        items.Add(CollectionMenuItemViewModel.Separator);
-                        items.Add(new CollectionMenuItemViewModel("New collection", false,
-                            new AsyncDelegateCommand(async () =>
-                            {
-                                var textBox = new System.Windows.Controls.TextBox { MinWidth = 280 };
-                                Window owner = IsQuickTools ? (Window)OverlayQuickTools.GetCurrent() : MainWindow.GetCurrent();
-                                ContentDialogResult result = await new Dialog(owner)
-                                {
-                                    Title = "New collection",
-                                    Content = textBox,
-                                    PrimaryButtonText = Properties.Resources.ProfilesPage_Yes,
-                                    CloseButtonText = Properties.Resources.ProfilesPage_Cancel,
-                                }.ShowAsync();
-                                if (result != ContentDialogResult.Primary || string.IsNullOrWhiteSpace(textBox.Text))
-                                    return;
-                                GameCollection newCol = ManagerFactory.collectionManager.CreateCollection(textBox.Text.Trim());
-                                Profile.Collections.Add(newCol.Id);
-                                OnPropertyChanged(nameof(CollectionMenuItems));
-                                ManagerFactory.profileManager.UpdateOrCreateProfile(Profile);
-                            }), isCheckable: false));
+                items.Add(CollectionMenuItemViewModel.Separator);
+                items.Add(new CollectionMenuItemViewModel("New collection", false,
+                    new AsyncDelegateCommand(async () =>
+                    {
+                        var textBox = new System.Windows.Controls.TextBox { MinWidth = 280 };
+                        Window owner = IsQuickTools ? (Window)OverlayQuickTools.GetCurrent() : MainWindow.GetCurrent();
+                        ContentDialogResult result = await new Dialog(owner)
+                        {
+                            Title = "New collection",
+                            Content = textBox,
+                            PrimaryButtonText = Properties.Resources.ProfilesPage_Yes,
+                            CloseButtonText = Properties.Resources.ProfilesPage_Cancel,
+                        }.ShowAsync();
+                        if (result != ContentDialogResult.Primary || string.IsNullOrWhiteSpace(textBox.Text))
+                            return;
+                        GameCollection newCol = ManagerFactory.collectionManager.CreateCollection(textBox.Text.Trim());
+                        Profile.Collections.Add(newCol.Id);
+                        OnPropertyChanged(nameof(CollectionMenuItems));
+                        ManagerFactory.profileManager.UpdateOrCreateProfile(Profile);
+                    }), isCheckable: false));
 
-                        return items;
+                return items;
             }
         }
 
@@ -627,7 +627,7 @@ namespace HandheldCompanion.ViewModels
                 }
 
                 if (IsAvailable)
-            StartProcessCommand?.Execute(false);
+                    StartProcessCommand?.Execute(false);
             });
 
             ToggleFavoriteCommand = new DelegateCommand(() =>

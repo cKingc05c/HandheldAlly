@@ -60,7 +60,7 @@ namespace HandheldCompanion.ViewModels
         public virtual void OnPropertyChanged(string? propertyName) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
     }
 
-    class DelegateCommand : ICommand
+    public class DelegateCommand : ICommand
     {
         private Action _action;
 

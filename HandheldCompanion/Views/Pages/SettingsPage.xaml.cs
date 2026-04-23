@@ -3,20 +3,17 @@ using HandheldCompanion.Localization;
 using HandheldCompanion.Managers;
 using HandheldCompanion.Managers.Desktop;
 using HandheldCompanion.Platforms;
+using HandheldCompanion.ViewModels;
 using HandheldCompanion.Views.Windows;
 using iNKORE.UI.WPF.Modern;
 using iNKORE.UI.WPF.Modern.Helpers.Styles;
 using Sentry;
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
-using static HandheldCompanion.Managers.UpdateManager;
 using static HandheldCompanion.WinAPI;
 using Page = System.Windows.Controls.Page;
 using WindowHelper = iNKORE.UI.WPF.Modern.Controls.Helpers.WindowHelper;
@@ -28,22 +25,19 @@ namespace HandheldCompanion.Views.Pages;
 /// </summary>
 public partial class SettingsPage : Page
 {
+    private SettingsPageViewModel ViewModel;
+
     public SettingsPage()
     {
+        ViewModel = new SettingsPageViewModel();
+        DataContext = ViewModel;
         InitializeComponent();
 
         // Move culture loading to background thread
-        Task.Run(() =>
-        {
-            CultureInfo[] cultures = TranslationSource.ValidCultures;
-            UIHelper.TryInvoke(() =>
-            {
-                cB_Language.ItemsSource = cultures;
-            });
-        });
+        CultureInfo[] cultures = TranslationSource.ValidCultures;
+        cB_Language.ItemsSource = cultures;
 
         // manage events
-        UpdateManager.Updated += UpdateManager_Updated;
         ManagerFactory.settingsManager.SettingValueChanged += SettingsManager_SettingValueChanged;
         ManagerFactory.multimediaManager.ScreenConnected += MultimediaManager_ScreenConnected;
         ManagerFactory.multimediaManager.ScreenDisconnected += MultimediaManager_ScreenDisconnected;
@@ -278,11 +272,11 @@ public partial class SettingsPage : Page
     public void Page_Closed()
     {
         // manage events
-        UpdateManager.Updated -= UpdateManager_Updated;
         ManagerFactory.settingsManager.SettingValueChanged -= SettingsManager_SettingValueChanged;
         ManagerFactory.multimediaManager.ScreenConnected -= MultimediaManager_ScreenConnected;
         ManagerFactory.multimediaManager.ScreenDisconnected -= MultimediaManager_ScreenDisconnected;
         ManagerFactory.multimediaManager.Initialized -= MultimediaManager_Initialized;
+        ViewModel.Dispose();
     }
 
     private async void Toggle_AutoStart_Toggled(object? sender, RoutedEventArgs? e)
@@ -339,128 +333,6 @@ public partial class SettingsPage : Page
             return;
 
         ManagerFactory.settingsManager.SetProperty("DesktopLayoutOnStart", Toggle_DesktopLayoutOnStart.IsOn);
-    }
-
-    private void UpdateManager_Updated(UpdateStatus status, UpdateFile? updateFile, object? value)
-    {
-        // UI thread
-        UIHelper.TryInvoke(() =>
-        {
-            switch (status)
-            {
-                case UpdateStatus.Failed: // lazy ?
-                case UpdateStatus.Updated:
-                case UpdateStatus.Initialized:
-                    {
-                        if (updateFile is not null)
-                        {
-                            updateFile.updateDownload.Visibility = Visibility.Visible;
-
-                            updateFile.updatePercentage.Visibility = Visibility.Collapsed;
-                            updateFile.updateInstall.Visibility = Visibility.Collapsed;
-                        }
-                        else
-                        {
-                            LabelUpdate.Text = Properties.Resources.SettingsPage_UpToDate;
-                            LabelUpdateDate.Text = Properties.Resources.SettingsPage_LastChecked +
-                                                   UpdateManager.GetTime();
-
-                            LabelUpdateDate.Visibility = Visibility.Visible;
-                            GridUpdateSymbol.Visibility = Visibility.Visible;
-                            ProgressBarUpdate.Visibility = Visibility.Collapsed;
-                            B_CheckUpdate.IsEnabled = true;
-                        }
-                    }
-                    break;
-
-                case UpdateStatus.Checking:
-                    {
-                        CurrentUpdates.Children.Clear();
-
-                        LabelUpdate.Text = Properties.Resources.SettingsPage_UpdateCheck;
-
-                        CurrentChangelog.Visibility = Visibility.Collapsed;
-                        GridUpdateSymbol.Visibility = Visibility.Collapsed;
-                        LabelUpdateDate.Visibility = Visibility.Collapsed;
-                        ProgressBarUpdate.Visibility = Visibility.Visible;
-                        B_CheckUpdate.IsEnabled = false;
-                    }
-                    break;
-
-                case UpdateStatus.Ready:
-                    {
-                        ProgressBarUpdate.Visibility = Visibility.Collapsed;
-
-                        var updateFiles = value as Dictionary<string, UpdateFile>;
-                        if (updateFiles is null)
-                            break;
-                        LabelUpdate.Text = Properties.Resources.SettingsPage_UpdateAvailable;
-
-                        foreach (var update in updateFiles.Values)
-                        {
-                            var border = update.Draw();
-
-                            // Set download button action
-                            update.updateDownload.Click += (sender, e) =>
-                            {
-                                UpdateManager.DownloadUpdateFile(update);
-                            };
-
-                            // Set button action
-                            update.updateInstall.Click += (sender, e) =>
-                            {
-                                UpdateManager.InstallUpdate(update);
-                            };
-
-                            CurrentUpdates.Children.Add(border);
-                        }
-                    }
-                    break;
-
-                case UpdateStatus.Changelog:
-                    {
-                        CurrentChangelog.Visibility = Visibility.Visible;
-                        LabelUpdateDate.Visibility = Visibility.Visible;
-                        CurrentChangelog.AppendText(value as string ?? string.Empty);
-                        B_CheckUpdate.IsEnabled = true;
-                    }
-                    break;
-
-                case UpdateStatus.Download:
-                    {
-                        updateFile.updateDownload.Visibility = Visibility.Collapsed;
-                        updateFile.updatePercentage.Visibility = Visibility.Visible;
-                    }
-                    break;
-
-                case UpdateStatus.Downloading:
-                    {
-                        if (value is not int progress)
-                            break;
-
-                        updateFile.updatePercentage.Text =
-                            Properties.Resources.SettingsPage_DownloadingPercentage + $"{progress} %";
-                    }
-                    break;
-
-                case UpdateStatus.Downloaded:
-                    {
-                        updateFile.updateInstall.Visibility = Visibility.Visible;
-                        updateFile.updateDownload.Visibility = Visibility.Collapsed;
-                        updateFile.updatePercentage.Visibility = Visibility.Collapsed;
-                        B_CheckUpdate.IsEnabled = true;
-                    }
-                    break;
-            }
-        });
-    }
-
-    private void B_CheckUpdate_Click(object? sender, RoutedEventArgs? e)
-    {
-        new Thread(() =>
-        {
-            UpdateManager.StartProcess(false);
-        }).Start();
     }
 
     private void cB_Language_SelectionChanged(object? sender, SelectionChangedEventArgs? e)

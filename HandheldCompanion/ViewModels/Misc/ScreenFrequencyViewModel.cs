@@ -13,8 +13,5 @@ namespace HandheldCompanion.ViewModels.Misc
         {
             return $"{Frequency} Hz";
         }
-
-        public override bool Equals(object? obj) => obj is ScreenFrequencyViewModel other && Frequency == other.Frequency;
-        public override int GetHashCode() => Frequency.GetHashCode();
     }
 }

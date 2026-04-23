@@ -46,8 +46,8 @@
                         Name="ComboBoxFrequency"
                         IsReadOnly="True"
                         ItemsSource="{Binding Frequencies, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}"
-                        SelectedValuePath="Frequency"
-                        SelectedValue="{Binding SelectedFrequencyValue, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                        SelectedValue="{Binding SelectedFrequencyValue, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                        SelectedValuePath="Frequency" />
                 </ui:SettingsCard>
             </ikw:SimpleStackPanel>
 

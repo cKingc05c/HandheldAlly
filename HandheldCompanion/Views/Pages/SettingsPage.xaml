@@ -2,20 +2,28 @@
     x:Class="HandheldCompanion.Views.Pages.SettingsPage"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:behaviors="clr-namespace:HandheldCompanion.Behaviors"
+    xmlns:converters="clr-namespace:HandheldCompanion.Converters"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:ikw="http://schemas.inkore.net/lib/ui/wpf"
     xmlns:l="clr-namespace:HandheldCompanion.Localization"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:resx="clr-namespace:HandheldCompanion.Properties"
     xmlns:ui="http://schemas.inkore.net/lib/ui/wpf/modern"
+    xmlns:viewmodels="clr-namespace:HandheldCompanion.ViewModels"
     Name="Settings"
     Title="{l:Static resx:Resources.SettingsPage_Settings}"
     d:Background="White"
+    d:DataContext="{d:DesignInstance Type=viewmodels:SettingsPageViewModel}"
     d:DesignHeight="2400"
     d:DesignWidth="1000"
     KeepAlive="True"
     Loaded="Page_Loaded"
     mc:Ignorable="d">
+
+    <Page.Resources>
+        <converters:MarkdownToFlowDocumentConverter x:Key="MarkdownToFlowDocumentConverter" />
+    </Page.Resources>
 
     <Grid Name="MainGrid" Margin="20">
         <ikw:SimpleStackPanel Spacing="8">
@@ -34,7 +42,7 @@
                         FontSize="80"
                         Foreground="{DynamicResource SystemControlBackgroundBaseHighBrush}"
                         Glyph="&#xECC5;" />
-                    <Grid Name="GridUpdateSymbol" Visibility="Collapsed">
+                    <Grid Visibility="{Binding UpdateSymbolVisibility}">
                         <ui:FontIcon
                             Margin="50,50,0,0"
                             FontFamily="{DynamicResource SymbolThemeFontFamily}"
@@ -55,42 +63,71 @@
                     Orientation="Vertical"
                     Spacing="3">
                     <TextBlock
-                        Name="LabelUpdate"
                         FontSize="20"
                         Foreground="{DynamicResource SystemControlBackgroundBaseHighBrush}"
                         Style="{StaticResource BaseTextBlockStyle}"
-                        Text="{l:Static resx:Resources.SettingsPage_UpToDate}" />
+                        Text="{Binding UpdateStatusText}" />
                     <TextBlock
-                        Name="LabelUpdateDate"
                         Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
-                        Text="{l:Static resx:Resources.SettingsPage_LastChecked}" />
+                        Text="{Binding UpdateDateText}"
+                        Visibility="{Binding UpdateDateVisibility}" />
                     <ui:ProgressBar
-                        Name="ProgressBarUpdate"
                         Margin="0,0,10,0"
                         IsIndeterminate="True"
-                        Visibility="Collapsed" />
+                        Visibility="{Binding ProgressBarVisibility}" />
                 </ikw:SimpleStackPanel>
 
                 <Button
-                    Name="B_CheckUpdate"
                     Grid.Column="2"
                     HorizontalAlignment="Right"
                     VerticalAlignment="Center"
-                    Click="B_CheckUpdate_Click"
+                    Command="{Binding CheckUpdateCommand}"
                     Content="{l:Static resx:Resources.SettingsPage_CheckForUpdates}"
+                    IsEnabled="{Binding CheckUpdateEnabled}"
                     Style="{DynamicResource AccentButtonStyle}" />
             </Grid>
 
             <!--  Changelog  -->
-            <TextBox
-                Name="CurrentChangelog"
-                MaxHeight="300"
+            <RichTextBox
+                MaxHeight="540"
+                behaviors:RichTextBoxBehavior.Document="{Binding ChangelogText, Mode=OneWay, Converter={StaticResource MarkdownToFlowDocumentConverter}}"
+                FontFamily="Segoe UI"
                 IsReadOnly="True"
-                ScrollViewer.HorizontalScrollBarVisibility="Auto"
-                Visibility="Collapsed" />
+                ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                ScrollViewer.VerticalScrollBarVisibility="Auto"
+                Visibility="{Binding ChangelogVisibility}" />
 
             <!--  Update(s)  -->
-            <ikw:SimpleStackPanel Name="CurrentUpdates" Spacing="3" />
+            <ItemsControl ItemsSource="{Binding UpdateFiles}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <ui:SettingsCard
+                            Margin="0,0,0,3"
+                            Description="{Binding FilesizeMB}"
+                            Header="{Binding Filename}">
+                            <ui:SettingsCard.HeaderIcon>
+                                <ui:FontIcon FontFamily="{DynamicResource SymbolThemeFontFamily}" Glyph="&#xE896;" />
+                            </ui:SettingsCard.HeaderIcon>
+                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                <TextBlock
+                                    Margin="0,0,8,0"
+                                    VerticalAlignment="Center"
+                                    Text="{Binding ProgressText}"
+                                    Visibility="{Binding ProgressVisibility}" />
+                                <Button
+                                    Command="{Binding DownloadCommand}"
+                                    Content="{l:Static resx:Resources.SettingsPage_Download}"
+                                    Visibility="{Binding DownloadButtonVisibility}" />
+                                <Button
+                                    Command="{Binding InstallCommand}"
+                                    Content="{l:Static resx:Resources.SettingsPage_InstallNow}"
+                                    Style="{DynamicResource AccentButtonStyle}"
+                                    Visibility="{Binding InstallButtonVisibility}" />
+                            </StackPanel>
+                        </ui:SettingsCard>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
 
             <!--  General options  -->
             <TextBlock Style="{StaticResource BaseTextBlockStyle}" Text="{l:Static resx:Resources.SettingsPage_GeneralOptions}" />

@@ -1,7 +1,4 @@
-﻿using HandheldCompanion.Helpers;
-using HandheldCompanion.Misc;
-using HandheldCompanion.Notifications;
-using HandheldCompanion.Properties;
+﻿using HandheldCompanion.Notifications;
 using HandheldCompanion.Shared;
 using HandheldCompanion.Views;
 using Newtonsoft.Json;
@@ -103,6 +100,9 @@ namespace HandheldCompanion.Managers
             IsInitialized = true;
             Initialized?.Invoke();
 
+            // force trigger an update check on HC startup
+            _ = StartProcess(true);
+
             LogManager.LogInformation("{0} has started", "UpdateManager");
         }
 
@@ -186,17 +186,6 @@ namespace HandheldCompanion.Managers
                 if (background)
                     return;
 
-                // UI thread
-                UIHelper.TryInvoke(() =>
-                {
-                    _ = new Dialog(MainWindow.GetCurrent())
-                    {
-                        Title = Resources.SettingsPage_UpdateWarning,
-                        Content = Resources.SettingsPage_UpdateFailedGithub,
-                        PrimaryButtonText = Resources.ProfilesPage_OK
-                    }.ShowAsync();
-                });
-
                 updateStatus = UpdateStatus.Failed;
                 Updated?.Invoke(updateStatus, null, null);
             }
@@ -243,17 +232,6 @@ namespace HandheldCompanion.Managers
             }
             catch (Exception)
             {
-                // UI thread
-                UIHelper.TryInvoke(() =>
-                {
-                    _ = new Dialog(MainWindow.GetCurrent())
-                    {
-                        Title = Resources.SettingsPage_UpdateWarning,
-                        Content = Resources.SettingsPage_UpdateFailedDownload,
-                        PrimaryButtonText = Resources.ProfilesPage_OK
-                    }.ShowAsync();
-                });
-
                 updateStatus = UpdateStatus.Failed;
                 Updated?.Invoke(updateStatus, update, null);
             }
@@ -327,26 +305,16 @@ namespace HandheldCompanion.Managers
             }
         }
 
-        public static void InstallUpdate(UpdateFile updateFile)
+        public static bool InstallUpdate(UpdateFile updateFile)
         {
             var filename = Path.Combine(InstallPath, updateFile.filename);
 
             if (!File.Exists(filename))
-            {
-                UIHelper.TryInvoke(() =>
-                {
-                    _ = new Dialog(MainWindow.GetCurrent())
-                    {
-                        Title = Resources.SettingsPage_UpdateWarning,
-                        Content = Resources.SettingsPage_UpdateFailedInstall,
-                        PrimaryButtonText = Resources.ProfilesPage_OK
-                    }.ShowAsync();
-                });
-                return;
-            }
+                return false;
 
             Process.Start(filename);
             Process.GetCurrentProcess().Kill();
+            return true;
         }
     }
 }
