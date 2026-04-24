@@ -1400,6 +1400,14 @@ namespace HandheldCompanion.ViewModels
         public bool QuerySteamGrid { get; set; } = true;
         public bool QueryIGDB { get; set; } = true;
 
+        // True when the currently selected library entry is a manual (file-browse) entry
+        public bool IsManualEntry => _SelectedLibraryIndex >= 0
+            && _SelectedLibraryIndex < LibraryPickers.Count
+            && LibraryPickers[_SelectedLibraryIndex].IsManualEntry;
+
+        // True if the dialog should be interactive: either we're online (for IGDB/SteamGrid) or a manual entry is selected
+        public bool IsLibraryOrManualEnabled => IsLibraryConnected || IsManualEntry;
+
         public BitmapImage? Cover
         {
             get
@@ -1609,6 +1617,9 @@ namespace HandheldCompanion.ViewModels
         public ICommand OpenProfileLayoutCommand { get; private set; } = null!;
         public ICommand CreatePowerProfileCommand { get; private set; } = null!;
         public ICommand OpenAdditionalSettingsCommand { get; private set; } = null!;
+        public ICommand BrowseCoverCommand { get; private set; } = null!;
+        public ICommand BrowseArtworkCommand { get; private set; } = null!;
+        public ICommand BrowseLogoCommand { get; private set; } = null!;
 
         private bool isLoadingProfile = false;
         public bool IsLoadingProfile => isLoadingProfile;
@@ -1812,6 +1823,16 @@ namespace HandheldCompanion.ViewModels
             {
                 ClearLibrary();
 
+                // Always add a "Manual" entry at the top so the user can browse images without an online search
+                ManualEntry manualEntry;
+                if (SelectedProfile?.LibraryEntry is ManualEntry existingManual)
+                    manualEntry = existingManual;
+                else
+                    manualEntry = new ManualEntry(SelectedProfile?.Guid.GetHashCode() ?? 0L, SelectedProfile?.Name ?? string.Empty);
+
+                lock (_collectionLock2)
+                    LibraryPickers.Add(new(manualEntry));
+
                 IEnumerable<LibraryEntry> entries = await ManagerFactory.libraryManager.GetGames(
                     (QuerySteamGrid ? LibraryFamily.SteamGrid : LibraryFamily.None) | (QueryIGDB ? LibraryFamily.IGDB : LibraryFamily.None),
                     LibrarySearchField);
@@ -1827,10 +1848,17 @@ namespace HandheldCompanion.ViewModels
                             LibraryPickers.Add(new(entry));
                     }
 
-                    if (SelectedProfile?.LibraryEntry is not null && entries.Contains(SelectedProfile.LibraryEntry))
+                    if (SelectedProfile?.LibraryEntry is ManualEntry)
+                        SelectedLibraryEntry = manualEntry;
+                    else if (SelectedProfile?.LibraryEntry is not null && entries.Contains(SelectedProfile.LibraryEntry))
                         SelectedLibraryEntry = SelectedProfile.LibraryEntry;
                     else
                         SelectedLibraryEntry = ManagerFactory.libraryManager.GetGame(entries, LibrarySearchField);
+                }
+                else
+                {
+                    // No online results — select manual
+                    SelectedLibraryEntry = manualEntry;
                 }
 
                 // Notify that library entries are now available
@@ -1991,6 +2019,75 @@ namespace HandheldCompanion.ViewModels
             {
                 RequestOpenAdditionalSettings?.Invoke(this, EventArgs.Empty);
             });
+
+            BrowseCoverCommand = new DelegateCommand(() => BrowseManualArt(LibraryType.cover));
+            BrowseArtworkCommand = new DelegateCommand(() => BrowseManualArt(LibraryType.artwork));
+            BrowseLogoCommand = new DelegateCommand(() => BrowseManualArt(LibraryType.logo));
+        }
+
+        private void BrowseManualArt(LibraryType libraryType)
+        {
+            if (_SelectedLibraryIndex < 0 || _SelectedLibraryIndex >= LibraryPickers.Count)
+                return;
+            LibraryEntryViewModel pickerVM = LibraryPickers[_SelectedLibraryIndex];
+            if (pickerVM.LibEntry is not ManualEntry manualEntry)
+                return;
+
+            Microsoft.WindowsAPICodePack.Dialogs.CommonOpenFileDialog dlg = new();
+            if (libraryType.HasFlag(LibraryType.logo))
+            {
+                // Logo requires transparency — PNG only
+                dlg.Filters.Add(new Microsoft.WindowsAPICodePack.Dialogs.CommonFileDialogFilter("PNG Image", "*.png"));
+            }
+            else
+            {
+                // Cover and artwork accept PNG or JPEG
+                dlg.Filters.Add(new Microsoft.WindowsAPICodePack.Dialogs.CommonFileDialogFilter("Image Files", "*.png;*.jpg;*.jpeg"));
+                dlg.Filters.Add(new Microsoft.WindowsAPICodePack.Dialogs.CommonFileDialogFilter("PNG Image", "*.png"));
+                dlg.Filters.Add(new Microsoft.WindowsAPICodePack.Dialogs.CommonFileDialogFilter("JPEG Image", "*.jpg;*.jpeg"));
+            }
+
+            if (dlg.ShowDialog() != Microsoft.WindowsAPICodePack.Dialogs.CommonFileDialogResult.Ok)
+                return;
+
+            string? sourcePath = dlg.FileName;
+            if (string.IsNullOrEmpty(sourcePath) || !System.IO.File.Exists(sourcePath))
+                return;
+
+            // Copy the file into the cache immediately so the library page and the dialog
+            // can both load it via the normal GetGameArt path (incl. thumbnails sub-folder).
+            long imageId;
+            if (libraryType.HasFlag(LibraryType.cover))
+                imageId = ManualEntry.ManualCoverId;
+            else if (libraryType.HasFlag(LibraryType.artwork))
+                imageId = ManualEntry.ManualArtworkId;
+            else
+                imageId = ManualEntry.ManualLogoId;
+
+            string? cachedPath = ManagerFactory.libraryManager.CopyManualArt(manualEntry.Id, libraryType, imageId, sourcePath);
+            if (cachedPath is null)
+                return;
+
+            string extension = System.IO.Path.GetExtension(cachedPath);
+
+            // Update the entry so the serialised JSON contains the cache path
+            if (libraryType.HasFlag(LibraryType.cover))
+                manualEntry.ManualCoverPath = cachedPath;
+            else if (libraryType.HasFlag(LibraryType.artwork))
+                manualEntry.ManualArtworkPath = cachedPath;
+            else
+                manualEntry.ManualLogoPath = cachedPath;
+
+            // Rebuild the single visual slot. Full-res keeps the source extension; thumbnail is
+            // always PNG (WriteResizedThumbnail encodes PNG regardless of source format).
+            pickerVM.RefreshManualVisual(libraryType, extension, thumbnailExtension: ".png");
+
+            if (libraryType.HasFlag(LibraryType.cover))
+                RefreshCover(0);
+            else if (libraryType.HasFlag(LibraryType.artwork))
+                RefreshArtwork(0);
+            else
+                RefreshLogo(0);
         }
 
         private void SetupManagerEvents()
@@ -2982,6 +3079,8 @@ namespace HandheldCompanion.ViewModels
             LibraryCoversIndex = 0;
             LibraryLogosIndex = -1;
             LibraryLogosIndex = 0;
+            OnPropertyChanged(nameof(IsManualEntry));
+            OnPropertyChanged(nameof(IsLibraryOrManualEnabled));
         }
 
         private async Task TriggerGameArtDownloadAsync(int value, LibraryType libraryType)

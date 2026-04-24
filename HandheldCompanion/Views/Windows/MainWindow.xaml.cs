@@ -776,10 +776,23 @@ public partial class MainWindow : GamepadWindow
         return TaskbarEdge.Bottom;
     }
 
-    private void Window_Loaded(object sender, RoutedEventArgs e)
+    private async void Window_Loaded(object sender, RoutedEventArgs e)
     {
-        // hide splashscreen
-        SplashScreen?.Close();
+        if (_pages.TryGetValue(ResolvedHomeKey, out var homePage))
+        {
+            // The ProgressRing covers the content area while the page renders,
+            // so navigate directly — no need for the hidden-frame pre-render step.
+            var loadTask = WaitForPageLoadedAsync(homePage);
+            NavigateToPage(ResolvedHomeKey);
+            await loadTask;
+
+            // Also wait until the home page's ViewModel has finished initializing
+            // (e.g. LibraryPageViewModel loading profiles) before dismissing the splash screen.
+            if (homePage.DataContext is ViewModels.LibraryPageViewModel libraryVm)
+                await WaitForViewModelInitializedAsync(libraryVm);
+
+            HomePage_Loaded();
+        }
 
         // load gamepad navigation manager
         gamepadFocusManager.Loaded();
@@ -789,22 +802,10 @@ public partial class MainWindow : GamepadWindow
 
         HwndSource source = (HwndSource)PresentationSource.FromVisual(this);
         source.AddHook(WndProc); // Hook into the window's message loop
-
-        // restore window state
-        WindowState windowState = (WindowState)ManagerFactory.settingsManager.GetInt("MainWindowState");
-        SetState(StartMinimized ? WindowState.Minimized : windowState);
-
-        // apply fullscreen at startup (unless starting minimized)
-        if (!StartMinimized && StartMaximized)
-            EnterFullscreen();
     }
 
-    private bool Homepage_Loaded = false;
     private void HomePage_Loaded()
     {
-        // set status
-        Homepage_Loaded = true;
-
         // hide the startup overlay — home page is rendered and ready
         ((MainWindowViewModel)DataContext).IsInitializing = false;
 
@@ -821,6 +822,17 @@ public partial class MainWindow : GamepadWindow
             ManagerFactory.settingsManager.SetProperty("TelemetryApproved", result == MessageBoxResult.Yes ? "True" : "False");
             ManagerFactory.settingsManager.SetProperty("TelemetryEnabled", result == MessageBoxResult.Yes);
         }
+
+        // hide splashscreen
+        SplashScreen?.Close();
+
+        // restore window state
+        WindowState windowState = (WindowState)ManagerFactory.settingsManager.GetInt("MainWindowState");
+        SetState(StartMinimized ? WindowState.Minimized : windowState);
+
+        // apply fullscreen at startup (unless starting minimized)
+        if (!StartMinimized && StartMaximized)
+            EnterFullscreen();
     }
 
     private void NotificationManagerUpdated(Notification notification)
@@ -1293,10 +1305,9 @@ public partial class MainWindow : GamepadWindow
     {
         Dialog.Reset(this);
 
-        // use your existing safe hide
         try { Hide(); } catch { }
 
-        notifyIcon.Visible = Homepage_Loaded;
+        notifyIcon.Visible = true;
         ShowInTaskbar = false;
 
         if (!NotifyInTaskbar)
@@ -1391,16 +1402,33 @@ public partial class MainWindow : GamepadWindow
     private async void navView_Loaded(object sender, RoutedEventArgs e)
     {
         ContentFrame.Navigated += On_Navigated;
+    }
 
-        if (_pages.TryGetValue(ResolvedHomeKey, out var homePage))
+    private static Task WaitForViewModelInitializedAsync(ViewModels.LibraryPageViewModel viewModel)
+    {
+        if (!viewModel.IsInitializing)
+            return Task.CompletedTask;
+
+        var tcs = new TaskCompletionSource<object?>();
+        System.ComponentModel.PropertyChangedEventHandler? handler = null;
+        handler = (s, e) =>
         {
-            // The ProgressRing covers the content area while the page renders,
-            // so navigate directly — no need for the hidden-frame pre-render step.
-            var loadTask = WaitForPageLoadedAsync(homePage);
-            NavigateToPage(ResolvedHomeKey);
-            await loadTask;
-            HomePage_Loaded();
+            if (e.PropertyName == nameof(ViewModels.LibraryPageViewModel.IsInitializing) && !viewModel.IsInitializing)
+            {
+                viewModel.PropertyChanged -= handler;
+                tcs.TrySetResult(null);
+            }
+        };
+        viewModel.PropertyChanged += handler;
+
+        // Double-check after subscribing to avoid missing the event
+        if (!viewModel.IsInitializing)
+        {
+            viewModel.PropertyChanged -= handler;
+            tcs.TrySetResult(null);
         }
+
+        return tcs.Task;
     }
 
     private static Task WaitForPageLoadedAsync(Page page)

@@ -119,7 +119,11 @@
                         </Button.Style>
                     </Button>
 
-                    <ui:DropDownButton HorizontalAlignment="Left" Content="Settings">
+                    <ui:DropDownButton HorizontalAlignment="Left" VerticalAlignment="Stretch">
+                        <ui:DropDownButton.Content>
+                            <ui:FontIcon FontFamily="{DynamicResource SymbolThemeFontFamily}" Glyph="&#xe712;" />
+                        </ui:DropDownButton.Content>
+
                         <ui:DropDownButton.Flyout>
                             <ui:MenuFlyout Placement="Bottom">
                                 <MenuItem
@@ -185,6 +189,12 @@
             <Grid>
                 <ikw:SimpleStackPanel Spacing="8">
                     <!-- <TextBlock Style="{StaticResource BaseTextBlockStyle}" Text="Library" /> -->
+
+                    <ui:ProgressBar
+                        HorizontalAlignment="Stretch"
+                        VerticalAlignment="Top"
+                        IsIndeterminate="True"
+                        Visibility="{Binding IsInitializing, Converter={StaticResource BooleanToVisibilityConverter}}" />
 
                     <ItemsControl
                         x:Name="profilesRepeater"
@@ -301,18 +311,6 @@
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
                 </ikw:SimpleStackPanel>
-
-                <!--  Spinner overlays the card grid while the initial load is in progress  -->
-                <ui:ProgressRing
-                    Width="60"
-                    Height="60"
-                    Margin="0,20,0,0"
-                    HorizontalAlignment="Center"
-                    VerticalAlignment="Top"
-                    Panel.ZIndex="1"
-                    IsActive="True"
-                    IsIndeterminate="True"
-                    Visibility="{Binding IsInitializing, Converter={StaticResource BooleanToVisibilityConverter}}" />
             </Grid>
         </ikw:SimpleStackPanel>
     </Grid>

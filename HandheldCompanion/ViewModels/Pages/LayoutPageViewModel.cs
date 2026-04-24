@@ -98,8 +98,8 @@ namespace HandheldCompanion.ViewModels
                 LayoutTemplateViewModel? foundPreset = layoutList.FirstOrDefault(p => p.Guid == layoutTemplate.Guid);
                 if (foundPreset is not null)
                 {
-                    // index = layoutList.IndexOf(foundPreset);
-                    foundPreset = new(layoutTemplate);
+                    int index = layoutList.IndexOf(foundPreset);
+                    layoutList[index] = new(layoutTemplate);
                 }
                 else
                 {

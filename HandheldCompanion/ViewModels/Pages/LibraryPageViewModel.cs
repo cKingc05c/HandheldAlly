@@ -141,7 +141,7 @@ namespace HandheldCompanion.ViewModels
 
         public bool IsLibraryConnected => ManagerFactory.libraryManager.IsConnected;
 
-        private bool _isInitializing;
+        private bool _isInitializing = true;
         public bool IsInitializing
         {
             get => _isInitializing;
@@ -353,9 +353,6 @@ namespace HandheldCompanion.ViewModels
                         break;
                 }
             });
-
-            // show spinner until profiles are loaded for the first time
-            _isInitializing = !ManagerFactory.profileManager.Status.HasFlag(ManagerStatus.Initialized);
 
             // raise events
             switch (ManagerFactory.profileManager.Status)

@@ -11,6 +11,7 @@ namespace HandheldCompanion.Libraries
             None = 0,
             IGDB = 1,
             SteamGrid = 2,
+            Manual = 3,
         }
 
         public LibraryFamily Family;

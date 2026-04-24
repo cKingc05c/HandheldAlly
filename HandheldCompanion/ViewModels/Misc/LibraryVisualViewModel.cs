@@ -17,8 +17,6 @@ namespace HandheldCompanion.ViewModels.Misc
             get
             {
                 long entryId = LibraryEntry.Id;
-                LibraryFamily libraryFamily = LibraryEntry.Family;
-
                 return ManagerFactory.libraryManager.GetGameArt(entryId, LibraryType.thumbnails, Id, ExtensionThumbnail);
             }
         }

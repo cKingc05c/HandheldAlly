@@ -26,7 +26,7 @@
                 Name="IGGBDialog"
                 CloseButtonText="Close"
                 DefaultButton="Primary"
-                IsEnabled="{Binding IsLibraryConnected, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}"
+                IsEnabled="{Binding IsLibraryOrManualEnabled, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}"
                 IsPrimaryButtonEnabled="{Binding CanApplyLibrary, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}"
                 PrimaryButtonCommand="{Binding DownloadLibrary}"
                 PrimaryButtonText="Apply">
@@ -108,21 +108,31 @@
 
                                         <StackPanel Grid.Column="0">
                                             <TextBlock Style="{StaticResource BaseTextBlockStyle}" Text="Cover" />
-                                            <ui:FlipView
-                                                x:Name="FlipViewCovers"
-                                                Height="180"
-                                                HorizontalAlignment="Stretch"
-                                                ItemsSource="{Binding LibraryCovers, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}"
-                                                SelectedIndex="{Binding LibraryCoversIndex, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
-                                                <ui:FlipView.ItemTemplate>
-                                                    <DataTemplate>
-                                                        <Image
-                                                            HorizontalAlignment="Center"
-                                                            Source="{Binding Image, Mode=OneWay}"
-                                                            Stretch="UniformToFill" />
-                                                    </DataTemplate>
-                                                </ui:FlipView.ItemTemplate>
-                                            </ui:FlipView>
+                                            <Grid>
+                                                <ui:FlipView
+                                                    x:Name="FlipViewCovers"
+                                                    Height="180"
+                                                    HorizontalAlignment="Stretch"
+                                                    ItemsSource="{Binding LibraryCovers, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}"
+                                                    SelectedIndex="{Binding LibraryCoversIndex, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
+                                                    <ui:FlipView.ItemTemplate>
+                                                        <DataTemplate>
+                                                            <Image
+                                                                HorizontalAlignment="Center"
+                                                                Source="{Binding Image, Mode=OneWay}"
+                                                                Stretch="UniformToFill" />
+                                                        </DataTemplate>
+                                                    </ui:FlipView.ItemTemplate>
+                                                </ui:FlipView>
+
+                                                <Button
+                                                    Margin="6"
+                                                    HorizontalAlignment="Stretch"
+                                                    VerticalAlignment="Bottom"
+                                                    Command="{Binding BrowseCoverCommand}"
+                                                    Content="Browse"
+                                                    Visibility="{Binding IsManualEntry, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                                            </Grid>
 
                                             <ui:PipsPager
                                                 Margin="0,10,0,0"
@@ -137,21 +147,32 @@
 
                                         <StackPanel Grid.Column="1" Margin="6,0,0,0">
                                             <TextBlock Style="{StaticResource BaseTextBlockStyle}" Text="Logo" />
-                                            <ui:FlipView
-                                                x:Name="FlipViewLogos"
-                                                Height="180"
-                                                ItemsSource="{Binding LibraryLogos, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}"
-                                                SelectedIndex="{Binding LibraryLogosIndex, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
-                                                <ui:FlipView.ItemTemplate>
-                                                    <DataTemplate>
-                                                        <Image
-                                                            Margin="32"
-                                                            HorizontalAlignment="Center"
-                                                            Source="{Binding Image, Mode=OneWay}"
-                                                            Stretch="Uniform" />
-                                                    </DataTemplate>
-                                                </ui:FlipView.ItemTemplate>
-                                            </ui:FlipView>
+
+                                            <Grid>
+                                                <ui:FlipView
+                                                    x:Name="FlipViewLogos"
+                                                    Height="180"
+                                                    ItemsSource="{Binding LibraryLogos, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}"
+                                                    SelectedIndex="{Binding LibraryLogosIndex, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
+                                                    <ui:FlipView.ItemTemplate>
+                                                        <DataTemplate>
+                                                            <Image
+                                                                Margin="32"
+                                                                HorizontalAlignment="Center"
+                                                                Source="{Binding Image, Mode=OneWay}"
+                                                                Stretch="Uniform" />
+                                                        </DataTemplate>
+                                                    </ui:FlipView.ItemTemplate>
+                                                </ui:FlipView>
+
+                                                <Button
+                                                    Margin="6"
+                                                    HorizontalAlignment="Stretch"
+                                                    VerticalAlignment="Bottom"
+                                                    Command="{Binding BrowseLogoCommand}"
+                                                    Content="Browse"
+                                                    Visibility="{Binding IsManualEntry, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                                            </Grid>
 
                                             <ui:PipsPager
                                                 Margin="0,10,0,0"
@@ -167,20 +188,31 @@
 
                                     <StackPanel>
                                         <TextBlock Style="{StaticResource BaseTextBlockStyle}" Text="Artwork" />
-                                        <ui:FlipView
-                                            x:Name="FlipViewArtworks"
-                                            Height="180"
-                                            ItemsSource="{Binding LibraryArtworks, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}"
-                                            SelectedIndex="{Binding LibraryArtworksIndex, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
-                                            <ui:FlipView.ItemTemplate>
-                                                <DataTemplate>
-                                                    <Image
-                                                        HorizontalAlignment="Center"
-                                                        Source="{Binding Image, Mode=OneWay}"
-                                                        Stretch="UniformToFill" />
-                                                </DataTemplate>
-                                            </ui:FlipView.ItemTemplate>
-                                        </ui:FlipView>
+
+                                        <Grid>
+                                            <ui:FlipView
+                                                x:Name="FlipViewArtworks"
+                                                Height="180"
+                                                ItemsSource="{Binding LibraryArtworks, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}"
+                                                SelectedIndex="{Binding LibraryArtworksIndex, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
+                                                <ui:FlipView.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <Image
+                                                            HorizontalAlignment="Center"
+                                                            Source="{Binding Image, Mode=OneWay}"
+                                                            Stretch="UniformToFill" />
+                                                    </DataTemplate>
+                                                </ui:FlipView.ItemTemplate>
+                                            </ui:FlipView>
+
+                                            <Button
+                                                Margin="6"
+                                                HorizontalAlignment="Stretch"
+                                                VerticalAlignment="Bottom"
+                                                Command="{Binding BrowseArtworkCommand}"
+                                                Content="Browse"
+                                                Visibility="{Binding IsManualEntry, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                                        </Grid>
 
                                         <ui:PipsPager
                                             Margin="0,10,0,0"
