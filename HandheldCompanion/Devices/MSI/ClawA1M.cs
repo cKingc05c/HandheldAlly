@@ -257,6 +257,8 @@ public class ClawA1M : IDevice
             IntelEnduranceGamingPreset = (int)ctl_3d_endurance_gaming_mode_t.PERFORMANCE // GPU Auto TDP is Off, FPS depends on the game, and it can be up to 120
         });
 
+        KeyPressDelay = 500;
+
         OEMChords.Add(new KeyboardChord(name: "CLAW", button: ButtonFlags.OEM1));
         OEMChords.Add(new KeyboardChord(name: "QS", button: ButtonFlags.OEM2));
         OEMChords.Add(new KeyboardChord(name: "M1", button: ButtonFlags.OEM3));
@@ -269,7 +271,7 @@ public class ClawA1M : IDevice
         ));
 
         // Hacky, BIOS 10F
-        OEMChords.Add(new KeyboardChord("QS", [KeyCode.LWin, KeyCode.G], [KeyCode.G, KeyCode.LWin], false, ButtonFlags.None));
+        OEMChords.Add(new KeyboardChord("QS", [KeyCode.LWin, KeyCode.G], [KeyCode.G, KeyCode.LWin], false, ButtonFlags.OEM2));
         OEMChords.Add(new KeyboardChord("QS, Long-press", [KeyCode.LWin, KeyCode.Tab], [KeyCode.Tab, KeyCode.LWin], false, ButtonFlags.OEM2));
 
         // prepare hotkeys
