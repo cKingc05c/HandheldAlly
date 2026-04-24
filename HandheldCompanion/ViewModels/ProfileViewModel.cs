@@ -33,11 +33,13 @@ namespace HandheldCompanion.ViewModels
         public bool IsMainPage => !IsQuickTools;
         private readonly bool IsLibrary;
         private bool areVisualsVisible = true;
+        private readonly HashSet<object> visualVisibilitySources = new(ReferenceEqualityComparer.Instance);
         private CancellationTokenSource? visualsLoadCancellationTokenSource;
         private CancellationTokenSource? visualsUnloadCancellationTokenSource;
         private ImageRequestKey? currentImageRequestKey;
         private bool visualsLoaded;
         private const int VisualUnloadDelayMs = 3000;
+        private static readonly object LegacyVisualVisibilitySource = new();
 
         private readonly record struct ImageRequestKey(
             long Id,
@@ -47,6 +49,21 @@ namespace HandheldCompanion.ViewModels
             string ArtworkExtension,
             long LogoId,
             string LogoExtension);
+
+        private sealed class ReferenceEqualityComparer : IEqualityComparer<object>
+        {
+            public static ReferenceEqualityComparer Instance { get; } = new();
+
+            public new bool Equals(object? x, object? y)
+            {
+                return ReferenceEquals(x, y);
+            }
+
+            public int GetHashCode(object obj)
+            {
+                return System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(obj);
+            }
+        }
 
         private Profile _Profile;
         public Profile Profile
@@ -265,22 +282,36 @@ namespace HandheldCompanion.ViewModels
 
         public void SetVisualsVisible(bool isVisible, bool immediate = false)
         {
+            SetVisualsVisible(LegacyVisualVisibilitySource, isVisible, immediate);
+        }
+
+        public void SetVisualsVisible(object visibilitySource, bool isVisible, bool immediate = false)
+        {
             if (!IsLibrary)
                 return;
 
-            if (!isVisible && immediate)
+            bool wasVisible = areVisualsVisible;
+
+            if (isVisible)
+                visualVisibilitySources.Add(visibilitySource);
+            else
+                visualVisibilitySources.Remove(visibilitySource);
+
+            bool isAnyVisualVisible = visualVisibilitySources.Count > 0;
+
+            if (!isAnyVisualVisible && immediate)
             {
                 areVisualsVisible = false;
                 ReleaseVisuals();
                 return;
             }
 
-            if (areVisualsVisible == isVisible)
+            if (wasVisible == isAnyVisualVisible)
                 return;
 
-            areVisualsVisible = isVisible;
+            areVisualsVisible = isAnyVisualVisible;
 
-            if (!isVisible)
+            if (!isAnyVisualVisible)
             {
                 // Cancel any in-flight image load immediately to avoid wasted work.
                 CancelPendingVisualLoad();
@@ -716,7 +747,9 @@ namespace HandheldCompanion.ViewModels
 
         public override void Dispose()
         {
-            SetVisualsVisible(false, immediate: true);
+            visualVisibilitySources.Clear();
+            areVisualsVisible = false;
+            ReleaseVisuals();
 
             ManagerFactory.processManager.ProcessStarted -= ProcessManager_ProcessStarted;
             ManagerFactory.processManager.ProcessStopped -= ProcessManager_ProcessStopped;
