@@ -1,5 +1,6 @@
 ﻿using HandheldCompanion.Helpers;
 using HandheldCompanion.Managers;
+using HandheldCompanion.Views;
 using HandheldCompanion.Views.Windows;
 using System.Windows;
 using System.Windows.Input;
@@ -41,7 +42,7 @@ namespace HandheldCompanion.ViewModels
                     case "Shutdown": PowerActions.Shutdown(force: false, powerOff: true); break;
                     case "Restart": PowerActions.Restart(force: false); break;
                     case "Lock": PowerActions.Lock(); break;
-                    case "Exit": Application.Current.Shutdown(); break;
+                    case "Exit": MainWindow.GetCurrent().RequestClose(); break;
                 }
             });
         }

@@ -694,11 +694,19 @@ public partial class MainWindow : GamepadWindow
                     overlayquickTools.ToggleVisibility();
                     break;
                 case "Exit":
-                    appClosing = true;
-                    Close();
+                    RequestClose();
                     break;
             }
         }
+    }
+
+    public void RequestClose()
+    {
+        UIHelper.TryInvoke(() =>
+        {
+            appClosing = true;
+            Close();
+        }, DispatcherPriority.Normal);
     }
 
     private void NotifyIcon_MouseUp(object? sender, System.Windows.Forms.MouseEventArgs e)
