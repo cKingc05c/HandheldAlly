@@ -523,7 +523,7 @@ namespace HandheldCompanion.ViewModels
             else if (actionType == ActionType.Shift)
             {
                 if (Action is null || Action is not ShiftActions)
-                    Action = new ShiftActions(ShiftSlot.ShiftA);
+                    Action = new ShiftActions();
 
                 MappingTargetViewModel? matchingTargetVm = null;
                 // Only show individual shift slots (A, B, C, D), not None or combined values
@@ -536,7 +536,7 @@ namespace HandheldCompanion.ViewModels
                     };
                     targets.Add(mappingTargetVm);
 
-                    if (shiftSlot == ((ShiftActions)Action).ShiftSlot)
+                    if (shiftSlot == ((ShiftActions)Action).ActivationSlot)
                         matchingTargetVm = mappingTargetVm;
                 }
 
@@ -586,7 +586,7 @@ namespace HandheldCompanion.ViewModels
 
                 case ActionType.Shift:
                     if (SelectedTarget.Tag is ShiftSlot shiftSlot)
-                        ((ShiftActions)Action).ShiftSlot = shiftSlot;
+                        ((ShiftActions)Action).ActivationSlot = shiftSlot;
                     break;
 
                 case ActionType.Trigger:
