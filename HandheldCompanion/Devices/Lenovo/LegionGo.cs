@@ -359,7 +359,7 @@ public class LegionGo : IDevice
         base.SettingsManager_SettingValueChanged(name, value, temporary);
     }
 
-    private FanTable defaultFanTable = new([27, 29, 32, 36, 40, 45, 52, 55, 59, 63]);
+    private FanTable defaultFanTable = new([44, 48, 55, 60, 71, 79, 87, 87, 100, 100]);
     protected override void PowerProfileManager_Applied(PowerProfile profile, UpdateSource source)
     {
         // get current fan mode and set it to the desired one if different
@@ -373,15 +373,21 @@ public class LegionGo : IDevice
         {
             // prepare array of fan speeds
             ushort[] fanSpeeds = profile.FanProfile.fanSpeeds.Skip(1).Take(10).Select(speed => (ushort)speed).ToArray();
-            FanTable fanTable = new(fanSpeeds);
+
+            // skip overwrite if the fan table is already set to the desired values
+            if (currentFanSpeeds.Select(v => (ushort)v).SequenceEqual(fanSpeeds))
+                return;
 
             // update fan table
+            FanTable fanTable = new(fanSpeeds);
             SetFanTable(fanTable);
         }
         else
         {
-            // restore default FanTable
-            // todo: check if custom was applied before ?
+            // restore default FanTable if not already set
+            if (currentFanSpeeds.Select(v => (ushort)v).SequenceEqual(defaultFanTable.GetTable()))
+                return;
+
             SetFanTable(defaultFanTable);
         }
     }
