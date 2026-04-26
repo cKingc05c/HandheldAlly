@@ -12,7 +12,7 @@ namespace HandheldCompanion.ViewModels
 {
     public class SettingsPageViewModel : BaseViewModel
     {
-        // ── Update status ─────────────────────────────────────────────────
+        #region Update status
 
         private string _updateStatusText = Properties.Resources.SettingsPage_UpToDate;
         public string UpdateStatusText
@@ -70,15 +70,46 @@ namespace HandheldCompanion.ViewModels
             private set { if (_checkUpdateEnabled != value) { _checkUpdateEnabled = value; OnPropertyChanged(nameof(CheckUpdateEnabled)); } }
         }
 
-        // ── Update files ─────────────────────────────────────────────────
+        #endregion
+
+        #region Update files
 
         public ObservableCollection<GithubUpdateViewModel> UpdateFiles { get; } = new();
 
-        // ── Commands ─────────────────────────────────────────────────────
+        #endregion
+
+        #region Commands
 
         public DelegateCommand CheckUpdateCommand { get; }
 
-        // ── Constructor ─────────────────────────────────────────────────
+        #endregion
+
+        #region DSU status
+
+        private string _dsuStatusText = "Stopped";
+        public string DSUStatusText
+        {
+            get => _dsuStatusText;
+            private set { if (_dsuStatusText != value) { _dsuStatusText = value; OnPropertyChanged(nameof(DSUStatusText)); } }
+        }
+
+        private string _dsuClientCountText = string.Empty;
+        public string DSUClientCountText
+        {
+            get => _dsuClientCountText;
+            private set { if (_dsuClientCountText != value) { _dsuClientCountText = value; OnPropertyChanged(nameof(DSUClientCountText)); } }
+        }
+
+        private Visibility _dsuClientCountVisibility = Visibility.Collapsed;
+        public Visibility DSUClientCountVisibility
+        {
+            get => _dsuClientCountVisibility;
+            private set { if (_dsuClientCountVisibility != value) { _dsuClientCountVisibility = value; OnPropertyChanged(nameof(DSUClientCountVisibility)); } }
+        }
+
+        #endregion
+
+        #region Constructor
 
         public SettingsPageViewModel()
         {
@@ -90,9 +121,21 @@ namespace HandheldCompanion.ViewModels
 
             // replay last known status
             UpdateDateText = Properties.Resources.SettingsPage_LastChecked + UpdateManager.GetTime();
+
+            // DSU server events
+            DSUServer.Started += DSUServer_Started;
+            DSUServer.Stopped += DSUServer_Stopped;
+            DSUServer.Failed += DSUServer_Failed;
+            DSUServer.ClientsChanged += DSUServer_ClientsChanged;
+
+            // replay current DSU state
+            if (DSUServer.IsInitialized)
+                DSUServer_Started();
         }
 
-        // ── UpdateManager events ─────────────────────────────────────────
+        #endregion
+
+        #region UpdateManager events
 
         private void UpdateManager_Updated(UpdateStatus status, UpdateFile? updateFile, object? value)
         {
@@ -194,12 +237,50 @@ namespace HandheldCompanion.ViewModels
             }.ShowAsync();
         }
 
-        // ── Dispose ─────────────────────────────────────────────────────
+        #endregion
+
+        #region DSUServer events
+
+        private void DSUServer_Started()
+        {
+            DSUStatusText = $"Listening on port {DSUServer.serverPort}";
+            DSUClientCountVisibility = Visibility.Visible;
+            DSUServer_ClientsChanged(DSUServer.ConnectedClientCount);
+        }
+
+        private void DSUServer_Stopped()
+        {
+            DSUStatusText = "Stopped";
+            DSUClientCountVisibility = Visibility.Collapsed;
+            DSUClientCountText = string.Empty;
+        }
+
+        private void DSUServer_Failed(int port)
+        {
+            DSUStatusText = $"Failed to bind port {port}";
+            DSUClientCountVisibility = Visibility.Collapsed;
+            DSUClientCountText = string.Empty;
+        }
+
+        private void DSUServer_ClientsChanged(int count)
+        {
+            DSUClientCountText = count == 1 ? "1 connected client" : $"{count} connected clients";
+        }
+
+        #endregion
+
+        #region Dispose
 
         public override void Dispose()
         {
             UpdateManager.Updated -= UpdateManager_Updated;
+            DSUServer.Started -= DSUServer_Started;
+            DSUServer.Stopped -= DSUServer_Stopped;
+            DSUServer.Failed -= DSUServer_Failed;
+            DSUServer.ClientsChanged -= DSUServer_ClientsChanged;
             base.Dispose();
         }
+
+        #endregion
     }
 }

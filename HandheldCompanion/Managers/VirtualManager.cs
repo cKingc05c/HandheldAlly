@@ -149,6 +149,7 @@ namespace HandheldCompanion.Managers
             // apply settings
             SettingsManager_SettingValueChanged("HIDmode", selectedHIDMode, false);
             SettingsManager_SettingValueChanged("HIDstatus", HIDstatus, false);
+            SettingsManager_SettingValueChanged("DSUport", ManagerFactory.settingsManager.GetInt("DSUport"), false);
             SettingsManager_SettingValueChanged("DSUEnabled", ManagerFactory.settingsManager.GetString("DSUEnabled"), false);
         }
 
@@ -255,6 +256,12 @@ namespace HandheldCompanion.Managers
                     break;
                 case "DSUEnabled":
                     SetDSUStatus(Convert.ToBoolean(value));
+                    break;
+                case "DSUport":
+                    if (DSUServer.IsInitialized)
+                        DSUServer.Restart(Convert.ToInt32(value));
+                    else
+                        DSUServer.serverPort = Convert.ToInt32(value);
                     break;
             }
         }
