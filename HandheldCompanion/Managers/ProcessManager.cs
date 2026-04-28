@@ -171,12 +171,19 @@ public class ProcessManager : IManager
 
         base.PrepareStop();
 
-        // Remove the WindowOpened event handler
+        // Remove the WindowOpened event handler asynchronously (fire-and-forget).
+        // MainWindow calls RemoveAllEventHandlers() before Stop(), but being explicit
+        // here is harmless. Blocking the UI thread with TaskWithTimeout is unnecessary.
         if (_windowOpenedHandler != null)
-            ProcessUtils.TaskWithTimeout(() => Automation.RemoveAutomationEventHandler(
-                WindowPattern.WindowOpenedEvent,
-                AutomationElement.RootElement,
-                _windowOpenedHandler), TimeSpan.FromSeconds(3));
+        {
+            var handler = _windowOpenedHandler;
+            Task.Run(() =>
+            {
+                try { Automation.RemoveAutomationEventHandler(WindowPattern.WindowOpenedEvent, AutomationElement.RootElement, handler); }
+                catch { }
+            });
+            _windowOpenedHandler = null!;
+        }
 
         // Unhook the event when no longer needed
         if (m_hhook != IntPtr.Zero)
@@ -242,37 +249,44 @@ public class ProcessManager : IManager
 
     private void OnWindowOpened(object sender, AutomationEventArgs automationEventArgs)
     {
+        // Run off the UIAutomation callback thread: CreateOrUpdateProcess ultimately calls
+        // GetWindowTitle (WM_GETTEXT cross-process) which blocks the calling thread until the
+        // target processes the message. Blocking the UIA STA thread prevents it from pumping
+        // incoming COM messages and can deadlock the target application on close.
+        if (sender is AutomationElement senderElement)
+            Task.Run(() => OnWindowOpenedCore(senderElement));
+    }
+
+    private void OnWindowOpenedCore(AutomationElement senderElement)
+    {
         try
         {
-            if (sender is AutomationElement senderElement)
+            int processId = 0;
+            string className = string.Empty;
+
+            try
             {
-                int processId = 0;
-                string className = string.Empty;
-
-                try
-                {
-                    processId = senderElement.Current.ProcessId;
-                    className = senderElement.Current.ClassName ?? string.Empty;
-                }
-                catch
-                {
-                    // Automation failed to retrieve process id
-                }
-
-                if (className == "ApplicationFrameWindow")
-                {
-                    ProcessDiagnosticInfo? processInfo = new ProcessUtils.FindHostedProcess(senderElement.Current.NativeWindowHandle)._realProcess;
-                    if (processInfo is not null)
-                        processId = (int)processInfo.ProcessId;
-                }
-
-                // skip if we couldn't find a process id
-                if (processId == 0)
-                    return;
-
-                // create process
-                CreateOrUpdateProcess(processId, senderElement);
+                processId = senderElement.Current.ProcessId;
+                className = senderElement.Current.ClassName ?? string.Empty;
             }
+            catch
+            {
+                // Automation failed to retrieve process id
+            }
+
+            if (className == "ApplicationFrameWindow")
+            {
+                ProcessDiagnosticInfo? processInfo = new ProcessUtils.FindHostedProcess(senderElement.Current.NativeWindowHandle)._realProcess;
+                if (processInfo is not null)
+                    processId = (int)processInfo.ProcessId;
+            }
+
+            // skip if we couldn't find a process id
+            if (processId == 0)
+                return;
+
+            // create process
+            CreateOrUpdateProcess(processId, senderElement);
         }
         catch { }
     }
