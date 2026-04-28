@@ -46,6 +46,10 @@ namespace HandheldCompanion.Views;
 /// </summary>
 public partial class MainWindow : GamepadWindow
 {
+    private const string LibraryKey = "LibraryPage";
+    private const string ControllerKey = "ControllerPage";
+    public override string HomePageKey => ManagerFactory.settingsManager.GetBoolean("LibraryPageEnabled") ? LibraryKey : ControllerKey;
+
     // devices vars
     private static IDevice CurrentDevice = null!;
 
@@ -778,12 +782,12 @@ public partial class MainWindow : GamepadWindow
 
     private async void Window_Loaded(object sender, RoutedEventArgs e)
     {
-        if (_pages.TryGetValue(ResolvedHomeKey, out var homePage))
+        if (_pages.TryGetValue(HomePageKey, out var homePage))
         {
             // The ProgressRing covers the content area while the page renders,
             // so navigate directly — no need for the hidden-frame pre-render step.
             var loadTask = WaitForPageLoadedAsync(homePage);
-            NavigateToPage(ResolvedHomeKey);
+            NavigateToPage(HomePageKey);
             await loadTask;
 
             // Also wait until the home page's ViewModel has finished initializing
@@ -1386,11 +1390,6 @@ public partial class MainWindow : GamepadWindow
         base.Window_StateChanged(sender, e);
     }
 
-    private const string HomeKey = "LibraryPage";
-    private const string FallbackHomeKey = "ControllerPage";
-    private static string ResolvedHomeKey =>
-        ManagerFactory.settingsManager.GetBoolean("LibraryPageEnabled") ? HomeKey : FallbackHomeKey;
-
     private enum TaskbarEdge
     {
         Left,
@@ -1449,9 +1448,14 @@ public partial class MainWindow : GamepadWindow
 
     private void GamepadWindow_PreviewGotFocus(object sender, RoutedEventArgs e)
     {
-        if (e.OriginalSource is not Control control)
+        if (e.OriginalSource is not DependencyObject dependencyObject)
             return;
 
+        Control? control = dependencyObject as Control ?? WPFUtils.FindParent<Control>(dependencyObject);
+        if (control is null)
+            return;
+
+        gamepadFocusManager.TrackFocusedControl(control);
         GamepadFocusManagerOnFocused(control);
     }
 

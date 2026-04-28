@@ -34,6 +34,8 @@ namespace HandheldCompanion.Views.Windows;
 /// </summary>
 public partial class OverlayQuickTools : GamepadWindow
 {
+    public override string HomePageKey => "QuickHomePage";
+
     // animation state
     private double _targetTop;   // on-screen Y
 
