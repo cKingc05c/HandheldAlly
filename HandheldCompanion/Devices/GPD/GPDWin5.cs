@@ -1,23 +1,45 @@
 ﻿using HandheldCompanion.Inputs;
+using HandheldCompanion.Managers;
+using HandheldCompanion.Shared;
+using HidLibrary;
 using System;
 using System.Collections.Generic;
 using System.Numerics;
+using System.Threading;
 using WindowsInput.Events;
+using Task = System.Threading.Tasks.Task;
 
 namespace HandheldCompanion.Devices;
 
 public class GPDWin5 : IDevice
 {
+    private const int GpdVendorId = 0x2F24;
+    private const int GpdBackButtonsPid = 0x0137;
+    private const int GpdLegacyPid = 0x0135;
+    private const int BackButtonsHidId = 0x0137;
+
     // EC (GPD Duo/Win5 map via 0x4E/0x4F)
     private const ushort EC_RPM_HI = 0x0478; // read
     private const ushort EC_RPM_LO = 0x0479; // read
     private const ushort EC_FAN_DUTY_1 = 0x047A; // write (0=auto)
     private const ushort EC_FAN_DUTY_2 = 0x047B; // write (0=auto)
 
+    private bool isReading;
+    private Version FirmwareVersion = new(0, 0);
+    private bool IsHidSupported => FirmwareVersion >= new Version(0x01, 0x11);
+
     public GPDWin5()
     {
         ProductIllustration = "device_gpd5";
         UseOpenLib = true;
+
+        vendorId = GpdVendorId;
+        productIds = [GpdBackButtonsPid, GpdLegacyPid];
+        hidFilters = new()
+        {
+            { GpdBackButtonsPid, new HidFilter(unchecked((short)0xFF00), 0x0001) },
+            { GpdLegacyPid, new HidFilter(unchecked((short)0xFF00), 0x0001) },
+        };
 
         // https://www.amd.com/en/products/processors/laptop/ryzen/ai-300-series/amd-ryzen-ai-max-385.html
         nTDP = new double[] { 55, 55, 75 };
@@ -73,13 +95,98 @@ public class GPDWin5 : IDevice
          * F15 = 0x7E
         */
 
-        // Disabled this one as Win 5 also sends an Xbox guide input when Menu key is pressed.
-        OEMChords.Add(new KeyboardChord("Menu", [KeyCode.LButton | KeyCode.XButton2], [KeyCode.LButton | KeyCode.XButton2], true, ButtonFlags.OEM1));
+        OEMChords.Add(new KeyboardChord("Keyboard", [KeyCode.LControl, KeyCode.LWin, KeyCode.O], [KeyCode.O, KeyCode.LWin, KeyCode.LControl], false, ButtonFlags.OEM5));
+        OEMChords.Add(new KeyboardChord("Home", [KeyCode.LWin, KeyCode.D], [KeyCode.D, KeyCode.LWin], false, ButtonFlags.OEM6));
+
+        // Legacy support for older firmware
         OEMChords.Add(new KeyboardChord("L4", [KeyCode.LControl, KeyCode.LShift, KeyCode.F14], [KeyCode.F14, KeyCode.LControl, KeyCode.LShift], false, ButtonFlags.OEM3));
         OEMChords.Add(new KeyboardChord("R4", [KeyCode.F3, KeyCode.F15], [KeyCode.F15, KeyCode.F3], false, ButtonFlags.OEM2));
         OEMChords.Add(new KeyboardChord("Gamepad", [KeyCode.F13], [KeyCode.F13], false, ButtonFlags.OEM4));
-        OEMChords.Add(new KeyboardChord("Keyboard", [KeyCode.LControl, KeyCode.LWin, KeyCode.O], [KeyCode.O, KeyCode.LWin, KeyCode.LControl], false, ButtonFlags.OEM5));
-        OEMChords.Add(new KeyboardChord("Home", [KeyCode.LWin, KeyCode.D], [KeyCode.D, KeyCode.LWin], false, ButtonFlags.OEM6));
+
+        // Disabled this one as Win 5 also sends an Xbox guide input when Menu key is pressed.
+        OEMChords.Add(new KeyboardChord("Menu", [KeyCode.LButton | KeyCode.XButton2], [KeyCode.LButton | KeyCode.XButton2], true, ButtonFlags.OEM1));
+    }
+
+    public override bool IsReady()
+    {
+        IEnumerable<HidDevice> devices = GetHidDevices(vendorId, productIds, 0);
+        foreach (HidDevice device in devices)
+        {
+            if (!device.IsConnected)
+                continue;
+
+            if (!hidFilters.TryGetValue(device.Attributes.ProductId, out HidFilter hidFilter))
+                continue;
+
+            if (device.Capabilities.UsagePage != hidFilter.UsagePage ||
+                device.Capabilities.Usage != hidFilter.Usage)
+                continue;
+
+            hidDevices[BackButtonsHidId] = device;
+            return true;
+        }
+
+        return false;
+    }
+
+    public override bool Open()
+    {
+        bool success = base.Open();
+        if (!success)
+            return false;
+
+        if (hidDevices.TryGetValue(BackButtonsHidId, out HidDevice? device))
+        {
+            device.OpenDevice();
+
+            (int major, int minor)? firmware = ReadControllerFirmwareVersion(device);
+            if (firmware.HasValue)
+            {
+                FirmwareVersion = new Version(firmware.Value.major, firmware.Value.minor);
+                LogManager.LogInformation("{0}: Controller firmware version 0x{1:X2}.0x{2:X2}", GetType().Name, firmware.Value.major, firmware.Value.minor);
+            }
+            else
+            {
+                LogManager.LogWarning("{0}: Could not read controller firmware version", GetType().Name);
+            }
+
+            device.CloseDevice();
+        }
+
+        return true;
+    }
+
+    public override void OpenEvents()
+    {
+        base.OpenEvents();
+
+        ControllerManager.ControllerPlugged += ControllerManager_ControllerPlugged;
+        ControllerManager.ControllerUnplugged += ControllerManager_ControllerUnplugged;
+
+        Device_Inserted();
+    }
+
+    public override void Close()
+    {
+        // Release all back buttons so none remain logically pressed after disconnect.
+        lock (updateLock)
+        {
+            KeyRelease(ButtonFlags.OEM2); // R4
+            KeyRelease(ButtonFlags.OEM3); // L4
+            KeyRelease(ButtonFlags.OEM4); // Switch
+        }
+
+        ControllerManager.ControllerPlugged -= ControllerManager_ControllerPlugged;
+        ControllerManager.ControllerUnplugged -= ControllerManager_ControllerUnplugged;
+
+        lock (updateLock)
+        {
+            foreach (HidDevice hidDevice in hidDevices.Values)
+                hidDevice.Dispose();
+            hidDevices.Clear();
+        }
+
+        base.Close();
     }
 
     public override void SetFanControl(bool enable, int mode = 0)
@@ -128,5 +235,157 @@ public class GPDWin5 : IDevice
 
         byte val = ECRamDirectReadByte(0x0577, ECDetails);
         return val == 0x02 || val == 0x10; // Device is running on Type-C only
+    }
+
+    private void ControllerManager_ControllerPlugged(Controllers.IController Controller, bool WasPowerCycling)
+    {
+        if (Controller.GetVendorID() == vendorId && productIds.Contains(Controller.GetProductID()))
+            Device_Inserted(true);
+    }
+
+    private void ControllerManager_ControllerUnplugged(Controllers.IController Controller, bool IsPowerCycling, bool WasTarget)
+    {
+        if (Controller.GetVendorID() == vendorId && productIds.Contains(Controller.GetProductID()))
+            Device_Removed();
+    }
+
+    private void Device_Removed()
+    {
+        isReading = false;
+
+        // Release all back buttons so none remain logically pressed after disconnect.
+        lock (updateLock)
+        {
+            KeyRelease(ButtonFlags.OEM2); // R4
+            KeyRelease(ButtonFlags.OEM3); // L4
+            KeyRelease(ButtonFlags.OEM4); // Switch
+        }
+
+        if (hidDevices.TryGetValue(BackButtonsHidId, out HidDevice? device))
+        {
+            device.MonitorDeviceEvents = false;
+            device.Removed -= Device_Removed;
+
+            try { device.Dispose(); } catch { }
+
+            hidDevices.Remove(BackButtonsHidId);
+        }
+    }
+
+    private (int major, int minor)? ReadControllerFirmwareVersion(HidDevice device)
+    {
+        try
+        {
+            HidReport request = device.CreateReport();
+            request.ReportId = 0x01;
+            request.Data[0] = 0x41;
+
+            if (!device.WriteReportSync(request))
+                return null;
+
+            Thread.Sleep(50); // controller needs a moment.
+
+            // Read input report ID 0x01
+            HidReport response = device.ReadReportSync(0x01);
+            if (response?.Data == null || response.Data.Length < 13)
+                return null;
+
+            // Optional sanity check for the ControllerV2 version response.
+            // Raw response is: [0]=reportId, [1]=0x41, [2]=0x10, [6..7]=checksum,
+            // [12]=major, [13]=minor. HidLibrary strips [0], so Data[0]=0x41.
+            if (response.ReportId != 0x01 || response.Data[0] != 0x41 || response.Data[1] != 0x10)
+                return null;
+
+            // HidLibrary strips the report ID:
+            // OWC raw respBuf[12]/[13] => HidReport.Data[11]/[12]
+            // Bytes are raw hex: 0x01.0x11 = firmware v1.11
+            int major = response.Data[11];
+            int minor = response.Data[12];
+
+            return (major, minor);
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private async void Device_Inserted(bool reScan = false)
+    {
+        if (reScan)
+            await WaitUntilReady();
+
+        if (hidDevices.TryGetValue(BackButtonsHidId, out HidDevice? device))
+        {
+            device.MonitorDeviceEvents = true;
+            device.Removed += Device_Removed;
+            device.OpenDevice();
+
+            // Silence L4/R4/Gamepad chords only for firmware >= 1.11.
+            // Older firmware does not send HID button reports, so chords must remain active.
+            if (IsHidSupported)
+            {
+                // mute L4/R4 chords so they don't clash with HID button reports
+                foreach (KeyboardChord chord in OEMChords)
+                {
+                    if (chord.name is "L4" or "R4" or "Gamepad")
+                        chord.silenced = true;
+                }
+            }
+
+            isReading = true;
+            _ = ReadLoopAsync(device);
+        }
+    }
+
+    private async Task ReadLoopAsync(HidDevice device)
+    {
+        try
+        {
+            while (isReading)
+            {
+                HidReport report = await device.ReadReportAsync().ConfigureAwait(false);
+                HandleReport(report);
+            }
+        }
+        catch
+        {
+            Device_Removed();
+        }
+    }
+
+    private void HandleReport(HidReport report)
+    {
+        if (report?.Data is null || report.Data.Length <= 10)
+            return;
+
+        lock (updateLock)
+        {
+            UpdateBackButtonState(ButtonFlags.OEM2, (report.Data[9] & 0x69) != 0);  // R4
+            UpdateBackButtonState(ButtonFlags.OEM3, (report.Data[8] & 0x69) != 0);  // L4
+            UpdateBackButtonState(ButtonFlags.OEM4, (report.Data[7] & 0x69) != 0);  // Switch
+        }
+    }
+
+    private void UpdateBackButtonState(ButtonFlags button, bool pressed)
+    {
+        if (pressed)
+            KeyPress(button);
+        else
+            KeyRelease(button);
+    }
+
+    public override string GetGlyph(ButtonFlags button)
+    {
+        return button switch
+        {
+            ButtonFlags.OEM1 => "\u221A", // GPD Menu — PromptFont U221A
+            ButtonFlags.OEM2 => "\u2277", // R4 — PromptFont U2277
+            ButtonFlags.OEM3 => "\u2276", // L4 — PromptFont U2276
+            ButtonFlags.OEM4 => "\u243C", // Gamepad / mode switch — PromptFont U243C
+            ButtonFlags.OEM5 => "\u243D", // Keyboard — PromptFont U243D
+            ButtonFlags.OEM6 => "\u21F9", // Home/Menu — PromptFont U21F9
+            _ => base.GetGlyph(button)
+        };
     }
 }
