@@ -36,8 +36,32 @@ public sealed class IoAccess : IDisposable
 
     public void Close()
     {
-        _sio?.Close();
-        _pio.Close();
+        Dispose();
     }
-    public void Dispose() => Close();
+
+    private bool _disposed = false;
+
+    ~IoAccess()
+    {
+        Dispose(false);
+    }
+
+    public void Dispose()
+    {
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+
+    private void Dispose(bool disposing)
+    {
+        if (_disposed) return;
+
+        if (disposing)
+        {
+            _sio?.Close();
+            _pio.Close();
+        }
+
+        _disposed = true;
+    }
 }

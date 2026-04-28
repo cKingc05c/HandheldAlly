@@ -3280,64 +3280,72 @@ namespace HandheldCompanion.ViewModels
 
         public void Close()
         {
-            selectedTemplate?.Updated -= Template_Updated;
-            selectedTemplate = null;
-
-            ManagerFactory.profileManager.Deleted -= ProfileDeleted;
-            ManagerFactory.profileManager.Updated -= ProfileUpdated;
-            ManagerFactory.profileManager.Applied -= ProfileApplied;
-            ManagerFactory.profileManager.Initialized -= ProfileManager_Initialized;
-
-            if (IsQuickTools)
-            {
-                ManagerFactory.processManager.ForegroundChanged -= ProcessManager_ForegroundChanged;
-                ManagerFactory.hotkeysManager.Updated -= HotkeysManager_Updated;
-                ManagerFactory.hotkeysManager.Initialized -= HotkeysManager_Initialized;
-            }
-            else
-            {
-                ManagerFactory.libraryManager.Initialized -= LibraryManager_Initialized;
-                ManagerFactory.libraryManager.StatusChanged -= LibraryManager_StatusChanged;
-                ManagerFactory.libraryManager.NetworkAvailabilityChanged -= LibraryManager_NetworkAvailabilityChanged;
-                ManagerFactory.processManager.Initialized -= ProcessManager_Initialized_Main;
-                ManagerFactory.processManager.ProcessStarted -= ProcessManager_ProcessStarted;
-                ManagerFactory.processManager.ProcessStopped -= ProcessManager_ProcessStopped;
-            }
-
-            ManagerFactory.multimediaManager.Initialized -= MultimediaManager_Initialized;
-            ManagerFactory.gpuManager.Initialized -= GpuManager_Initialized;
-            ManagerFactory.gpuManager.Hooked -= GPUManager_Hooked;
-            ManagerFactory.gpuManager.Unhooked -= GPUManager_Unhooked;
-            ManagerFactory.powerProfileManager.Applied -= PowerProfileManager_Applied;
-            ManagerFactory.powerProfileManager.Updated -= PowerProfileManager_Updated;
-            ManagerFactory.powerProfileManager.Deleted -= PowerProfileManager_Deleted;
-            ManagerFactory.powerProfileManager.Initialized -= PowerProfileManager_Initialized;
-            PlatformManager.RTSS.Updated -= RTSS_Updated;
-            ManagerFactory.platformManager.Initialized -= PlatformManager_Initialized;
-            ManagerFactory.settingsManager.SettingValueChanged -= SettingsManager_SettingValueChanged;
-            ManagerFactory.settingsManager.Initialized -= SettingsManager_Initialized;
-
-            UpdateTimer.Elapsed -= UpdateTimer_Elapsed;
-            UpdateTimer.Stop();
-            UpdateTimer.Dispose();
-
             Dispose();
         }
 
         public override void Dispose()
         {
-            CurrentProcessViewModel?.Dispose();
-            CurrentProcessViewModel = null;
-
-            foreach (var vm in MainProfiles)
-                vm.Dispose();
-            MainProfiles.Clear();
-
-            foreach (var vm in SubProfiles)
-                vm.Dispose();
-            SubProfiles.Clear();
-
             base.Dispose();
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                selectedTemplate?.Updated -= Template_Updated;
+                selectedTemplate = null;
+
+                ManagerFactory.profileManager.Deleted -= ProfileDeleted;
+                ManagerFactory.profileManager.Updated -= ProfileUpdated;
+                ManagerFactory.profileManager.Applied -= ProfileApplied;
+                ManagerFactory.profileManager.Initialized -= ProfileManager_Initialized;
+
+                if (IsQuickTools)
+                {
+                    ManagerFactory.processManager.ForegroundChanged -= ProcessManager_ForegroundChanged;
+                    ManagerFactory.hotkeysManager.Updated -= HotkeysManager_Updated;
+                    ManagerFactory.hotkeysManager.Initialized -= HotkeysManager_Initialized;
+                }
+                else
+                {
+                    ManagerFactory.libraryManager.Initialized -= LibraryManager_Initialized;
+                    ManagerFactory.libraryManager.StatusChanged -= LibraryManager_StatusChanged;
+                    ManagerFactory.libraryManager.NetworkAvailabilityChanged -= LibraryManager_NetworkAvailabilityChanged;
+                    ManagerFactory.processManager.Initialized -= ProcessManager_Initialized_Main;
+                    ManagerFactory.processManager.ProcessStarted -= ProcessManager_ProcessStarted;
+                    ManagerFactory.processManager.ProcessStopped -= ProcessManager_ProcessStopped;
+                }
+
+                ManagerFactory.multimediaManager.Initialized -= MultimediaManager_Initialized;
+                ManagerFactory.gpuManager.Initialized -= GpuManager_Initialized;
+                ManagerFactory.gpuManager.Hooked -= GPUManager_Hooked;
+                ManagerFactory.gpuManager.Unhooked -= GPUManager_Unhooked;
+                ManagerFactory.powerProfileManager.Applied -= PowerProfileManager_Applied;
+                ManagerFactory.powerProfileManager.Updated -= PowerProfileManager_Updated;
+                ManagerFactory.powerProfileManager.Deleted -= PowerProfileManager_Deleted;
+                ManagerFactory.powerProfileManager.Initialized -= PowerProfileManager_Initialized;
+                PlatformManager.RTSS.Updated -= RTSS_Updated;
+                ManagerFactory.platformManager.Initialized -= PlatformManager_Initialized;
+                ManagerFactory.settingsManager.SettingValueChanged -= SettingsManager_SettingValueChanged;
+                ManagerFactory.settingsManager.Initialized -= SettingsManager_Initialized;
+
+                UpdateTimer.Elapsed -= UpdateTimer_Elapsed;
+                UpdateTimer.Stop();
+                UpdateTimer.Dispose();
+
+                CurrentProcessViewModel?.Dispose();
+                CurrentProcessViewModel = null;
+
+                foreach (var vm in MainProfiles)
+                    vm.Dispose();
+                MainProfiles.Clear();
+
+                foreach (var vm in SubProfiles)
+                    vm.Dispose();
+                SubProfiles.Clear();
+            }
+
+            base.Dispose(disposing);
         }
     }
 }

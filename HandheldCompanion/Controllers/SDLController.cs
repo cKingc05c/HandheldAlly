@@ -189,14 +189,22 @@ namespace HandheldCompanion.Controllers
 
         ~SDLController()
         {
-            Dispose();
+            Dispose(false);
         }
 
         public override void Dispose()
         {
-            Unplug();
-
             base.Dispose();
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                Unplug();
+            }
+
+            base.Dispose(disposing);
         }
 
         public override string ToString()

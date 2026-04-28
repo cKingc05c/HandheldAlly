@@ -37,9 +37,11 @@ namespace HandheldCompanion.Targets
 
         public bool IsConnected = false;
 
+        private bool _disposed = false;
+
         ~ViGEmTarget()
         {
-            Dispose();
+            Dispose(false);
         }
 
         public override string ToString()
@@ -198,8 +200,24 @@ namespace HandheldCompanion.Targets
 
         public virtual void Dispose()
         {
-            Disconnect();
+            Dispose(true);
             GC.SuppressFinalize(this);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (_disposed) return;
+
+            if (disposing)
+            {
+                Disconnect();
+                Connected = null;
+                Disconnected = null;
+                Vibrated = null;
+                ConnectStatusChanged = null;
+            }
+
+            _disposed = true;
         }
     }
 }

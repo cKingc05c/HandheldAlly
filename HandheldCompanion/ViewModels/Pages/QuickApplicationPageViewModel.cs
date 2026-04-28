@@ -291,15 +291,23 @@ namespace HandheldCompanion.ViewModels
 
         public override void Dispose()
         {
-            // manage events
-            ManagerFactory.processManager.ProcessStarted -= ProcessStarted;
-            ManagerFactory.processManager.ProcessStopped -= ProcessStopped;
-            ManagerFactory.processManager.Initialized -= ProcessManager_Initialized;
-            ManagerFactory.profileManager.Initialized -= ProfileManager_Initialized;
-            ManagerFactory.profileManager.Updated -= ProfileManager_Updated;
-            ManagerFactory.profileManager.Deleted -= ProfileManager_Deleted;
-
             base.Dispose();
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                // manage events
+                ManagerFactory.processManager.ProcessStarted -= ProcessStarted;
+                ManagerFactory.processManager.ProcessStopped -= ProcessStopped;
+                ManagerFactory.processManager.Initialized -= ProcessManager_Initialized;
+                ManagerFactory.profileManager.Initialized -= ProfileManager_Initialized;
+                ManagerFactory.profileManager.Updated -= ProfileManager_Updated;
+                ManagerFactory.profileManager.Deleted -= ProfileManager_Deleted;
+            }
+
+            base.Dispose(disposing);
         }
     }
 }

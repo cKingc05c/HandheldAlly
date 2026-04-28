@@ -1106,17 +1106,16 @@ namespace HandheldCompanion.Processors.AMD
 
         protected virtual void Dispose(bool disposing)
         {
-            if (!_disposed)
-            {
-                if (disposing)
-                {
-                    _pawnIO?.Dispose();
-                    PciBusMutex.Close();
-                }
+            if (_disposed) return;
 
-                _initialized = false;
-                _disposed = true;
+            if (disposing)
+            {
+                _pawnIO?.Dispose();
+                PciBusMutex.Close();
             }
+
+            _initialized = false;
+            _disposed = true;
         }
 
         ~RyzenSmuService()

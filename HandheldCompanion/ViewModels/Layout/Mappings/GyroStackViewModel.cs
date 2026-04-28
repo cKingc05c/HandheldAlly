@@ -56,17 +56,23 @@ namespace HandheldCompanion.ViewModels
 
         public override void Dispose()
         {
-            MainWindow.layoutPage.LayoutUpdated -= UpdateMapping;
-            ControllerManager.ControllerSelected -= UpdateController;
+            base.Dispose();
+        }
 
-            foreach (var buttonMapping in GyroMappings)
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
             {
-                buttonMapping.Dispose();
+                MainWindow.layoutPage.LayoutUpdated -= UpdateMapping;
+                ControllerManager.ControllerSelected -= UpdateController;
+
+                foreach (var buttonMapping in GyroMappings)
+                    buttonMapping.Dispose();
+
+                GyroMappings.Clear();
             }
 
-            GyroMappings.Clear();
-
-            base.Dispose();
+            base.Dispose(disposing);
         }
 
         public override void AddMapping()

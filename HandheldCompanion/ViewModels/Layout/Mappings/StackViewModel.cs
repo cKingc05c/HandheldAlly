@@ -120,9 +120,17 @@ namespace HandheldCompanion.ViewModels
 
         public override void Dispose()
         {
-            ControllerManager.ControllerSelected -= UpdateController;
-
             base.Dispose();
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                ControllerManager.ControllerSelected -= UpdateController;
+            }
+
+            base.Dispose(disposing);
         }
     }
 }

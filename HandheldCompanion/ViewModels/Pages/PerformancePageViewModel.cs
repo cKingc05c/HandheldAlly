@@ -1209,36 +1209,44 @@ namespace HandheldCompanion.ViewModels
 
         public override void Dispose()
         {
-            ManagerFactory.settingsManager.SettingValueChanged -= SettingsManager_SettingValueChanged;
-            ManagerFactory.settingsManager.Initialized -= SettingsManager_Initialized;
-            ManagerFactory.multimediaManager.PrimaryScreenChanged -= MultimediaManager_PrimaryScreenChanged;
-            ManagerFactory.multimediaManager.Initialized -= MultimediaManager_Initialized;
-            PerformanceManager.EPPChanged -= PerformanceManager_EPPChanged;
-            PerformanceManager.Initialized -= PerformanceManager_Initialized;
-            ManagerFactory.powerProfileManager.Updated -= PowerProfileManager_Updated;
-            ManagerFactory.powerProfileManager.Deleted -= PowerProfileManager_Deleted;
-            ManagerFactory.powerProfileManager.Initialized -= PowerProfileManager_Initialized;
-            ManagerFactory.gpuManager.Hooked -= GPUManager_Hooked;
-            ManagerFactory.gpuManager.Unhooked -= GpuManager_Unhooked;
-            ManagerFactory.gpuManager.Initialized -= GpuManager_Initialized;
-            PlatformManager.LibreHardware.CPUTemperatureChanged -= LibreHardwareMonitor_CpuTemperatureChanged;
-            ManagerFactory.platformManager.Initialized -= PlatformManager_Initialized;
+            base.Dispose();
+        }
 
-            if (IsMainPage)
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
             {
-                _fanGraphLineSeries?.ActualValues.CollectionChanged -= ActualValues_CollectionChanged;
+                ManagerFactory.settingsManager.SettingValueChanged -= SettingsManager_SettingValueChanged;
+                ManagerFactory.settingsManager.Initialized -= SettingsManager_Initialized;
+                ManagerFactory.multimediaManager.PrimaryScreenChanged -= MultimediaManager_PrimaryScreenChanged;
+                ManagerFactory.multimediaManager.Initialized -= MultimediaManager_Initialized;
+                PerformanceManager.EPPChanged -= PerformanceManager_EPPChanged;
+                PerformanceManager.Initialized -= PerformanceManager_Initialized;
+                ManagerFactory.powerProfileManager.Updated -= PowerProfileManager_Updated;
+                ManagerFactory.powerProfileManager.Deleted -= PowerProfileManager_Deleted;
+                ManagerFactory.powerProfileManager.Initialized -= PowerProfileManager_Initialized;
+                ManagerFactory.gpuManager.Hooked -= GPUManager_Hooked;
+                ManagerFactory.gpuManager.Unhooked -= GpuManager_Unhooked;
+                ManagerFactory.gpuManager.Initialized -= GpuManager_Initialized;
+                PlatformManager.LibreHardware.CPUTemperatureChanged -= LibreHardwareMonitor_CpuTemperatureChanged;
+                ManagerFactory.platformManager.Initialized -= PlatformManager_Initialized;
 
-                if (_fanGraph is not null)
+                if (IsMainPage)
                 {
-                    _fanGraph.DataClick -= ChartOnDataClick;
-                    _fanGraph.MouseLeave -= ChartMouseLeave;
-                    _fanGraph.MouseMove -= ChartMouseMove;
-                    _fanGraph.MouseUp -= ChartMouseUp;
-                    _fanGraph.TouchMove -= ChartTouchMove;
+                    _fanGraphLineSeries?.ActualValues.CollectionChanged -= ActualValues_CollectionChanged;
+
+                    if (_fanGraph is not null)
+                    {
+                        _fanGraph.DataClick -= ChartOnDataClick;
+                        _fanGraph.MouseLeave -= ChartMouseLeave;
+                        _fanGraph.MouseMove -= ChartMouseMove;
+                        _fanGraph.MouseUp -= ChartMouseUp;
+                        _fanGraph.TouchMove -= ChartTouchMove;
+                    }
                 }
             }
 
-            base.Dispose();
+            base.Dispose(disposing);
         }
 
         #region Events

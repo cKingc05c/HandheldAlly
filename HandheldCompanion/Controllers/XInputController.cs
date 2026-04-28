@@ -51,14 +51,21 @@ public class XInputController : IController
 
     public override void Dispose()
     {
-        Unplug();
-
-        // don't dispose dummy controllers
-        if (IsDummy())
-            return;
-
-        Controller = null;
         base.Dispose();
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            Unplug();
+
+            // don't dispose dummy controllers
+            if (!IsDummy())
+                Controller = null;
+        }
+
+        base.Dispose(disposing);
     }
 
     public override string ToString()

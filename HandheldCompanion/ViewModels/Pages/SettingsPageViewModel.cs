@@ -273,12 +273,21 @@ namespace HandheldCompanion.ViewModels
 
         public override void Dispose()
         {
-            UpdateManager.Updated -= UpdateManager_Updated;
-            DSUServer.Started -= DSUServer_Started;
-            DSUServer.Stopped -= DSUServer_Stopped;
-            DSUServer.Failed -= DSUServer_Failed;
-            DSUServer.ClientsChanged -= DSUServer_ClientsChanged;
             base.Dispose();
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                UpdateManager.Updated -= UpdateManager_Updated;
+                DSUServer.Started -= DSUServer_Started;
+                DSUServer.Stopped -= DSUServer_Stopped;
+                DSUServer.Failed -= DSUServer_Failed;
+                DSUServer.ClientsChanged -= DSUServer_ClientsChanged;
+            }
+
+            base.Dispose(disposing);
         }
 
         #endregion

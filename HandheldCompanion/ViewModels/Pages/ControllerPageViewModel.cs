@@ -562,21 +562,29 @@ namespace HandheldCompanion.ViewModels
 
         public override void Dispose()
         {
-            // manage events
-            ControllerManager.ControllerPlugged -= ControllerPlugged;
-            ControllerManager.ControllerUnplugged -= ControllerUnplugged;
-            ControllerManager.ControllerSelected -= ControllerManager_ControllerSelected;
-            ControllerManager.StatusChanged -= ControllerManager_StatusChanged;
-            ControllerManager.SlotIssueChanged -= ControllerManager_SlotIssueChanged;
-            ManagerFactory.layoutManager.Initialized -= LayoutManager_Initialized;
-            ManagerFactory.profileManager.Initialized -= ProfileManager_Initialized;
-            ManagerFactory.profileManager.Applied -= ProfileManager_Applied;
-            VirtualManager.ControllerSelected -= VirtualManager_ControllerSelected;
-            VirtualManager.StatusChanged -= VirtualManager_StatusChanged;
-            ManagerFactory.settingsManager.Initialized -= SettingsManager_Initialized;
-            ManagerFactory.settingsManager.SettingValueChanged -= SettingsManager_SettingValueChanged;
-
             base.Dispose();
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                // manage events
+                ControllerManager.ControllerPlugged -= ControllerPlugged;
+                ControllerManager.ControllerUnplugged -= ControllerUnplugged;
+                ControllerManager.ControllerSelected -= ControllerManager_ControllerSelected;
+                ControllerManager.StatusChanged -= ControllerManager_StatusChanged;
+                ControllerManager.SlotIssueChanged -= ControllerManager_SlotIssueChanged;
+                ManagerFactory.layoutManager.Initialized -= LayoutManager_Initialized;
+                ManagerFactory.profileManager.Initialized -= ProfileManager_Initialized;
+                ManagerFactory.profileManager.Applied -= ProfileManager_Applied;
+                VirtualManager.ControllerSelected -= VirtualManager_ControllerSelected;
+                VirtualManager.StatusChanged -= VirtualManager_StatusChanged;
+                ManagerFactory.settingsManager.Initialized -= SettingsManager_Initialized;
+                ManagerFactory.settingsManager.SettingValueChanged -= SettingsManager_SettingValueChanged;
+            }
+
+            base.Dispose(disposing);
         }
     }
 }

@@ -554,8 +554,17 @@ namespace HandheldCompanion.Targets
 
         public override void Dispose()
         {
-            Disconnect();
-            GC.SuppressFinalize(this);
+            base.Dispose();
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                Disconnect();
+            }
+
+            base.Dispose(disposing);
         }
     }
 }

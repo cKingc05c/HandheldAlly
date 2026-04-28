@@ -86,16 +86,24 @@ namespace HandheldCompanion.ViewModels
 
         public override void Dispose()
         {
-            ButtonMappings.CollectionChanged -= ButtonMappings_CollectionChanged;
-            MainWindow.layoutPage.LayoutUpdated -= UpdateMapping;
-            ControllerManager.ControllerSelected -= UpdateController;
-
-            foreach (var buttonMapping in ButtonMappings)
-                buttonMapping.Dispose();
-
-            ButtonMappings.Clear();
-
             base.Dispose();
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                ButtonMappings.CollectionChanged -= ButtonMappings_CollectionChanged;
+                MainWindow.layoutPage.LayoutUpdated -= UpdateMapping;
+                ControllerManager.ControllerSelected -= UpdateController;
+
+                foreach (var buttonMapping in ButtonMappings)
+                    buttonMapping.Dispose();
+
+                ButtonMappings.Clear();
+            }
+
+            base.Dispose(disposing);
         }
 
         public override void AddMapping()

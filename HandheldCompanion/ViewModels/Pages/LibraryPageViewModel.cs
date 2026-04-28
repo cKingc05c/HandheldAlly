@@ -635,17 +635,25 @@ namespace HandheldCompanion.ViewModels
 
         public override void Dispose()
         {
-            // manage events
-            ManagerFactory.profileManager.Updated -= ProfileManager_Updated;
-            ManagerFactory.profileManager.Deleted -= ProfileManager_Deleted;
-            ManagerFactory.libraryManager.ProfileStatusChanged -= LibraryManager_ProfileStatusChanged;
-            ManagerFactory.libraryManager.NetworkAvailabilityChanged -= LibraryManager_NetworkAvailabilityChanged;
-            ManagerFactory.collectionManager.CollectionAdded -= CollectionManager_CollectionAdded;
-            ManagerFactory.collectionManager.CollectionRemoved -= CollectionManager_CollectionRemoved;
-            ManagerFactory.collectionManager.CollectionUpdated -= CollectionManager_CollectionUpdated;
-            ManagerFactory.collectionManager.Initialized -= CollectionManager_Initialized;
-
             base.Dispose();
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                // manage events
+                ManagerFactory.profileManager.Updated -= ProfileManager_Updated;
+                ManagerFactory.profileManager.Deleted -= ProfileManager_Deleted;
+                ManagerFactory.libraryManager.ProfileStatusChanged -= LibraryManager_ProfileStatusChanged;
+                ManagerFactory.libraryManager.NetworkAvailabilityChanged -= LibraryManager_NetworkAvailabilityChanged;
+                ManagerFactory.collectionManager.CollectionAdded -= CollectionManager_CollectionAdded;
+                ManagerFactory.collectionManager.CollectionRemoved -= CollectionManager_CollectionRemoved;
+                ManagerFactory.collectionManager.CollectionUpdated -= CollectionManager_CollectionUpdated;
+                ManagerFactory.collectionManager.Initialized -= CollectionManager_Initialized;
+            }
+
+            base.Dispose(disposing);
         }
 
         private void UpdateFiltering()

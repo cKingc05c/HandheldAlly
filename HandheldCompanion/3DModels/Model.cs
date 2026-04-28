@@ -134,27 +134,24 @@ public abstract class IModel : IDisposable
 
     #region IDisposable Support
 
-    private bool disposedValue = false; // To detect redundant calls
+    private bool _disposed = false;
 
     protected virtual void Dispose(bool disposing)
     {
-        if (!disposedValue)
+        if (_disposed) return;
+
+        if (disposing)
         {
-            if (disposing)
-            {
-                // Clear any collections holding references to 3D models or materials.
-                ButtonMap?.Clear();
-                DefaultMaterials?.Clear();
-                HighlightMaterials?.Clear();
+            // Clear any collections holding references to 3D models or materials.
+            ButtonMap?.Clear();
+            DefaultMaterials?.Clear();
+            HighlightMaterials?.Clear();
 
-                // Remove all children from the model group.
-                model3DGroup?.Children.Clear();
-            }
-
-            // Free unmanaged resources (if any) here.
-
-            disposedValue = true;
+            // Remove all children from the model group.
+            model3DGroup?.Children.Clear();
         }
+
+        _disposed = true;
     }
 
     // This code added to correctly implement the disposable pattern.

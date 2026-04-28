@@ -37,8 +37,17 @@ namespace HandheldCompanion.ViewModels
 
         public override void Dispose()
         {
-            IDevice.GetCurrent().CapabilitiesChanged -= OnCapabilitiesChanged;
             base.Dispose();
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                IDevice.GetCurrent().CapabilitiesChanged -= OnCapabilitiesChanged;
+            }
+
+            base.Dispose(disposing);
         }
 
         private void OnCapabilitiesChanged(DeviceCapabilities capabilities)

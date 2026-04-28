@@ -138,14 +138,22 @@ namespace HandheldCompanion.ViewModels
 
         public override void Dispose()
         {
-            // manage events
-            ManagerFactory.layoutManager.Updated -= LayoutManager_Updated;
-            ManagerFactory.layoutManager.Initialized -= LayoutManager_Initialized;
-            ManagerFactory.settingsManager.Initialized -= SettingsManager_Initialized;
-            ManagerFactory.settingsManager.SettingValueChanged -= SettingsManager_SettingValueChanged;
-            ControllerManager.ControllerSelected -= ControllerManager_ControllerSelected;
-
             base.Dispose();
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                // manage events
+                ManagerFactory.layoutManager.Updated -= LayoutManager_Updated;
+                ManagerFactory.layoutManager.Initialized -= LayoutManager_Initialized;
+                ManagerFactory.settingsManager.Initialized -= SettingsManager_Initialized;
+                ManagerFactory.settingsManager.SettingValueChanged -= SettingsManager_SettingValueChanged;
+                ControllerManager.ControllerSelected -= ControllerManager_ControllerSelected;
+            }
+
+            base.Dispose(disposing);
         }
     }
 }

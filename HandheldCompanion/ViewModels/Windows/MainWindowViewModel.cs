@@ -180,12 +180,21 @@ namespace HandheldCompanion.ViewModels
 
         public override void Dispose()
         {
-            ManagerFactory.notificationManager.Added -= NotificationManager_Added;
-            ManagerFactory.notificationManager.Discarded -= NotificationManager_Discarded;
-            ManagerFactory.settingsManager.SettingValueChanged -= SettingsManager_SettingValueChanged;
-
-            _closeCts?.Cancel();
             base.Dispose();
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                ManagerFactory.notificationManager.Added -= NotificationManager_Added;
+                ManagerFactory.notificationManager.Discarded -= NotificationManager_Discarded;
+                ManagerFactory.settingsManager.SettingValueChanged -= SettingsManager_SettingValueChanged;
+
+                _closeCts?.Cancel();
+            }
+
+            base.Dispose(disposing);
         }
     }
 }
