@@ -14,3 +14,10 @@ public enum HIDstatus
     Disconnected = 0,
     Connected = 1
 }
+
+public enum VirtualManagerStatus
+{
+    Retrying = 0,
+    Connected = 1,
+    Failed = 2,
+}

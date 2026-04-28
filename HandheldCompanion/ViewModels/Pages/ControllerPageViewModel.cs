@@ -1,6 +1,7 @@
 ﻿using HandheldCompanion.Controllers;
 using HandheldCompanion.Managers;
 using HandheldCompanion.Shared;
+using HandheldCompanion.Targets;
 using HandheldCompanion.Utils;
 using System;
 using System.Collections.ObjectModel;
@@ -234,6 +235,34 @@ namespace HandheldCompanion.ViewModels
             }
         }
 
+        private Visibility _WarningConnectRetryingVisibility = Visibility.Collapsed;
+        public Visibility WarningConnectRetryingVisibility
+        {
+            get => _WarningConnectRetryingVisibility;
+            set
+            {
+                if (value != _WarningConnectRetryingVisibility)
+                {
+                    _WarningConnectRetryingVisibility = value;
+                    OnPropertyChanged(nameof(WarningConnectRetryingVisibility));
+                }
+            }
+        }
+
+        private string _ConnectRetryMessage = string.Empty;
+        public string ConnectRetryMessage
+        {
+            get => _ConnectRetryMessage;
+            set
+            {
+                if (_ConnectRetryMessage != value)
+                {
+                    _ConnectRetryMessage = value;
+                    OnPropertyChanged(nameof(ConnectRetryMessage));
+                }
+            }
+        }
+
         public ControllerPageViewModel()
         {
             // Enable thread-safe access to the collection
@@ -247,6 +276,7 @@ namespace HandheldCompanion.ViewModels
             ControllerManager.StatusChanged += ControllerManager_StatusChanged;
             ControllerManager.SlotIssueChanged += ControllerManager_SlotIssueChanged;
             VirtualManager.ControllerSelected += VirtualManager_ControllerSelected;
+            VirtualManager.StatusChanged += VirtualManager_StatusChanged;
 
             // initialize slot issue state
             _hasSlotIssue = ControllerManager.HasSlotIssue;
@@ -339,6 +369,21 @@ namespace HandheldCompanion.ViewModels
         private void VirtualManager_ControllerSelected(HIDmode mode)
         {
             OnPropertyChanged(nameof(Artwork));
+        }
+
+        private void VirtualManager_StatusChanged(VirtualManagerStatus status, int attempt, int maxAttempts)
+        {
+            switch (status)
+            {
+                case VirtualManagerStatus.Retrying:
+                    ConnectRetryMessage = string.Format(Properties.Resources.ControllerPage_VirtualConnectRetryDesc, attempt, maxAttempts);
+                    WarningConnectRetryingVisibility = Visibility.Visible;
+                    break;
+                case VirtualManagerStatus.Connected:
+                case VirtualManagerStatus.Failed:
+                    WarningConnectRetryingVisibility = Visibility.Collapsed;
+                    break;
+            }
         }
 
         private void QueryLayouts()
@@ -527,6 +572,7 @@ namespace HandheldCompanion.ViewModels
             ManagerFactory.profileManager.Initialized -= ProfileManager_Initialized;
             ManagerFactory.profileManager.Applied -= ProfileManager_Applied;
             VirtualManager.ControllerSelected -= VirtualManager_ControllerSelected;
+            VirtualManager.StatusChanged -= VirtualManager_StatusChanged;
             ManagerFactory.settingsManager.Initialized -= SettingsManager_Initialized;
             ManagerFactory.settingsManager.SettingValueChanged -= SettingsManager_SettingValueChanged;
 
