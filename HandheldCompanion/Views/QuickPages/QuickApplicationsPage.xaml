@@ -24,7 +24,7 @@
         <converters:WidthToColumnsConverter x:Key="WidthToColumns" DesiredItemWidth="90" />
     </Page.Resources>
 
-    <Grid>
+    <Grid x:Name="RootGrid">
         <ui:ContentDialog
             Name="SnapDialog"
             d:Visibility="Collapsed"
