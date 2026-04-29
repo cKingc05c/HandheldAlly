@@ -162,6 +162,11 @@ namespace HandheldCompanion.Processors.AMD
             return new Version();
         }
 
+        public bool IsInstalled()
+        {
+            return TryGetInstalledPawnIOVersion(out _);
+        }
+
         private static bool TryGetInstalledPawnIOVersion(out string? versionString)
         {
             versionString = null;
