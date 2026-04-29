@@ -1846,29 +1846,33 @@ public static class ControllerManager
 
     /// <summary>
     /// Ensures the virtual Xbox 360 controller occupies slot 1.
-    /// Returns false if the run should be aborted (e.g. a busy wireless controller is blocking).
+    /// Returns false if the run should be aborted (e.g. a busy wireless controller is blocking,
+    /// or repeated recovery without any physical XInput controller already failed once).
     /// </summary>
     /// <param name="attempt">1-based attempt index used to decide the temporary-controller strategy.</param>
     private static bool FixVirtualSlot(SlotProbeResult probe, int attempt)
     {
         if (!HasPhysicalController<XInputController>())
         {
-            // No physical XInput controller — just cycle the virtual controller.
-            if (HasVirtualController<XInputController>() &&
-                GetControllerFromSlot<XInputController>(UserIndex.One, false) is null)
+            if (attempt > ControllerManagementMaxAttempts)
+                return false;
+
+            // No physical XInput controller — just cycle the virtual controller
+            if (HasVirtualController<XInputController>() && GetControllerFromSlot<XInputController>(UserIndex.One, false) is null)
             {
+                // Disconnect and reconnect the virtual controller so it re-enumerates from scratch and hopefully claims slot 1.
                 VirtualManager.Suspend(false);
                 Thread.Sleep(1000);
                 VirtualManager.Resume(false);
 
-                WaitUntil(
-                    () => GetVirtualControllers<XInputController>(VirtualManager.VendorId, VirtualManager.ProductId).Any(),
-                    TimeSpan.FromSeconds(4));
+                // Wait for the virtual controller to actually reconnect before re-probing — otherwise we may end up in a tight loop if it fails to re-enumerate.
+                WaitUntil(() => GetVirtualControllers<XInputController>(VirtualManager.VendorId, VirtualManager.ProductId).Any(), TimeSpan.FromSeconds(4));
             }
+
             return true;
         }
 
-        // Physical XInput controller present — find any physical controller, prioritizing lower slots.
+        // Check if a physical controller is plugged.
         XInputController? pController = null;
         foreach (UserIndex slot in new[] { UserIndex.One, UserIndex.Two, UserIndex.Three, UserIndex.Four, UserIndex.Any })
         {
@@ -1880,25 +1884,17 @@ public static class ControllerManager
         if (pController is null)
             return false;
 
-        // Abort if a wireless controller is currently busy and not already power-cycling.
-        var busyWireless = GetPhysicalControllers<XInputController>().FirstOrDefault(c => c.IsBluetooth() && c.IsBusy);
+        // Abort if a wireless controller is present and power-cycling, that's a human-only operation.
+        XInputController? busyWireless = GetPhysicalControllers<XInputController>().FirstOrDefault(c => c.IsBluetooth() && c.IsBusy);
         if (busyWireless is not null && !PowerCyclers.TryGetValue(busyWireless.GetContainerInstanceId(), out _))
             return false;
 
+        // Suspend the physical controller to force it off the bus, which should free up its slot for the virtual controller to claim.
+        // Wait for the suspended controller to actually vacate its slot before manipulating the virtual controller.
         SuspendController(pController.GetContainerInstanceId());
+        WaitUntil(() => GetControllerFromSlot<XInputController>((UserIndex)pController.UserIndex, true) is null, TimeSpan.FromSeconds(4));
 
-        // Wait for the suspended controller to actually vacate its slot before
-        // manipulating the virtual controller — otherwise it may still occupy the
-        // slot when the virtual controller is recreated.
-        byte suspendedSlot = pController.UserIndex;
-        if (suspendedSlot != byte.MaxValue)
-        {
-            WaitUntil(
-                () => GetControllerFromSlot<XInputController>((UserIndex)suspendedSlot, true) is null,
-                TimeSpan.FromSeconds(4));
-        }
-
-        // Remove virtual controller to free slot 1.
+        // Disconnect the virtual controller and wait for it to fully disappear.
         VirtualManager.SetControllerMode(HIDmode.NoController);
         WaitUntil(() => !GetVirtualControllers<XInputController>().Any(), TimeSpan.FromSeconds(4));
 
@@ -2072,16 +2068,21 @@ public static class ControllerManager
         // Default: keep current target (reassigned below if a better candidate exists)
         string deviceInstanceId = current?.GetContainerInstanceId() ?? string.Empty;
 
-        // If the user disabled auto-connect and already has a real controller, don't change anything.
-        // (branches below are skipped via else-if chain)
-        if (!ConnectOnPlug && current is not null && !current.IsDummy())
+        // If the user disabled auto-connect, never switch to a newly plugged external controller.
+        // Keep the current real target when there is one, otherwise only fall back to the internal
+        // controller (or keep the dummy/default target if no internal controller exists).
+        if (!ConnectOnPlug)
         {
-            // deviceInstanceId already holds the current target — nothing to do
+            if (current is not null && !current.IsDummy())
+            {
+                // deviceInstanceId already holds the current target — nothing to do
+            }
+            else if (internalController is not null)
+            {
+                deviceInstanceId = internalController.GetContainerInstanceId();
+            }
         }
         // Auto-connect to the most recently arrived external/wireless controller.
-        // ConnectOnPlug is intentionally not checked here: if we reach this branch,
-        // current is null or a dummy (branch 1 already guards the "keep current" case),
-        // so we must always pick the best available replacement regardless of ConnectOnPlug.
         else if (latestExternalController is not null)
         {
             // If the current target is already an external/wireless controller, keep it —
