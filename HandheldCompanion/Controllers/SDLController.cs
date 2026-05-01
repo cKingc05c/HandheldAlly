@@ -187,11 +187,6 @@ namespace HandheldCompanion.Controllers
             }
         }
 
-        ~SDLController()
-        {
-            Dispose(false);
-        }
-
         public override void Dispose()
         {
             base.Dispose();
@@ -201,6 +196,7 @@ namespace HandheldCompanion.Controllers
         {
             if (disposing)
             {
+                StopRumble();
                 Unplug();
             }
 
@@ -267,7 +263,7 @@ namespace HandheldCompanion.Controllers
 
         public override void Tick(long ticks, float delta, bool commit)
         {
-            if (!IsConnected() || Inputs is null || IsBusy || !IsPlugged || IsDisposing || IsDisposed)
+            if (!IsConnected() || Inputs is null || IsBusy || !IsPlugged || _disposing || _disposed)
                 return;
 
             ButtonState.Overwrite(InjectedButtons, Inputs.ButtonState);

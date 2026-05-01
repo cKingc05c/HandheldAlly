@@ -44,11 +44,6 @@ public class XInputController : IController
         base.AttachDetails(details);
     }
 
-    ~XInputController()
-    {
-        Dispose();
-    }
-
     public override void Dispose()
     {
         base.Dispose();
@@ -58,6 +53,7 @@ public class XInputController : IController
     {
         if (disposing)
         {
+            StopRumble();
             Unplug();
 
             // don't dispose dummy controllers
@@ -78,7 +74,7 @@ public class XInputController : IController
 
     public override void Tick(long ticks, float delta, bool commit)
     {
-        if (Inputs is null || IsBusy || !IsPlugged || IsDisposing || IsDisposed)
+        if (Inputs is null || IsBusy || !IsPlugged || _disposing || _disposed)
             return;
 
         if (!commit)
