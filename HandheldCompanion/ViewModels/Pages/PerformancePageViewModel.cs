@@ -105,7 +105,11 @@ namespace HandheldCompanion.ViewModels
                 if (!IDevice.GetCurrent().Capabilities.HasFlag(DeviceCapabilities.FanControl))
                     return false;
 
-                if (IDevice.GetCurrent() is HandheldCompanion.Devices.LegionGo)
+                // Legion Go 2 has EC fan control override
+                if (IDevice.GetCurrent() is Devices.Lenovo.LegionGoTablet2)
+                    return true;
+
+                if (IDevice.GetCurrent() is Devices.Lenovo.LegionGo)
                     return SelectedPreset.OEMPowerMode == 0xFF;
 
                 return true;

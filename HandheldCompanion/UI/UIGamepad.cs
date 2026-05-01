@@ -1253,8 +1253,7 @@ namespace HandheldCompanion.Managers
 
                                     if (navItem is not null)
                                     {
-                                        if (state is not null)
-                                            state.LastPageNavigationItem = navItem;
+                                        state?.LastPageNavigationItem = navItem;
                                         Focus(navItem);
                                         return;
                                     }

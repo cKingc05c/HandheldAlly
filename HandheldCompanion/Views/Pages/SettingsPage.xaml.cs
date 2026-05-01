@@ -617,4 +617,4 @@ public partial class SettingsPage : Page
         ManagerFactory.settingsManager.SetProperty("DSUport", (int)e.NewValue);
     }
 
-    }
+}

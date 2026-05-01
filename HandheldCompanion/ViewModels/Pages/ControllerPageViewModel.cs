@@ -1,7 +1,6 @@
 ﻿using HandheldCompanion.Controllers;
 using HandheldCompanion.Managers;
 using HandheldCompanion.Shared;
-using HandheldCompanion.Targets;
 using HandheldCompanion.Utils;
 using System;
 using System.Collections.ObjectModel;
