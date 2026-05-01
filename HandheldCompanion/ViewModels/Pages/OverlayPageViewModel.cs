@@ -693,18 +693,27 @@ namespace HandheldCompanion.ViewModels
 
         public override void Dispose()
         {
-            updateTimer.Stop();
-            updateTimer.Dispose();
-            framerateTimer.Stop();
-            framerateTimer.Dispose();
-            ManagerFactory.gpuManager.Hooked -= GPUManager_Hooked;
-            ManagerFactory.gpuManager.Initialized -= GpuManager_Initialized;
-            ManagerFactory.settingsManager.SettingValueChanged -= SettingsManager_SettingValueChanged;
-            ManagerFactory.settingsManager.Initialized -= SettingsManager_Initialized;
-            ManagerFactory.processManager.ForegroundChanged -= ProcessManager_ForegroundChanged;
-            ManagerFactory.processManager.Initialized -= ProcessManager_Initialized;
-            PlatformManager.RTSS.Updated -= RTSS_Updated;
             base.Dispose();
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                updateTimer.Stop();
+                updateTimer.Dispose();
+                framerateTimer.Stop();
+                framerateTimer.Dispose();
+                ManagerFactory.gpuManager.Hooked -= GPUManager_Hooked;
+                ManagerFactory.gpuManager.Initialized -= GpuManager_Initialized;
+                ManagerFactory.settingsManager.SettingValueChanged -= SettingsManager_SettingValueChanged;
+                ManagerFactory.settingsManager.Initialized -= SettingsManager_Initialized;
+                ManagerFactory.processManager.ForegroundChanged -= ProcessManager_ForegroundChanged;
+                ManagerFactory.processManager.Initialized -= ProcessManager_Initialized;
+                PlatformManager.RTSS.Updated -= RTSS_Updated;
+            }
+
+            base.Dispose(disposing);
         }
 
         private void SettingsManager_SettingValueChanged(string name, object? value, bool temporary)

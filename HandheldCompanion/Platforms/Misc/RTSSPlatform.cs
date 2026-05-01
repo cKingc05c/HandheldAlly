@@ -177,16 +177,7 @@ public class RTSSPlatform : IPlatform
 
     private void PowerProfileManager_Applied(PowerProfile powerProfile, UpdateSource source)
     {
-        int frameLimit = 0;
-
-        DesktopScreen? desktopScreen = ManagerFactory.multimediaManager.PrimaryDesktop;
-        if (desktopScreen is not null)
-        {
-            // Determine most approriate frame rate limit based on screen frequency
-            frameLimit = desktopScreen.GetClosest(powerProfile.FramerateValue).limit;
-        }
-
-        SetTargetFPS(frameLimit);
+        SetTargetFPS(powerProfile.FramerateValue);
     }
 
     private void ProcessManager_ForegroundChanged(ProcessEx? processEx, ProcessEx? backgroundEx, ProcessFilter filter)

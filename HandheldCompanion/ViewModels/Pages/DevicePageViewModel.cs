@@ -403,24 +403,32 @@ namespace HandheldCompanion.ViewModels
 
         public override void Dispose()
         {
-            PerformanceManager.Initialized -= PerformanceManager_Initialized;
+            base.Dispose();
+        }
 
-            coreIsolationWatcher.StatusChanged -= CoreIsolationWatcher_StatusChanged;
-            coreIsolationWatcher.Stop();
-            coreIsolationWatcher.Dispose();
-
-            if (manufacturerWatcher is not null)
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
             {
-                manufacturerWatcher.StatusChanged -= ManufacturerWatcher_StatusChanged;
-                manufacturerWatcher.Stop();
-                manufacturerWatcher.Dispose();
+                PerformanceManager.Initialized -= PerformanceManager_Initialized;
+
+                coreIsolationWatcher.StatusChanged -= CoreIsolationWatcher_StatusChanged;
+                coreIsolationWatcher.Stop();
+                coreIsolationWatcher.Dispose();
+
+                if (manufacturerWatcher is not null)
+                {
+                    manufacturerWatcher.StatusChanged -= ManufacturerWatcher_StatusChanged;
+                    manufacturerWatcher.Stop();
+                    manufacturerWatcher.Dispose();
+                }
+
+                // manage events
+                ManagerFactory.settingsManager.Initialized -= SettingsManager_Initialized;
+                ManagerFactory.settingsManager.SettingValueChanged -= SettingsManager_SettingValueChanged;
             }
 
-            // manage events
-            ManagerFactory.settingsManager.Initialized -= SettingsManager_Initialized;
-            ManagerFactory.settingsManager.SettingValueChanged -= SettingsManager_SettingValueChanged;
-
-            base.Dispose();
+            base.Dispose(disposing);
         }
     }
 }

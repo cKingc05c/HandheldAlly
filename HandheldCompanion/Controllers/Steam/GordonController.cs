@@ -99,7 +99,7 @@ namespace HandheldCompanion.Controllers.Steam
 
         public override void Tick(long ticks, float delta, bool commit)
         {
-            if (input is null || IsBusy || !IsPlugged || IsDisposing || IsDisposed)
+            if (input is null || IsBusy || !IsPlugged || _disposing || _disposed)
                 return;
 
             ButtonState.Overwrite(InjectedButtons, Inputs.ButtonState);

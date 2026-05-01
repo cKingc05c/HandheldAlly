@@ -919,13 +919,14 @@
                         Visibility="{Binding IsVirtual, Converter={StaticResource BooleanToVisibilityConverter}, ConverterParameter=False}">
 
                         <!--  Connect/Disconnect  -->
-                        <Button
+                        <ToggleButton
                             VerticalAlignment="Stretch"
                             Command="{Binding ConnectCommand}"
                             FontSize="14"
+                            IsChecked="{Binding IsPlugged, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}"
                             IsEnabled="{Binding IsPlugged, Mode=OneWay, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource InvertBooleanConverter}}">
-                            <Button.Style>
-                                <Style BasedOn="{StaticResource DefaultButtonStyle}" TargetType="Button">
+                            <ToggleButton.Style>
+                                <Style BasedOn="{StaticResource {x:Type ToggleButton}}" TargetType="ToggleButton">
                                     <Setter Property="Content" Value="{l:Static resx:Resources.Controller_Connect}" />
                                     <Style.Triggers>
                                         <DataTrigger Binding="{Binding IsPlugged, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}" Value="True">
@@ -933,16 +934,17 @@
                                         </DataTrigger>
                                     </Style.Triggers>
                                 </Style>
-                            </Button.Style>
-                        </Button>
+                            </ToggleButton.Style>
+                        </ToggleButton>
 
                         <!--  Hide/Unhide  -->
-                        <Button
+                        <ToggleButton
                             VerticalAlignment="Stretch"
                             Command="{Binding HideCommand}"
-                            FontSize="14">
-                            <Button.Style>
-                                <Style BasedOn="{StaticResource DefaultButtonStyle}" TargetType="Button">
+                            FontSize="14"
+                            IsChecked="{Binding IsHidden, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}">
+                            <ToggleButton.Style>
+                                <Style BasedOn="{StaticResource {x:Type ToggleButton}}" TargetType="ToggleButton">
                                     <Setter Property="Content" Value="{l:Static resx:Resources.Controller_Hide}" />
                                     <Style.Triggers>
                                         <DataTrigger Binding="{Binding IsHidden, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}" Value="True">
@@ -950,8 +952,8 @@
                                         </DataTrigger>
                                     </Style.Triggers>
                                 </Style>
-                            </Button.Style>
-                        </Button>
+                            </ToggleButton.Style>
+                        </ToggleButton>
 
                         <!--  Calibrate  -->
                         <Button

@@ -1,4 +1,6 @@
-﻿using HandheldCompanion.Shared;
+﻿using HandheldCompanion.Managers;
+using HandheldCompanion.Notifications;
+using HandheldCompanion.Shared;
 using System;
 using System.IO;
 using System.Linq;
@@ -71,6 +73,7 @@ namespace HandheldCompanion.Processors.AMD
     /// </summary>
     public class RyzenSmuService : IDisposable
     {
+        private static readonly PawnIONotInstalledNotification PawnIONotInstalledNotification = new();
         private readonly PawnIOWrapper _pawnIO;
         private bool _disposed;
         private bool _initialized;
@@ -123,11 +126,12 @@ namespace HandheldCompanion.Processors.AMD
 
             try
             {
-                LogManager.LogInformation("Initializing RyzenSMU service via PawnIO...");
-
                 // Connect to PawnIO driver
                 if (!_pawnIO.Connect())
                 {
+                    if (!_pawnIO.IsInstalled() && !ManagerFactory.notificationManager.Notifications.Any(n => n is PawnIONotInstalledNotification))
+                        ManagerFactory.notificationManager.Add(PawnIONotInstalledNotification);
+
                     LogManager.LogError("Failed to connect to PawnIO driver. Is PawnIO installed?");
                     return false;
                 }
@@ -156,7 +160,6 @@ namespace HandheldCompanion.Processors.AMD
                 // Try embedded resource first (like ZenStates-Core)
                 if (!moduleLoaded)
                 {
-                    LogManager.LogInformation("Attempting to load RyzenSMU module from embedded resource...");
                     const string embeddedResourceName = "HandheldCompanion.Resources.PawnIO.RyzenSMU.bin";
                     if (_pawnIO.LoadModuleFromResource(Assembly.GetExecutingAssembly(), embeddedResourceName))
                     {
@@ -178,8 +181,7 @@ namespace HandheldCompanion.Processors.AMD
                         Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "PawnIO", "Modules", "RyzenSMU.bin"),
                     };
 
-                    LogManager.LogInformation("Searching for RyzenSMU module in {0} file locations...", searchPaths.Length);
-                    foreach (var path in searchPaths)
+                    foreach (string path in searchPaths)
                     {
                         if (File.Exists(path))
                         {
@@ -227,7 +229,7 @@ namespace HandheldCompanion.Processors.AMD
                 }
                 else if (_mailboxType.HasValue)
                 {
-                    LogManager.LogInformation("Using {0} mailbox. CMD={1}, RSP={2}, ARGS={3}", _mailboxType.Value, $"0x{MP1_ADDR_CMD:X}", $"0x{MP1_ADDR_RSP:X}", $"0x{MP1_ADDR_ARGS:X}");
+                    LogManager.LogDebug("Using {0} mailbox. CMD={1}, RSP={2}, ARGS={3}", _mailboxType.Value, $"0x{MP1_ADDR_CMD:X}", $"0x{MP1_ADDR_RSP:X}", $"0x{MP1_ADDR_ARGS:X}");
                 }
 
                 // Get SMU version
@@ -237,7 +239,7 @@ namespace HandheldCompanion.Processors.AMD
                 }
                 else
                 {
-                    LogManager.LogInformation("SMU version: {0}", $"0x{_smuVersion:X8}");
+                    LogManager.LogDebug("SMU version: {0}", $"0x{_smuVersion:X8}");
                 }
 
                 _initialized = true;
@@ -327,7 +329,6 @@ namespace HandheldCompanion.Processors.AMD
                     return SmuStatus.OK;
                 }
 
-                LogManager.LogError("Failed to execute SMU command {0}", $"0x{command:X2}");
                 return SmuStatus.Failed;
             }
             catch (Exception ex)
@@ -1106,17 +1107,16 @@ namespace HandheldCompanion.Processors.AMD
 
         protected virtual void Dispose(bool disposing)
         {
-            if (!_disposed)
-            {
-                if (disposing)
-                {
-                    _pawnIO?.Dispose();
-                    PciBusMutex.Close();
-                }
+            if (_disposed) return;
 
-                _initialized = false;
-                _disposed = true;
+            if (disposing)
+            {
+                _pawnIO?.Dispose();
+                PciBusMutex.Close();
             }
+
+            _initialized = false;
+            _disposed = true;
         }
 
         ~RyzenSmuService()

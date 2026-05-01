@@ -143,15 +143,23 @@ namespace HandheldCompanion.ViewModels
 
         public override void Dispose()
         {
-            // manage events
-            ManagerFactory.hotkeysManager.Updated -= HotkeysManager_Updated;
-            ManagerFactory.hotkeysManager.Deleted -= HotkeysManager_Deleted;
-            ManagerFactory.hotkeysManager.Initialized -= HotkeysManager_Initialized;
-            InputsManager.StartedListening -= InputsManager_StartedListening;
-            InputsManager.StoppedListening -= InputsManager_StoppedListening;
-            ControllerManager.ControllerSelected -= ControllerManager_ControllerSelected;
-
             base.Dispose();
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                // manage events
+                ManagerFactory.hotkeysManager.Updated -= HotkeysManager_Updated;
+                ManagerFactory.hotkeysManager.Deleted -= HotkeysManager_Deleted;
+                ManagerFactory.hotkeysManager.Initialized -= HotkeysManager_Initialized;
+                InputsManager.StartedListening -= InputsManager_StartedListening;
+                InputsManager.StoppedListening -= InputsManager_StoppedListening;
+                ControllerManager.ControllerSelected -= ControllerManager_ControllerSelected;
+            }
+
+            base.Dispose(disposing);
         }
     }
 }

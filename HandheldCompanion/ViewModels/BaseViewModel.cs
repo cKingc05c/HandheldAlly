@@ -37,7 +37,7 @@ namespace HandheldCompanion.ViewModels
             return true;
         }
 
-        public void Dispose(bool disposing)
+        protected virtual void Dispose(bool disposing)
         {
             if (_disposed) return;
 
@@ -47,14 +47,13 @@ namespace HandheldCompanion.ViewModels
                 PropertyChanged = null; // Unsubscribe all event handlers to avoid memory leaks
             }
 
-            // Free unmanaged resources here (if any)
             _disposed = true;
         }
 
         public virtual void Dispose()
         {
             Dispose(true);
-            GC.SuppressFinalize(this); // Suppress finalization
+            GC.SuppressFinalize(this);
         }
 
         public virtual void OnPropertyChanged(string? propertyName) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));

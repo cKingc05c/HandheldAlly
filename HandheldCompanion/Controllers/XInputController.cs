@@ -44,21 +44,24 @@ public class XInputController : IController
         base.AttachDetails(details);
     }
 
-    ~XInputController()
-    {
-        Dispose();
-    }
-
     public override void Dispose()
     {
-        Unplug();
-
-        // don't dispose dummy controllers
-        if (IsDummy())
-            return;
-
-        Controller = null;
         base.Dispose();
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            StopRumble();
+            Unplug();
+
+            // don't dispose dummy controllers
+            if (!IsDummy())
+                Controller = null;
+        }
+
+        base.Dispose(disposing);
     }
 
     public override string ToString()
@@ -71,7 +74,7 @@ public class XInputController : IController
 
     public override void Tick(long ticks, float delta, bool commit)
     {
-        if (Inputs is null || IsBusy || !IsPlugged || IsDisposing || IsDisposed)
+        if (Inputs is null || IsBusy || !IsPlugged || _disposing || _disposed)
             return;
 
         if (!commit)

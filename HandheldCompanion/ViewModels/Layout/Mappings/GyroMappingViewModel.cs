@@ -263,10 +263,19 @@ namespace HandheldCompanion.ViewModels
 
         public override void Dispose()
         {
-            ManagerFactory.hotkeysManager.Updated -= HotkeysManager_Updated;
-            InputsManager.StartedListening -= InputsManager_StartedListening;
-            InputsManager.StoppedListening -= InputsManager_StoppedListening;
             base.Dispose();
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                ManagerFactory.hotkeysManager.Updated -= HotkeysManager_Updated;
+                InputsManager.StartedListening -= InputsManager_StartedListening;
+                InputsManager.StoppedListening -= InputsManager_StoppedListening;
+            }
+
+            base.Dispose(disposing);
         }
 
         protected override void ActionTypeChanged(ActionType? newActionType = null)

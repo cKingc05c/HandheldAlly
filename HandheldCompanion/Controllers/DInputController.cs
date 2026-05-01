@@ -24,20 +24,24 @@ public class DInputController : IController
         AttachDetails(details);
     }
 
-    ~DInputController()
-    {
-        Dispose();
-    }
-
     public override void Dispose()
     {
-        Unplug();
-
-        joystick?.Dispose();
-        joystick = null;
-        controller = null;
-
         base.Dispose();
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            StopRumble();
+            Unplug();
+
+            joystick?.Dispose();
+            joystick = null;
+            controller = null;
+        }
+
+        base.Dispose(disposing);
     }
 
     public override void AttachDetails(PnPDetails details)

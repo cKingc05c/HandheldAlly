@@ -80,10 +80,19 @@ namespace HandheldCompanion.ViewModels.Pages
 
         public override void Dispose()
         {
-            ManagerFactory.notificationManager.Initialized -= NotificationManager_Initialized;
-            ManagerFactory.notificationManager.Added -= NotificationManager_Added;
-            ManagerFactory.notificationManager.Discarded -= NotificationManager_Discarded;
             base.Dispose();
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                ManagerFactory.notificationManager.Initialized -= NotificationManager_Initialized;
+                ManagerFactory.notificationManager.Added -= NotificationManager_Added;
+                ManagerFactory.notificationManager.Discarded -= NotificationManager_Discarded;
+            }
+
+            base.Dispose(disposing);
         }
     }
 }

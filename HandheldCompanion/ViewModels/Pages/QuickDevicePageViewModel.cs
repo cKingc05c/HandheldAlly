@@ -746,33 +746,41 @@ namespace HandheldCompanion.ViewModels
 
         public void Close()
         {
-            ManagerFactory.multimediaManager.Initialized -= MultimediaManager_Initialized;
-            ManagerFactory.multimediaManager.PrimaryScreenChanged -= MultimediaManager_PrimaryScreenChanged;
-            ManagerFactory.multimediaManager.DisplaySettingsChanged -= MultimediaManager_DisplaySettingsChanged;
-            ManagerFactory.settingsManager.Initialized -= SettingsManager_Initialized;
-            ManagerFactory.settingsManager.SettingValueChanged -= SettingsManager_SettingValueChanged;
-            ManagerFactory.profileManager.Initialized -= ProfileManager_Initialized;
-            ManagerFactory.profileManager.Applied -= ProfileManager_Applied;
-            ManagerFactory.profileManager.Updated -= ProfileManager_Updated;
-            ManagerFactory.profileManager.Discarded -= ProfileManager_Discarded;
-            NightLight.Toggled -= NightLight_Toggled;
-
-            if (radioTimer != null)
-            {
-                radioTimer.Stop();
-                radioTimer.Tick -= RadioTimer_Tick;
-                radioTimer = null;
-            }
-
-            radios = null;
-            quickDevicePage = null;
-
             Dispose();
         }
 
         public override void Dispose()
         {
             base.Dispose();
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                ManagerFactory.multimediaManager.Initialized -= MultimediaManager_Initialized;
+                ManagerFactory.multimediaManager.PrimaryScreenChanged -= MultimediaManager_PrimaryScreenChanged;
+                ManagerFactory.multimediaManager.DisplaySettingsChanged -= MultimediaManager_DisplaySettingsChanged;
+                ManagerFactory.settingsManager.Initialized -= SettingsManager_Initialized;
+                ManagerFactory.settingsManager.SettingValueChanged -= SettingsManager_SettingValueChanged;
+                ManagerFactory.profileManager.Initialized -= ProfileManager_Initialized;
+                ManagerFactory.profileManager.Applied -= ProfileManager_Applied;
+                ManagerFactory.profileManager.Updated -= ProfileManager_Updated;
+                ManagerFactory.profileManager.Discarded -= ProfileManager_Discarded;
+                NightLight.Toggled -= NightLight_Toggled;
+
+                if (radioTimer != null)
+                {
+                    radioTimer.Stop();
+                    radioTimer.Tick -= RadioTimer_Tick;
+                    radioTimer = null;
+                }
+
+                radios = null;
+                quickDevicePage = null;
+            }
+
+            base.Dispose(disposing);
         }
     }
 }

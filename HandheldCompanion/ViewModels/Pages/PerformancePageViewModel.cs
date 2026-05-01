@@ -67,6 +67,10 @@ namespace HandheldCompanion.ViewModels
                     // update variable
                     _selectedPreset = value;
 
+                    IsCustomFrameLimitSelected = ShouldUseCustomFrameLimit(_selectedPreset.FramerateValue);
+                    if (IsCustomFrameLimitSelected)
+                        _customFrameLimitValue = Math.Clamp(_selectedPreset.FramerateValue, 0, FrameLimitMaximum);
+
                     // page-specific behaviors
                     switch (IsQuickTools)
                     {
@@ -375,21 +379,90 @@ namespace HandheldCompanion.ViewModels
             }
         }
 
-        public ScreenFramelimitViewModel? SelectedFrameLimit
+        public int FrameLimitMaximum
         {
             get
             {
                 DesktopScreen? desktopScreen = ManagerFactory.multimediaManager.PrimaryDesktop;
                 if (desktopScreen is null)
-                    return null;
+                    return 60;
 
+                return desktopScreen.GetCurrentFrequency();
+            }
+        }
+
+        private bool _isCustomFrameLimitSelected;
+        public bool IsCustomFrameLimitSelected
+        {
+            get => _isCustomFrameLimitSelected;
+            private set
+            {
+                if (value == _isCustomFrameLimitSelected)
+                    return;
+
+                _isCustomFrameLimitSelected = value;
+                OnPropertyChanged(nameof(IsCustomFrameLimitSelected));
+            }
+        }
+
+        private int? _customFrameLimitValue;
+        public int CustomFrameLimitValue
+        {
+            get
+            {
+                if (_customFrameLimitValue.HasValue)
+                    return _customFrameLimitValue.Value;
+
+                if (SelectedPreset is null)
+                    return 0;
+
+                return Math.Clamp(SelectedPreset.FramerateValue, 0, FrameLimitMaximum);
+            }
+            set
+            {
+                if (SelectedPreset is null)
+                    return;
+
+                int clamped = Math.Clamp(value, 0, FrameLimitMaximum);
+                bool customValueChanged = _customFrameLimitValue != clamped;
+                bool selectionChanged = !IsCustomFrameLimitSelected;
+                bool presetChanged = SelectedPreset.FramerateValue != clamped;
+
+                if (customValueChanged)
+                {
+                    _customFrameLimitValue = clamped;
+                    OnPropertyChanged(nameof(CustomFrameLimitValue));
+                }
+
+                if (selectionChanged)
+                    IsCustomFrameLimitSelected = true;
+
+                if (!selectionChanged && !presetChanged)
+                    return;
+
+                SelectedPreset.FramerateValue = clamped;
+                OnPropertyChanged(nameof(SelectedFrameLimit));
+                SubmitSelectedPreset();
+            }
+        }
+
+        public ScreenFramelimitViewModel? SelectedFrameLimit
+        {
+            get
+            {
                 lock (_collectionLock)
                 {
                     if (!FramerateLimits.Any())
                         return null;
 
-                    ScreenFramelimit closest = desktopScreen.GetClosest(SelectedPreset.FramerateValue);
-                    return FramerateLimits.FirstOrDefault(vm => vm.FrameLimit.limit == closest.limit);
+                    if (IsCustomFrameLimitSelected)
+                        return FramerateLimits.FirstOrDefault(vm => vm.IsCustom);
+
+                    ScreenFramelimitViewModel? exactLimit = FramerateLimits.FirstOrDefault(vm => !vm.IsCustom && vm.FrameLimit.limit == SelectedPreset.FramerateValue);
+                    if (exactLimit is not null)
+                        return exactLimit;
+
+                    return FramerateLimits.FirstOrDefault(vm => vm.IsCustom);
                 }
             }
             set
@@ -397,11 +470,42 @@ namespace HandheldCompanion.ViewModels
                 if (value is null)
                     return;
 
+                if (value.IsCustom)
+                {
+                    int customValue = _customFrameLimitValue.HasValue
+                        ? _customFrameLimitValue.Value
+                        : Math.Clamp(SelectedPreset.FramerateValue, 0, FrameLimitMaximum);
+
+                    if (!_customFrameLimitValue.HasValue)
+                    {
+                        _customFrameLimitValue = customValue;
+                        OnPropertyChanged(nameof(CustomFrameLimitValue));
+                    }
+
+                    if (!IsCustomFrameLimitSelected || SelectedPreset.FramerateValue != customValue)
+                    {
+                        IsCustomFrameLimitSelected = true;
+                        SelectedPreset.FramerateValue = customValue;
+                        OnPropertyChanged(nameof(SelectedFrameLimit));
+                        SubmitSelectedPreset();
+                    }
+
+                    return;
+                }
+
+                bool selectionChanged = IsCustomFrameLimitSelected;
+                if (selectionChanged)
+                    IsCustomFrameLimitSelected = false;
+
                 if (SelectedPreset.FramerateValue != value.FrameLimit.limit)
                 {
                     SelectedPreset.FramerateValue = value.FrameLimit.limit;
                     OnPropertyChanged(nameof(SelectedFrameLimit));
                     SubmitSelectedPreset();
+                }
+                else if (selectionChanged)
+                {
+                    OnPropertyChanged(nameof(SelectedFrameLimit));
                 }
             }
         }
@@ -713,6 +817,9 @@ namespace HandheldCompanion.ViewModels
             nameof(IsRunningRTSS),
             nameof(FramerateLimits),
             nameof(SelectedFrameLimit),
+            nameof(IsCustomFrameLimitSelected),
+            nameof(CustomFrameLimitValue),
+            nameof(FrameLimitMaximum),
             nameof(HasWarning),
             nameof(PerformanceManagerEnabled),
             string.Empty,
@@ -1102,36 +1209,44 @@ namespace HandheldCompanion.ViewModels
 
         public override void Dispose()
         {
-            ManagerFactory.settingsManager.SettingValueChanged -= SettingsManager_SettingValueChanged;
-            ManagerFactory.settingsManager.Initialized -= SettingsManager_Initialized;
-            ManagerFactory.multimediaManager.PrimaryScreenChanged -= MultimediaManager_PrimaryScreenChanged;
-            ManagerFactory.multimediaManager.Initialized -= MultimediaManager_Initialized;
-            PerformanceManager.EPPChanged -= PerformanceManager_EPPChanged;
-            PerformanceManager.Initialized -= PerformanceManager_Initialized;
-            ManagerFactory.powerProfileManager.Updated -= PowerProfileManager_Updated;
-            ManagerFactory.powerProfileManager.Deleted -= PowerProfileManager_Deleted;
-            ManagerFactory.powerProfileManager.Initialized -= PowerProfileManager_Initialized;
-            ManagerFactory.gpuManager.Hooked -= GPUManager_Hooked;
-            ManagerFactory.gpuManager.Unhooked -= GpuManager_Unhooked;
-            ManagerFactory.gpuManager.Initialized -= GpuManager_Initialized;
-            PlatformManager.LibreHardware.CPUTemperatureChanged -= LibreHardwareMonitor_CpuTemperatureChanged;
-            ManagerFactory.platformManager.Initialized -= PlatformManager_Initialized;
+            base.Dispose();
+        }
 
-            if (IsMainPage)
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
             {
-                _fanGraphLineSeries?.ActualValues.CollectionChanged -= ActualValues_CollectionChanged;
+                ManagerFactory.settingsManager.SettingValueChanged -= SettingsManager_SettingValueChanged;
+                ManagerFactory.settingsManager.Initialized -= SettingsManager_Initialized;
+                ManagerFactory.multimediaManager.PrimaryScreenChanged -= MultimediaManager_PrimaryScreenChanged;
+                ManagerFactory.multimediaManager.Initialized -= MultimediaManager_Initialized;
+                PerformanceManager.EPPChanged -= PerformanceManager_EPPChanged;
+                PerformanceManager.Initialized -= PerformanceManager_Initialized;
+                ManagerFactory.powerProfileManager.Updated -= PowerProfileManager_Updated;
+                ManagerFactory.powerProfileManager.Deleted -= PowerProfileManager_Deleted;
+                ManagerFactory.powerProfileManager.Initialized -= PowerProfileManager_Initialized;
+                ManagerFactory.gpuManager.Hooked -= GPUManager_Hooked;
+                ManagerFactory.gpuManager.Unhooked -= GpuManager_Unhooked;
+                ManagerFactory.gpuManager.Initialized -= GpuManager_Initialized;
+                PlatformManager.LibreHardware.CPUTemperatureChanged -= LibreHardwareMonitor_CpuTemperatureChanged;
+                ManagerFactory.platformManager.Initialized -= PlatformManager_Initialized;
 
-                if (_fanGraph is not null)
+                if (IsMainPage)
                 {
-                    _fanGraph.DataClick -= ChartOnDataClick;
-                    _fanGraph.MouseLeave -= ChartMouseLeave;
-                    _fanGraph.MouseMove -= ChartMouseMove;
-                    _fanGraph.MouseUp -= ChartMouseUp;
-                    _fanGraph.TouchMove -= ChartTouchMove;
+                    _fanGraphLineSeries?.ActualValues.CollectionChanged -= ActualValues_CollectionChanged;
+
+                    if (_fanGraph is not null)
+                    {
+                        _fanGraph.DataClick -= ChartOnDataClick;
+                        _fanGraph.MouseLeave -= ChartMouseLeave;
+                        _fanGraph.MouseMove -= ChartMouseMove;
+                        _fanGraph.MouseUp -= ChartMouseUp;
+                        _fanGraph.TouchMove -= ChartTouchMove;
+                    }
                 }
             }
 
-            base.Dispose();
+            base.Dispose(disposing);
         }
 
         #region Events
@@ -1165,11 +1280,19 @@ namespace HandheldCompanion.ViewModels
                     foreach (ScreenFramelimit frameLimit in screen.GetFramelimits())
                         FramerateLimits.Add(new ScreenFramelimitViewModel(frameLimit));
                 }
+
+                FramerateLimits.Add(new ScreenFramelimitViewModel(new ScreenFramelimit(-1, 0), Resources.Enum_InputsHotkeyType_Custom, true));
             }
 
+            if (SelectedPreset is not null && ShouldUseCustomFrameLimit(SelectedPreset.FramerateValue))
+                _customFrameLimitValue = Math.Clamp(SelectedPreset.FramerateValue, 0, FrameLimitMaximum);
+
             OnPropertyChanged(nameof(FramerateLimits));
+            OnPropertyChanged(nameof(IsCustomFrameLimitSelected));
             OnPropertyChanged(nameof(SelectedFrameLimit));
             OnPropertyChanged(nameof(AutoTDPMaximum));
+            OnPropertyChanged(nameof(FrameLimitMaximum));
+            OnPropertyChanged(nameof(CustomFrameLimitValue));
         }
 
         private void PerformanceManager_Initialized(bool CanChangeTDP, bool CanChangeGPU)
@@ -1196,6 +1319,9 @@ namespace HandheldCompanion.ViewModels
                     return;
 
             // Update all properties
+            if (ShouldUseCustomFrameLimit(preset.FramerateValue))
+                _customFrameLimitValue = Math.Clamp(preset.FramerateValue, 0, FrameLimitMaximum);
+
             OnPropertyChanged(string.Empty);
 
             // Main Window only
@@ -1216,6 +1342,17 @@ namespace HandheldCompanion.ViewModels
 
                 OnPropertyChanged(nameof(ProfilePickerItems));
                 SelectedPresetPicker = foundPreset ?? _profilePickerItems[index];
+            }
+        }
+
+        private bool ShouldUseCustomFrameLimit(int framerateValue)
+        {
+            if (framerateValue == 0)
+                return false;
+
+            lock (_collectionLock)
+            {
+                return FramerateLimits.Any(vm => vm.IsCustom) && !FramerateLimits.Any(vm => !vm.IsCustom && vm.FrameLimit.limit == framerateValue);
             }
         }
 

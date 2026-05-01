@@ -36,10 +36,10 @@ namespace HandheldCompanion.ViewModels
             }
         }
 
-        private Type _controllerType = typeof(object);
-        public Type ControllerType
+        private Type? _controllerType = null;
+        public Type? ControllerType
         {
-            get => _layoutTemplate?.ControllerType ?? _controllerType;
+            get => _layoutTemplate is not null ? _layoutTemplate.ControllerType : _controllerType;
             set
             {
                 if (_controllerType != value)

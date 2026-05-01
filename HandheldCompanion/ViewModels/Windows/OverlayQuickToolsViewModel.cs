@@ -85,11 +85,19 @@ namespace HandheldCompanion.ViewModels
 
         public override void Dispose()
         {
-            // manage events
-            ManagerFactory.settingsManager.Initialized -= SettingsManager_Initialized;
-            ManagerFactory.settingsManager.SettingValueChanged -= SettingsManager_SettingValueChanged;
-
             base.Dispose();
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                // manage events
+                ManagerFactory.settingsManager.Initialized -= SettingsManager_Initialized;
+                ManagerFactory.settingsManager.SettingValueChanged -= SettingsManager_SettingValueChanged;
+            }
+
+            base.Dispose(disposing);
         }
     }
 }

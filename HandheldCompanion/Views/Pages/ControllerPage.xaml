@@ -78,6 +78,15 @@
                     Visibility="{Binding WarningNoVirtualVisibility}" />
 
                 <ui:InfoBar
+                    Name="WarningConnectRetrying"
+                    Title="{l:Static resx:Resources.ControllerPage_VirtualConnectRetryWarning}"
+                    IsClosable="False"
+                    IsOpen="True"
+                    Message="{Binding ConnectRetryMessage, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}"
+                    Severity="Informational"
+                    Visibility="{Binding WarningConnectRetryingVisibility, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}" />
+
+                <ui:InfoBar
                     Name="WarningVirtualNotSlot1"
                     Title="{l:Static resx:Resources.ControllerPage_VirtualControllerNotOnSlot1Warning}"
                     IsClosable="False"

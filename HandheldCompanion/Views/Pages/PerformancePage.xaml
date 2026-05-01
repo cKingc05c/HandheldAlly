@@ -324,6 +324,32 @@
                         VerticalAlignment="Center"
                         ItemsSource="{Binding FramerateLimits, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}"
                         SelectedItem="{Binding SelectedFrameLimit, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+
+                    <ui:SettingsExpander.Items>
+                        <ui:SettingsCard IsEnabled="{Binding IsCustomFrameLimitSelected, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}">
+                            <DockPanel Width="{Binding ActualWidth, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=ui:SettingsCard}}">
+                                <Label
+                                    VerticalAlignment="Center"
+                                    Content="{Binding CustomFrameLimitValue, StringFormat={}{0:N0} FPS, UpdateSourceTrigger=PropertyChanged, Mode=OneWay}"
+                                    Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}" />
+                                <Slider
+                                    Margin="8,0,104,0"
+                                    HorizontalAlignment="Stretch"
+                                    VerticalAlignment="Center"
+                                    AutoToolTipPrecision="0"
+                                    IsMoveToPointEnabled="True"
+                                    IsSnapToTickEnabled="True"
+                                    LargeChange="10"
+                                    Maximum="{Binding FrameLimitMaximum, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}"
+                                    Minimum="0"
+                                    SmallChange="1"
+                                    TickFrequency="1"
+                                    TickPlacement="BottomRight"
+                                    ToolTip="{Binding Value, StringFormat=N0, RelativeSource={RelativeSource Self}, Mode=OneWay}"
+                                    Value="{Binding CustomFrameLimitValue, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                            </DockPanel>
+                        </ui:SettingsCard>
+                    </ui:SettingsExpander.Items>
                 </ui:SettingsExpander>
 
                 <!--  Processor energy performance preference (EPP)  -->

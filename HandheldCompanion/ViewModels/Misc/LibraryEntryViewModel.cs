@@ -6,6 +6,7 @@ using System.Collections.ObjectModel;
 using System.IO;
 using System.Windows.Data;
 using static HandheldCompanion.Libraries.LibraryEntry;
+using static HandheldCompanion.Managers.LibraryManager;
 
 namespace HandheldCompanion.ViewModels
 {
@@ -34,6 +35,8 @@ namespace HandheldCompanion.ViewModels
         public int ReleaseDateYear => LibEntry.ReleaseDate.Year;
         public LibraryFamily Family => LibEntry.Family;
 
+        public bool IsManualEntry => LibEntry is ManualEntry;
+
         public LibraryEntryViewModel(LibraryEntry libraryEntry)
         {
             // Enable thread-safe access to the collection
@@ -43,7 +46,17 @@ namespace HandheldCompanion.ViewModels
 
             LibEntry = libraryEntry;
 
-            if (LibEntry is SteamGridEntry steamEntry)
+            if (LibEntry is ManualEntry manualEntry)
+            {
+                // Full-res extension comes from the cached source file; thumbnail is always a resized PNG.
+                string coverExt   = Path.GetExtension(manualEntry.ManualCoverPath);
+                string artworkExt = Path.GetExtension(manualEntry.ManualArtworkPath);
+                string logoExt    = Path.GetExtension(manualEntry.ManualLogoPath);
+                LibraryCovers.Add(new(this,   ManualEntry.ManualCoverId,   coverExt,   ".png"));
+                LibraryArtworks.Add(new(this, ManualEntry.ManualArtworkId, artworkExt, ".png"));
+                LibraryLogos.Add(new(this,    ManualEntry.ManualLogoId,    logoExt,    ".png"));
+            }
+            else if (LibEntry is SteamGridEntry steamEntry)
             {
                 foreach (SteamGridDbGrid grid in steamEntry.Grids)
                     LibraryCovers.Add(new(this, grid.Id, Path.GetExtension(grid.FullImageUrl), Path.GetExtension(grid.ThumbnailImageUrl)));
@@ -59,6 +72,36 @@ namespace HandheldCompanion.ViewModels
                 foreach (Artwork artwork in IGDB.Artworks)
                     LibraryArtworks.Add(new(this, artwork.Id.Value, Path.GetExtension(artwork.Url)));
             }
+        }
+
+        /// <summary>
+        /// Refreshes the single manual visual entry for the given art type after the user browses a new file.
+        /// </summary>
+        public void RefreshManualVisual(LibraryType libraryType, string newExtension, string thumbnailExtension = "")
+        {
+            if (LibEntry is not ManualEntry)
+                return;
+
+            ObservableCollection<LibraryVisualViewModel> target;
+            long imageId;
+            if (libraryType.HasFlag(LibraryType.cover))
+            {
+                target = LibraryCovers;
+                imageId = ManualEntry.ManualCoverId;
+            }
+            else if (libraryType.HasFlag(LibraryType.artwork))
+            {
+                target = LibraryArtworks;
+                imageId = ManualEntry.ManualArtworkId;
+            }
+            else
+            {
+                target = LibraryLogos;
+                imageId = ManualEntry.ManualLogoId;
+            }
+
+            target.Clear();
+            target.Add(new(this, imageId, newExtension, string.IsNullOrEmpty(thumbnailExtension) ? newExtension : thumbnailExtension));
         }
 
         public override string ToString()

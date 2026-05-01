@@ -11,6 +11,15 @@ public static class LogManager
 {
     private static ILogger logger;
 
+    // Trace.Trace* calls String.Format internally, so any literal '{' or '}' in a
+    // plain message string (e.g. an exception message) causes a FormatException when
+    // there are no format arguments.  Escape the braces before forwarding in that case.
+    private static string EscapeForTrace(string message)
+        => message.Replace("{", "{{").Replace("}", "}}");
+
+    private static string TraceMessage(string message, object[] args)
+        => args.Length == 0 ? EscapeForTrace(message) : message;
+
     public static void Initialize(string name)
     {
         var configuration = new ConfigurationBuilder()
@@ -38,37 +47,37 @@ public static class LogManager
 
     public static void LogInformation(string message, params object[] args)
     {
-        Trace.TraceInformation(message, args);
+        Trace.TraceInformation(TraceMessage(message, args), args);
         logger.LogInformation(message, args);
     }
 
     public static void LogWarning(string message, params object[] args)
     {
-        Trace.TraceWarning(message, args);
+        Trace.TraceWarning(TraceMessage(message, args), args);
         logger.LogWarning(message, args);
     }
 
     public static void LogCritical(string message, params object[] args)
     {
-        Trace.TraceError(message, args);
+        Trace.TraceError(TraceMessage(message, args), args);
         logger.LogCritical(message, args);
     }
 
     public static void LogDebug(string message, params object[] args)
     {
-        Trace.TraceInformation(message, args);
+        Trace.TraceInformation(TraceMessage(message, args), args);
         logger.LogDebug(message, args);
     }
 
     public static void LogError(string message, params object[] args)
     {
-        Trace.TraceError(message, args);
+        Trace.TraceError(TraceMessage(message, args), args);
         logger.LogError(message, args);
     }
 
     public static void LogTrace(string message, params object[] args)
     {
-        // Trace.TraceInformation(message, args);
+        // Trace.TraceInformation(TraceMessage(message, args), args);
         logger.LogTrace(message, args);
     }
 }

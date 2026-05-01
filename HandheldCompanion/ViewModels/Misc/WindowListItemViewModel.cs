@@ -305,15 +305,23 @@ namespace HandheldCompanion.ViewModels.Misc
 
         public override void Dispose()
         {
-            UnhookLiveEvents(_processWindow);
-
-            // global hooks
-            ManagerFactory.multimediaManager.DisplaySettingsChanged -= MultimediaManager_DisplaySettingsChanged;
-            SystemEvents.DisplaySettingsChanged -= SystemEvents_DisplaySettingsChanged;
-
-            _processWindow = null;
-
             base.Dispose();
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                UnhookLiveEvents(_processWindow);
+
+                // global hooks
+                ManagerFactory.multimediaManager.DisplaySettingsChanged -= MultimediaManager_DisplaySettingsChanged;
+                SystemEvents.DisplaySettingsChanged -= SystemEvents_DisplaySettingsChanged;
+
+                _processWindow = null;
+            }
+
+            base.Dispose(disposing);
         }
     }
 }

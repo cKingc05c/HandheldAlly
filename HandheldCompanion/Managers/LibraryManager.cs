@@ -15,6 +15,8 @@ using System.Net.NetworkInformation;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Windows;
+using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using static HandheldCompanion.Libraries.LibraryEntry;
 
@@ -340,8 +342,128 @@ namespace HandheldCompanion.Managers
             return bestEntry;
         }
 
+        // Maximum thumbnail dimensions per art type (width × height)
+        private static readonly (int W, int H) ThumbSizeCover   = (267, 400);
+        private static readonly (int W, int H) ThumbSizeArtwork = (850, 274);
+        private static readonly (int W, int H) ThumbSizeLogo    = (500, 486);
+
+        private static (int W, int H) GetThumbSize(LibraryType libraryType)
+        {
+            if (libraryType.HasFlag(LibraryType.cover))   return ThumbSizeCover;
+            if (libraryType.HasFlag(LibraryType.artwork)) return ThumbSizeArtwork;
+            if (libraryType.HasFlag(LibraryType.logo))    return ThumbSizeLogo;
+            return ThumbSizeCover;
+        }
+
+        /// <summary>
+        /// Copies a manually-selected image file into the library cache for the given profile/entry.
+        /// The full-res slot is a verbatim copy; the thumbnails sub-folder receives a PNG resized to
+        /// fit within the art-type maximum dimensions (never upscaled).
+        /// Returns the cache destination path of the full-res file on success, or null on failure.
+        /// </summary>
+        public string? CopyManualArt(long gameId, LibraryType libraryType, long imageId, string sourcePath)
+        {
+            if (string.IsNullOrEmpty(sourcePath) || !File.Exists(sourcePath))
+                return null;
+
+            string extension = Path.GetExtension(sourcePath);
+
+            // Invalidate ALL cached bitmaps for this entry so stale images are not served
+            string entryRoot = Path.Combine(ManagerPath, gameId.ToString());
+            foreach (string key in _imageCache.Keys.Where(k => k.StartsWith(entryRoot)).ToList())
+                _imageCache.TryRemove(key, out _);
+
+            // Full-res slot — verbatim copy (preserve original format)
+            string destPath = WriteSingle(sourcePath, GetGameArtPath(gameId, libraryType, imageId, extension));
+
+            // Thumbnail slot — resized PNG written under the thumbnails sub-folder
+            (int maxW, int maxH) = GetThumbSize(libraryType);
+            string thumbPath = GetGameArtPath(gameId, libraryType | LibraryType.thumbnails, imageId, ".png");
+            WriteResizedThumbnail(sourcePath, thumbPath, maxW, maxH);
+
+            return destPath;
+        }
+
+        /// <summary>Writes a verbatim file copy, removing any stale file with the same stem but different extension.</summary>
+        private static string WriteSingle(string sourcePath, string destPath)
+        {
+            EnsureDir(destPath);
+            RemoveStaleFiles(destPath);
+            File.Copy(sourcePath, destPath, overwrite: true);
+            return destPath;
+        }
+
+        /// <summary>
+        /// Decodes <paramref name="sourcePath"/>, scales it down to fit within
+        /// (<paramref name="maxW"/>, <paramref name="maxH"/>) without upscaling, then saves as PNG.
+        /// </summary>
+        private static void WriteResizedThumbnail(string sourcePath, string destPath, int maxW, int maxH)
+        {
+            EnsureDir(destPath);
+            RemoveStaleFiles(destPath);
+
+            BitmapImage src;
+            try
+            {
+                src = new();
+                src.BeginInit();
+                src.CacheOption = BitmapCacheOption.OnLoad;
+                src.UriSource = new Uri(sourcePath);
+                src.EndInit();
+                src.Freeze();
+            }
+            catch
+            {
+                return;
+            }
+
+            int srcW = src.PixelWidth;
+            int srcH = src.PixelHeight;
+            if (srcW == 0 || srcH == 0)
+                return;
+
+            // Scale-to-fit, never upscale
+            double scale = Math.Min(1.0, Math.Min((double)maxW / srcW, (double)maxH / srcH));
+            int dstW = Math.Max(1, (int)Math.Round(srcW * scale));
+            int dstH = Math.Max(1, (int)Math.Round(srcH * scale));
+
+            DrawingVisual dv = new();
+            using (DrawingContext dc = dv.RenderOpen())
+                dc.DrawImage(src, new Rect(0, 0, dstW, dstH));
+
+            RenderTargetBitmap rtb = new(dstW, dstH, 96, 96, PixelFormats.Pbgra32);
+            rtb.Render(dv);
+            rtb.Freeze();
+
+            PngBitmapEncoder enc = new();
+            enc.Frames.Add(BitmapFrame.Create(rtb));
+            using FileStream fs = File.Create(destPath);
+            enc.Save(fs);
+        }
+
+        private static void EnsureDir(string filePath)
+        {
+            string? dir = Path.GetDirectoryName(filePath);
+            if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
+                Directory.CreateDirectory(dir);
+        }
+
+        private static void RemoveStaleFiles(string destPath)
+        {
+            string stem   = Path.GetFileNameWithoutExtension(destPath);
+            string folder = Path.GetDirectoryName(destPath) ?? string.Empty;
+            if (!Directory.Exists(folder))
+                return;
+            foreach (string old in Directory.GetFiles(folder, $"{stem}.*"))
+                try { File.Delete(old); } catch { }
+        }
+
         public async Task<bool> DownloadGameArts(LibraryEntry entry, bool preview, bool includeThumbnails = false)
         {
+            // manual arts are handled via CopyManualArt, nothing to download
+            if (entry is ManualEntry)
+                return true;
+
             // check connection
             if (!IsConnected)
                 return false;
@@ -734,6 +856,15 @@ namespace HandheldCompanion.Managers
         {
             // update status
             ProfileStatusChanged?.Invoke(profile, ManagerStatus.Busy);
+
+            if (entry is ManualEntry manualEntry)
+            {
+                // Files were already copied to cache when the user browsed them;
+                // nothing more to do here except assign the entry to the profile.
+                profile.LibraryEntry = manualEntry;
+                ProfileStatusChanged?.Invoke(profile, ManagerStatus.None);
+                return;
+            }
 
             // update library entry
             if (entry is SteamGridEntry Steam)

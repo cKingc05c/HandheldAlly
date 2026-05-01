@@ -6,6 +6,7 @@ using HandheldCompanion.Platforms;
 using HandheldCompanion.ViewModels;
 using HandheldCompanion.Views.Windows;
 using iNKORE.UI.WPF.Modern;
+using iNKORE.UI.WPF.Modern.Controls;
 using iNKORE.UI.WPF.Modern.Helpers.Styles;
 using Sentry;
 using System;
@@ -260,6 +261,12 @@ public partial class SettingsPage : Page
                     break;
                 case "ShowSplashScreen":
                     Toggle_SplashScreen.IsOn = Convert.ToBoolean(value);
+                    break;
+                case "DSUEnabled":
+                    Toggle_DSUEnabled.IsOn = Convert.ToBoolean(value);
+                    break;
+                case "DSUport":
+                    nB_DSUport.Value = Convert.ToInt32(value);
                     break;
             }
         });
@@ -592,6 +599,22 @@ public partial class SettingsPage : Page
             return;
 
         ManagerFactory.settingsManager.SetProperty("ShowSplashScreen", Toggle_SplashScreen.IsOn);
+    }
+
+    private void Toggle_DSUEnabled_Toggled(object sender, RoutedEventArgs e)
+    {
+        if (!IsLoaded)
+            return;
+
+        ManagerFactory.settingsManager.SetProperty("DSUEnabled", Toggle_DSUEnabled.IsOn);
+    }
+
+    private void nB_DSUport_ValueChanged(NumberBox sender, NumberBoxValueChangedEventArgs e)
+    {
+        if (!IsLoaded || double.IsNaN(e.NewValue))
+            return;
+
+        ManagerFactory.settingsManager.SetProperty("DSUport", (int)e.NewValue);
+    }
 
     }
-}

@@ -22,7 +22,7 @@ namespace HandheldCompanion.Actions
         // Which shift slot this button activates — distinct from IActions.ShiftSlot (execution gating).
         // IActions.ShiftSlot intentionally stays as Any so ShiftActions always execute regardless
         // of the current shift state (they are the buttons that ACTIVATE shifts).
-        public ShiftSlot ActivationSlot = ShiftSlot.ShiftA;
+        public ShiftSlot ActivationSlot = ShiftSlot.Any;
 
         public ShiftActions()
         {

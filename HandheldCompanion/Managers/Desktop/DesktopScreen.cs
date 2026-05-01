@@ -118,7 +118,7 @@ public class DesktopScreen : IDisposable
     private static Dictionary<int, List<ScreenFramelimit>> _cachedFrameLimits = new Dictionary<int, List<ScreenFramelimit>>();
 
     // Flag: Has Dispose already been called?
-    private bool disposed = false;
+    private bool _disposed = false;
 
     public DesktopScreen(Screen screen)
     {
@@ -273,19 +273,16 @@ public class DesktopScreen : IDisposable
     // Protected implementation of Dispose pattern.
     protected virtual void Dispose(bool disposing)
     {
-        if (!disposed)
+        if (_disposed) return;
+
+        if (disposing)
         {
-            if (disposing)
-            {
-                screenResolutions?.Clear();
-                screenDividers?.Clear();
-            }
-
-            // Free unmanaged resources (if any) here and set large fields to null.
+            screenResolutions?.Clear();
+            screenDividers?.Clear();
             screen = null;
-
-            disposed = true;
         }
+
+        _disposed = true;
     }
 
     // Destructor (Finalizer)

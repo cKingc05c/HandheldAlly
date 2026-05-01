@@ -356,7 +356,7 @@ namespace HandheldCompanion.ViewModels
             else if (actionType == ActionType.Shift)
             {
                 if (Action is null || Action is not ShiftActions)
-                    Action = new ShiftActions(ShiftSlot.ShiftA) { motionThreshold = Gamepad.TriggerThreshold, motionDirection = DeflectionDirection.Up };
+                    Action = new ShiftActions() { motionThreshold = Gamepad.TriggerThreshold, motionDirection = DeflectionDirection.Up };
 
                 MappingTargetViewModel? matchingTargetVm = null;
                 // Only show individual shift slots (A, B, C, D), not None or combined values

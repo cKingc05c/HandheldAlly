@@ -1323,6 +1323,12 @@ Motion input toggle: press selected button(s) to switch motion state.</value>
   <data name="ControllerPage_NoVirtualControllerWarning" xml:space="preserve">
     <value>No virtual controller detected</value>
   </data>
+  <data name="ControllerPage_VirtualConnectRetryWarning" xml:space="preserve">
+    <value>Virtual controller connecting...</value>
+  </data>
+  <data name="ControllerPage_VirtualConnectRetryDesc" xml:space="preserve">
+    <value>The ViGEm driver is not ready yet. Attempt {0} of {1}, retrying...</value>
+  </data>
   <data name="ControllerPage_VirtualControllerNotOnSlot1Warning" xml:space="preserve">
     <value>Virtual controller not on slot 1</value>
   </data>

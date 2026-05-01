@@ -22,6 +22,8 @@ namespace HandheldCompanion.Views.Classes
 {
     public class GamepadWindow : Window
     {
+        public virtual string HomePageKey => string.Empty;
+
         // When a ContentDialog or a DropDownButton flyout is open, restrict navigation to
         // only the controls that live inside that popup / dialog.
         public DropDownButton? currentFlyoutButton;

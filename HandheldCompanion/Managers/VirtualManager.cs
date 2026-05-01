@@ -63,6 +63,9 @@ namespace HandheldCompanion.Managers
         public static event VibrateEventHandler? Vibrated;
         public delegate void VibrateEventHandler(byte LargeMotor, byte SmallMotor);
 
+        public static event ConnectStatusChangedEventHandler? StatusChanged;
+        public delegate void ConnectStatusChangedEventHandler(VirtualManagerStatus status, int attempt, int maxAttempts);
+
         static VirtualManager()
         {
             // verifying ViGEm is installed
@@ -149,6 +152,7 @@ namespace HandheldCompanion.Managers
             // apply settings
             SettingsManager_SettingValueChanged("HIDmode", selectedHIDMode, false);
             SettingsManager_SettingValueChanged("HIDstatus", HIDstatus, false);
+            SettingsManager_SettingValueChanged("DSUport", ManagerFactory.settingsManager.GetInt("DSUport"), false);
             SettingsManager_SettingValueChanged("DSUEnabled", ManagerFactory.settingsManager.GetString("DSUEnabled"), false);
         }
 
@@ -196,7 +200,9 @@ namespace HandheldCompanion.Managers
                 controllerLock.Release();
             }
 
-            SetControllerMode(HIDmode);
+            // Run on a thread-pool thread so callers on the UI thread (e.g. resume from sleep)
+            // are never blocked by the ViGEm connect retry back-off delays.
+            _ = Task.Run(() => SetControllerMode(HIDmode));
         }
 
         public static void Suspend(bool OS)
@@ -255,6 +261,12 @@ namespace HandheldCompanion.Managers
                     break;
                 case "DSUEnabled":
                     SetDSUStatus(Convert.ToBoolean(value));
+                    break;
+                case "DSUport":
+                    if (DSUServer.IsInitialized)
+                        DSUServer.Restart(Convert.ToInt32(value));
+                    else
+                        DSUServer.serverPort = Convert.ToInt32(value);
                     break;
             }
         }
@@ -389,6 +401,10 @@ namespace HandheldCompanion.Managers
                 // Disconnect and dispose the current virtual controller if it exists
                 if (vTarget is not null)
                 {
+                    vTarget.Connected -= OnTargetConnected;
+                    vTarget.Disconnected -= OnTargetDisconnected;
+                    vTarget.Vibrated -= OnTargetVibrated;
+                    vTarget.ConnectStatusChanged -= OnTargetConnectStatusChanged;
                     vTarget.Disconnect();
                     vTarget.Dispose();
                     vTarget = null;
@@ -431,6 +447,7 @@ namespace HandheldCompanion.Managers
                 vTarget.Connected += OnTargetConnected;
                 vTarget.Disconnected += OnTargetDisconnected;
                 vTarget.Vibrated += OnTargetVibrated;
+                vTarget.ConnectStatusChanged += OnTargetConnectStatusChanged;
 
                 // Update the current mode
                 HIDmode = mode;
@@ -480,6 +497,11 @@ namespace HandheldCompanion.Managers
             {
                 controllerLock.Release();
             }
+        }
+
+        private static void OnTargetConnectStatusChanged(ViGEmTarget target, VirtualManagerStatus status, int attempt, int maxAttempts)
+        {
+            StatusChanged?.Invoke(status, attempt, maxAttempts);
         }
 
         private static void OnTargetConnected(ViGEmTarget target)

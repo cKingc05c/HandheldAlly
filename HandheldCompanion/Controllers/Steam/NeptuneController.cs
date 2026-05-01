@@ -95,7 +95,7 @@ public class NeptuneController : SteamController
 
     public override void Tick(long ticks, float delta, bool commit)
     {
-        if (Inputs is null || input is null || IsBusy || !IsPlugged || IsDisposing || IsDisposed)
+        if (Inputs is null || input is null || IsBusy || !IsPlugged || _disposing || _disposed)
             return;
 
         ButtonState.Overwrite(InjectedButtons, Inputs.ButtonState);

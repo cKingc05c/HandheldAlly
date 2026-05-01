@@ -66,12 +66,18 @@ public static class DSUServer
     private static readonly ReaderWriterLockSlim poolLock = new();
     private static readonly byte[] recvBuffer = new byte[1024];
 
-    private const int serverPort = 26760;
+    public static int serverPort = 26760;
     private static uint serverId;
     private static int udpPacketCount;
     private static Socket? udpSock;
 
     public static bool IsInitialized;
+
+    private static int _lastClientCount = 0;
+    public static int ConnectedClientCount
+    {
+        get { lock (clients) { return clients.Count; } }
+    }
 
     #region events
     public delegate void StartedEventHandler();
@@ -79,6 +85,12 @@ public static class DSUServer
 
     public delegate void StoppedEventHandler();
     public static event StoppedEventHandler? Stopped;
+
+    public delegate void FailedEventHandler(int port);
+    public static event FailedEventHandler? Failed;
+
+    public delegate void ClientsChangedEventHandler(int count);
+    public static event ClientsChangedEventHandler? ClientsChanged;
     #endregion
 
     static DSUServer()
@@ -86,11 +98,7 @@ public static class DSUServer
         _pool = new SemaphoreSlim(ARG_BUFFER_LEN);
         dataBuffers = new byte[ARG_BUFFER_LEN][];
         for (int num = 0; num < ARG_BUFFER_LEN; num++)
-        {
-            SocketAsyncEventArgs args = new SocketAsyncEventArgs();
-            args.Completed += SocketEvent_AsyncCompleted;
             dataBuffers[num] = new byte[100];
-        }
 
         for (byte padIdx = 0; padIdx < NUMBER_SLOTS; padIdx++)
         {
@@ -107,11 +115,6 @@ public static class DSUServer
                 PadState = DsState.Connected
             };
         }
-    }
-
-    private static void GetPadDetailForIdx(int padIdx, ref DualShockPadMeta meta)
-    {
-        meta = padMetas[padIdx];
     }
 
     private static void SocketEvent_AsyncCompleted(object? sender, SocketAsyncEventArgs e)
@@ -158,22 +161,25 @@ public static class DSUServer
     }
 
     private static int listInd;
+
+    // Sends a framed DSU packet to a single endpoint.
     private static void SendPacket(IPEndPoint clientEP, byte[] usefulData, ushort reqProtocolVersion = MaxProtocolVersion)
     {
         byte[] packetData = new byte[usefulData.Length + 16];
         int currIdx = BeginPacket(packetData, reqProtocolVersion);
         Array.Copy(usefulData, 0, packetData, currIdx, usefulData.Length);
         FinishPacket(packetData);
+        SendDataAsync(clientEP, packetData);
+    }
 
-        //try { udpSock.SendTo(packetData, clientEP); }
-        int temp = 0;
+    // Acquires a slot from the ring buffer and sends data asynchronously.
+    private static void SendDataAsync(IPEndPoint endpoint, byte[] data)
+    {
+        int temp;
         poolLock.EnterWriteLock();
         temp = listInd;
         listInd = ++listInd % ARG_BUFFER_LEN;
-        SocketAsyncEventArgs args = new SocketAsyncEventArgs()
-        {
-            RemoteEndPoint = clientEP,
-        };
+        SocketAsyncEventArgs args = new SocketAsyncEventArgs() { RemoteEndPoint = endpoint };
         args.SetBuffer(dataBuffers[temp], 0, 100);
         args.Completed += SocketEvent_AsyncCompleted;
         poolLock.ExitWriteLock();
@@ -185,13 +191,11 @@ public static class DSUServer
             return;
         }
 
-        Array.Copy(packetData, args.Buffer, packetData.Length);
-        //args.SetBuffer(packetData, 0, packetData.Length);
+        Array.Copy(data, args.Buffer, data.Length);
         bool sentAsync = false;
         try
         {
             sentAsync = udpSock!.SendToAsync(args);
-            //if (!sentAsync) CompletedSynchronousSocketEvent();
         }
         catch { }
         finally
@@ -209,7 +213,7 @@ public static class DSUServer
                 return;
             currIdx += 4;
 
-            uint protocolVer = BitConverter.ToUInt16(localMsg, currIdx);
+            ushort protocolVer = BitConverter.ToUInt16(localMsg, currIdx);
             currIdx += 2;
 
             if (protocolVer > MaxProtocolVersion)
@@ -217,9 +221,6 @@ public static class DSUServer
 
             uint packetSize = BitConverter.ToUInt16(localMsg, currIdx);
             currIdx += 2;
-
-            if (packetSize < 0)
-                return;
 
             packetSize += 16; //size of header
             if (packetSize > localMsg.Length)
@@ -242,8 +243,7 @@ public static class DSUServer
             if (crcValue != crcCalc)
                 return;
 
-            var clientId = BitConverter.ToUInt32(localMsg, currIdx);
-            currIdx += 4;
+            currIdx += 4; // clientId – not used
 
             var messageType = BitConverter.ToUInt32(localMsg, currIdx);
             currIdx += 4;
@@ -280,8 +280,7 @@ public static class DSUServer
                 for (byte i = 0; i < numPadRequests; i++)
                 {
                     var currRequest = localMsg[requestsIdx + i];
-                    var padData = new DualShockPadMeta();
-                    GetPadDetailForIdx(currRequest, ref padData);
+                    var padData = padMetas[currRequest];
 
                     var outIdx = 0;
                     Array.Copy(BitConverter.GetBytes((uint)MessageType.DSUS_PortInfo), 0, outputData, outIdx, 4);
@@ -327,18 +326,22 @@ public static class DSUServer
                 var idToReg = localMsg[currIdx++];
                 var macToReg = new PhysicalAddress(new byte[] { 0x10, 0x10, 0x10, 0x10, 0x10, 0x10 });
 
+                bool isNew;
                 lock (clients)
                 {
-                    if (clients.TryGetValue(clientEP, out var client))
+                    isNew = !clients.TryGetValue(clientEP, out var client);
+                    if (isNew)
                     {
-                        client.RequestPadInfo(regFlags, idToReg, macToReg);
+                        client = new ClientRequestTimes();
+                        clients[clientEP] = client;
                     }
-                    else
-                    {
-                        var clientTimes = new ClientRequestTimes();
-                        clientTimes.RequestPadInfo(regFlags, idToReg, macToReg);
-                        clients[clientEP] = clientTimes;
-                    }
+                    client!.RequestPadInfo(regFlags, idToReg, macToReg);
+                }
+                if (isNew)
+                {
+                    int count = ConnectedClientCount;
+                    _lastClientCount = count;
+                    ClientsChanged?.Invoke(count);
                 }
             }
         }
@@ -349,7 +352,7 @@ public static class DSUServer
 
     private static void ReceiveCallback(IAsyncResult iar)
     {
-        byte[] localMsg = new byte[0];
+        byte[] localMsg = Array.Empty<byte>();
         EndPoint clientEP = new IPEndPoint(IPAddress.Any, 0);
 
         try
@@ -436,8 +439,9 @@ public static class DSUServer
         catch (SocketException)
         {
             LogManager.LogCritical("DSUServer couldn't listen to port: {0}", serverPort);
-            Stop();
-
+            udpSock?.Dispose();
+            udpSock = null;
+            Failed?.Invoke(serverPort);
             return false;
         }
         catch (Exception /*ex*/) { }
@@ -478,6 +482,13 @@ public static class DSUServer
         Stopped?.Invoke();
 
         return true;
+    }
+
+    public static bool Restart(int newPort)
+    {
+        Stop();
+        serverPort = newPort;
+        return Start();
     }
 
     private static ControllerState Inputs = new();
@@ -712,12 +723,17 @@ public static class DSUServer
                 }
 
                 foreach (var delCl in clientsToDelete) clients.Remove(delCl);
-                clientsToDelete.Clear();
-                clientsToDelete = null;
             }
 
-            if (clientsList.Count <= 0)
-                return;
+            int currentCount = ConnectedClientCount;
+            if (currentCount != _lastClientCount)
+            {
+                _lastClientCount = currentCount;
+                ClientsChanged?.Invoke(currentCount);
+            }
+
+            if (clientsList.Count == 0)
+                continue;
 
             unchecked
             {
@@ -746,46 +762,12 @@ public static class DSUServer
                 outIdx += 4;
 
                 if (!ReportToBuffer(outputData, ref outIdx, padIdx))
-                    return;
+                    continue;
                 FinishPacket(outputData);
 
                 foreach (var cl in clientsList)
-                {
-                    int temp = 0;
-                    poolLock.EnterWriteLock();
-                    temp = listInd;
-                    listInd = ++listInd % ARG_BUFFER_LEN;
-                    SocketAsyncEventArgs args = new SocketAsyncEventArgs()
-                    {
-                        RemoteEndPoint = cl,
-                    };
-                    args.SetBuffer(dataBuffers[temp], 0, 100);
-                    args.Completed += SocketEvent_AsyncCompleted;
-                    poolLock.ExitWriteLock();
-
-                    _pool.Wait();
-                    if (args.Buffer is null)
-                    {
-                        CompletedSynchronousSocketEvent(args);
-                        continue;
-                    }
-
-                    Array.Copy(outputData, args.Buffer, outputData.Length);
-                    bool sentAsync = false;
-                    try
-                    {
-                        sentAsync = udpSock!.SendToAsync(args);
-                    }
-                    catch { }
-                    finally
-                    {
-                        if (!sentAsync) CompletedSynchronousSocketEvent(args);
-                    }
-                }
+                    SendDataAsync(cl, outputData);
             }
-
-            clientsList.Clear();
-            clientsList = null;
         }
     }
 }

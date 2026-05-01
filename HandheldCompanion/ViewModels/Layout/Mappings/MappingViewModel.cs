@@ -510,10 +510,18 @@ namespace HandheldCompanion.ViewModels
 
         public override void Dispose()
         {
-            MainWindow.layoutPage.LayoutUpdated -= UpdateMapping;
-            VirtualManager.ControllerSelected -= VirtualManager_ControllerSelected;
-
             base.Dispose();
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                MainWindow.layoutPage.LayoutUpdated -= UpdateMapping;
+                VirtualManager.ControllerSelected -= VirtualManager_ControllerSelected;
+            }
+
+            base.Dispose(disposing);
         }
 
         private void VirtualManager_ControllerSelected(HIDmode hid) => ActionTypeChanged();

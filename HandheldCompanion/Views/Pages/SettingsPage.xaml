@@ -108,7 +108,7 @@
                             <ui:SettingsCard.HeaderIcon>
                                 <ui:FontIcon FontFamily="{DynamicResource SymbolThemeFontFamily}" Glyph="&#xE896;" />
                             </ui:SettingsCard.HeaderIcon>
-                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
                                 <TextBlock
                                     Margin="0,0,8,0"
                                     VerticalAlignment="Center"
@@ -170,6 +170,14 @@
                         <ui:FontIcon FontFamily="{DynamicResource SymbolThemeFontFamily}" Glyph="&#xE740;" />
                     </ui:SettingsCard.HeaderIcon>
                     <ui:ToggleSwitch Name="Toggle_StartMaximized" Toggled="Toggle_StartMaximized_Toggled" />
+                </ui:SettingsCard>
+
+                <!--  Splashscreen  -->
+                <ui:SettingsCard Header="Show splash-screen at startup">
+                    <ui:SettingsCard.HeaderIcon>
+                        <ui:FontIcon Icon="{x:Static ui:SegoeFluentIcons.ProgressRingDots}" />
+                    </ui:SettingsCard.HeaderIcon>
+                    <ui:ToggleSwitch Name="Toggle_SplashScreen" Toggled="Toggle_SplashScreen_Toggled" />
                 </ui:SettingsCard>
 
                 <!--  Application language  -->
@@ -291,10 +299,34 @@
                     </ComboBox>
                 </ui:SettingsCard>
 
-                <!--  Splashscreen  -->
-                <ui:SettingsCard Header="Show splash-screen at startup">
-                    <ui:ToggleSwitch Name="Toggle_SplashScreen" Toggled="Toggle_SplashScreen_Toggled" />
-                </ui:SettingsCard>
+                <!--  DSU Server  -->
+                <ui:SettingsExpander
+                    Name="Expander_DSU"
+                    Description="Broadcast motion data over UDP for emulators like Cemu, Ryujinx, Dolphin and Eden"
+                    Header="DSU motion server">
+                    <ui:SettingsExpander.HeaderIcon>
+                        <ui:FontIcon Icon="{x:Static ui:SegoeFluentIcons.NetworkTower}" />
+                    </ui:SettingsExpander.HeaderIcon>
+                    <ui:ToggleSwitch Name="Toggle_DSUEnabled" Toggled="Toggle_DSUEnabled_Toggled" />
+                    <ui:SettingsExpander.Items>
+                        <ui:SettingsCard Description="Port the DSU server listens on (default: 26760). Changes take effect immediately." Header="UDP port">
+                            <ui:NumberBox
+                                Name="nB_DSUport"
+                                MinWidth="120"
+                                Maximum="65535"
+                                Minimum="1024"
+                                SmallChange="1"
+                                SpinButtonPlacementMode="Compact"
+                                ValueChanged="nB_DSUport_ValueChanged" />
+                        </ui:SettingsCard>
+                        <ui:SettingsCard Header="Server status">
+                            <TextBlock VerticalAlignment="Center" Text="{Binding DSUStatusText}" />
+                        </ui:SettingsCard>
+                        <ui:SettingsCard Header="Connected clients" Visibility="{Binding DSUClientCountVisibility}">
+                            <TextBlock VerticalAlignment="Center" Text="{Binding DSUClientCountText}" />
+                        </ui:SettingsCard>
+                    </ui:SettingsExpander.Items>
+                </ui:SettingsExpander>
             </ikw:SimpleStackPanel>
 
             <!--  Quicktools options  -->

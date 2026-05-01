@@ -191,9 +191,17 @@ namespace HandheldCompanion.ViewModels
 
         public override void Dispose()
         {
-            DisposeController();
-
             base.Dispose();
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing)
+            {
+                DisposeController();
+            }
+
+            base.Dispose(disposing);
         }
     }
 }

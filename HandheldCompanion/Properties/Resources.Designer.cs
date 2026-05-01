@@ -979,6 +979,24 @@ namespace HandheldCompanion.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to The ViGEm driver is not ready yet. Attempt {0} of {1}, retrying....
+        /// </summary>
+        public static string ControllerPage_VirtualConnectRetryDesc {
+            get {
+                return ResourceManager.GetString("ControllerPage_VirtualConnectRetryDesc", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Virtual controller connecting....
+        /// </summary>
+        public static string ControllerPage_VirtualConnectRetryWarning {
+            get {
+                return ResourceManager.GetString("ControllerPage_VirtualConnectRetryWarning", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Virtual controller is not occupying XInput slot 1. Some games may not detect it correctly..
         /// </summary>
         public static string ControllerPage_VirtualControllerNotOnSlot1Desc {
