@@ -73,7 +73,12 @@ public partial class ControllerPage : Page
                     cB_ServiceSwitch.SelectedIndex = Convert.ToInt32(value);
                     break;
                 case "ConnectOnPlug":
-                    Toggle_ConnectOnPlug.IsOn = Convert.ToBoolean(value);
+                    // legacy setting: migrate to ControllerPlugBehavior
+                    bool connectOnPlug = Convert.ToBoolean(value);
+                    ManagerFactory.settingsManager.SetProperty("ControllerPlugBehavior", connectOnPlug ? 0 : 2);
+                    break;
+                case "ControllerPlugBehavior":
+                    cB_ControllerPlugBehavior.SelectedIndex = Convert.ToInt32(value);
                     break;
             }
         });
@@ -224,12 +229,12 @@ public partial class ControllerPage : Page
         ManagerFactory.settingsManager.SetProperty("SteamControllerMode", Convert.ToBoolean(cB_SCModeController.SelectedIndex));
     }
 
-    private void Toggle_ConnectOnPlug_Toggled(object sender, RoutedEventArgs e)
+    private void cB_ControllerPlugBehavior_SelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         if (!IsLoaded)
             return;
 
-        ManagerFactory.settingsManager.SetProperty("ConnectOnPlug", Toggle_ConnectOnPlug.IsOn);
+        ManagerFactory.settingsManager.SetProperty("ControllerPlugBehavior", cB_ControllerPlugBehavior.SelectedIndex);
     }
 
     private void Toggle_UncloakOnDisconnect_Toggled(object sender, RoutedEventArgs e)

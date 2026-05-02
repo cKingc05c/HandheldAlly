@@ -6,6 +6,7 @@ using NAudio.CoreAudioApi.Interfaces;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Management;
@@ -19,6 +20,13 @@ using DisplayDevice = HandheldCompanion.Misc.DisplayDevice;
 using ScreenOrientation = HandheldCompanion.Managers.Desktop.ScreenOrientation;
 
 namespace HandheldCompanion.Managers;
+
+public enum DockedDisplayBehavior
+{
+    DoNothing = 0,
+    SwitchToExternal = 1,
+    SwitchToExternalWhenCharging = 2,
+}
 
 public class MultimediaManager : IManager
 {
@@ -67,6 +75,10 @@ public class MultimediaManager : IManager
         _brightnessWatcher.EventArrived += OnWMIEvent;
         _brightnessWatcher.Start();
 
+        // Subscribe to our own screen events for docked display behavior
+        ScreenConnected += MultimediaManager_ScreenConnected;
+        ScreenDisconnected += MultimediaManager_ScreenDisconnected;
+
         // Subscribe to display settings changes
         SystemEvents.DisplaySettingsChanged += SystemEvents_DisplaySettingsChanged;
 
@@ -112,6 +124,10 @@ public class MultimediaManager : IManager
         _brightnessWatcher.EventArrived -= OnWMIEvent;
         _brightnessWatcher.Stop();
 
+        // Unsubscribe from our own screen events
+        ScreenConnected -= MultimediaManager_ScreenConnected;
+        ScreenDisconnected -= MultimediaManager_ScreenDisconnected;
+
         // Unsubscribe from events
         SystemEvents.DisplaySettingsChanged -= SystemEvents_DisplaySettingsChanged;
         ManagerFactory.settingsManager.SettingValueChanged -= SettingsManager_SettingValueChanged;
@@ -154,6 +170,76 @@ public class MultimediaManager : IManager
     private void SettingsManager_SettingValueChanged(string name, object? value, bool temporary)
     {
         // do something
+    }
+
+    private void MultimediaManager_ScreenConnected(DesktopScreen screen)
+    {
+        // AllScreens still contains the previous list when this event fires.
+        // Only act when the new screen is itself external.
+        if (screen.IsInternal)
+            return;
+
+        // If the current primary is already an external screen, the OS has already handled
+        // the topology (e.g. re-enabled internal, plugged a third monitor). Don't interfere.
+        if (PrimaryDesktop?.IsExternal == true)
+            return;
+
+        DockedDisplayBehavior behavior = (DockedDisplayBehavior)ManagerFactory.settingsManager.GetInt("DockedDisplayBehavior");
+
+        switch (behavior)
+        {
+            case DockedDisplayBehavior.SwitchToExternal:
+                SetDisplayTopology(true);
+                break;
+
+            case DockedDisplayBehavior.SwitchToExternalWhenCharging:
+                if (SystemInformation.PowerStatus.PowerLineStatus == PowerLineStatus.Online)
+                    SetDisplayTopology(true);
+                break;
+
+            case DockedDisplayBehavior.DoNothing:
+            default:
+                break;
+        }
+    }
+
+    private void MultimediaManager_ScreenDisconnected(DesktopScreen screen)
+    {
+        // When an external screen is unplugged restore internal display
+        DockedDisplayBehavior behavior = (DockedDisplayBehavior)ManagerFactory.settingsManager.GetInt("DockedDisplayBehavior");
+        if (behavior == DockedDisplayBehavior.DoNothing)
+            return;
+
+        if (screen.IsInternal)
+            return;
+
+        // AllScreens still contains the previous list when this event fires, so exclude
+        // the screen being disconnected when checking whether any external displays remain.
+        bool hasExternal = AllScreens.Values.Any(s => s.IsExternal && s.DevicePath != screen.DevicePath);
+        if (!hasExternal)
+            SetDisplayTopology(false);
+    }
+
+    /// <summary>
+    /// Switches display topology.
+    /// <paramref name="externalOnly"/> = true  → external display only (handheld screen off).
+    /// <paramref name="externalOnly"/> = false → internal display only (handheld screen back on).
+    /// </summary>
+    public static void SetDisplayTopology(bool externalOnly)
+    {
+        string argument = externalOnly ? "/external" : "/internal";
+        try
+        {
+            Process.Start(new ProcessStartInfo("DisplaySwitch.exe", argument)
+            {
+                CreateNoWindow = true,
+                UseShellExecute = false
+            });
+        }
+        catch (Exception ex)
+        {
+            LogManager.LogError("Failed to switch display topology: {0}", ex.Message);
+        }
     }
 
     private void OnWMIEvent(object sender, EventArrivedEventArgs e)

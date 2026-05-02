@@ -3510,6 +3510,24 @@ Thank you for using HC and helping us make it better.</value>
   <data name="DevicePage_ManufacturerApplicationDesc" xml:space="preserve">
     <value>Enable or disable manufacturer-installed applications on your gaming device.</value>
   </data>
+  <data name="DevicePage_DisplayOptions" xml:space="preserve">
+    <value>Display options</value>
+  </data>
+  <data name="DevicePage_DockedDisplayBehavior" xml:space="preserve">
+    <value>When an external display is connected</value>
+  </data>
+  <data name="DevicePage_DockedDisplayBehaviorDesc" xml:space="preserve">
+    <value>Define whether the main screen should switch to the external display when docking</value>
+  </data>
+  <data name="DevicePage_DockedDisplayBehavior_DoNothing" xml:space="preserve">
+    <value>Do nothing</value>
+  </data>
+  <data name="DevicePage_DockedDisplayBehavior_SwitchToExternal" xml:space="preserve">
+    <value>Always switch to external display</value>
+  </data>
+  <data name="DevicePage_DockedDisplayBehavior_SwitchToExternalWhenCharging" xml:space="preserve">
+    <value>Switch to external display when plugged to power</value>
+  </data>
   <data name="MainWindow_CloseNavigation" xml:space="preserve">
     <value>Close navigation</value>
   </data>
@@ -4039,10 +4057,19 @@ Thank you for using HC and helping us make it better.</value>
     <value>Restore controller visibility when disconnected</value>
   </data>
   <data name="ControllerPage_ConnectWhenPlugged" xml:space="preserve">
-    <value>Connect when plugged</value>
+    <value>When an external controller is plugged in</value>
   </data>
   <data name="ControllerPage_ConnectWhenPluggedDesc" xml:space="preserve">
-    <value>Automatically connect the last plugged controller</value>
+    <value>Define the behavior when an external controller is detected</value>
+  </data>
+  <data name="ControllerPage_PlugBehavior_AutoConnect" xml:space="preserve">
+    <value>Automatically connect</value>
+  </data>
+  <data name="ControllerPage_PlugBehavior_AlwaysAsk" xml:space="preserve">
+    <value>Always ask</value>
+  </data>
+  <data name="ControllerPage_PlugBehavior_DoNothing" xml:space="preserve">
+    <value>Do nothing</value>
   </data>
   <data name="ControllerPage_ScanForHardwareChanges" xml:space="preserve">
     <value>Scan for hardware changes</value>

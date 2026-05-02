@@ -85,6 +85,13 @@ public static class ControllerManager
         Automatic = 1
     }
 
+    public enum ControllerPlugBehavior
+    {
+        AutoConnect = 0,
+        AlwaysAsk = 1,
+        DoNothing = 2
+    }
+
     private static ControllerSlotManagementMode slotManagementMode = ControllerSlotManagementMode.Manual;
 
     // Manual prompting (debounce / ignore)
@@ -545,7 +552,7 @@ public static class ControllerManager
                         LogManager.LogInformation("SDL controller {0} plugged", controller.ToString());
                         ControllerPlugged?.Invoke(controller, wasPowerCycling);
 
-                        if (!wasPowerCycling)
+                        if (!wasPowerCycling && PlugBehavior == ControllerPlugBehavior.AlwaysAsk)
                             ShowDetectedToast(controller, wasPowerCycling);
 
                         PickTargetController();
@@ -735,7 +742,7 @@ public static class ControllerManager
                     LogManager.LogInformation("Generic controller {0} plugged", controller.ToString());
                     ControllerPlugged?.Invoke(controller, wasPowerCycling);
 
-                    if (!wasPowerCycling)
+                    if (!wasPowerCycling && PlugBehavior == ControllerPlugBehavior.AlwaysAsk)
                         ShowDetectedToast(controller, wasPowerCycling);
 
                     PickTargetController();
@@ -955,7 +962,7 @@ public static class ControllerManager
                     LogManager.LogInformation("XInput controller {0} plugged", controller.ToString());
                     ControllerPlugged?.Invoke(controller, wasPowerCycling);
 
-                    if (!wasPowerCycling)
+                    if (!wasPowerCycling && PlugBehavior == ControllerPlugBehavior.AlwaysAsk)
                         ShowDetectedToast(controller, wasPowerCycling);
 
                     PickTargetController();
@@ -2048,7 +2055,7 @@ public static class ControllerManager
         StatusChanged?.Invoke(status, ControllerManagementAttempts);
     }
 
-    private static bool ConnectOnPlug => ManagerFactory.settingsManager.GetBoolean("ConnectOnPlug");
+    private static ControllerPlugBehavior PlugBehavior => (ControllerPlugBehavior)ManagerFactory.settingsManager.GetInt("ControllerPlugBehavior");
     private static void PickTimer_Elapsed(object? sender, ElapsedEventArgs e)
     {
         // Snapshot targetController once to guard against concurrent nulling between null-checks and method calls.
@@ -2071,7 +2078,7 @@ public static class ControllerManager
         // If the user disabled auto-connect, never switch to a newly plugged external controller.
         // Keep the current real target when there is one, otherwise only fall back to the internal
         // controller (or keep the dummy/default target if no internal controller exists).
-        if (!ConnectOnPlug)
+        if (PlugBehavior != ControllerPlugBehavior.AutoConnect)
         {
             if (current is not null && !current.IsDummy())
             {

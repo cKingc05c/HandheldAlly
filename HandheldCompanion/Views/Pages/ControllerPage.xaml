@@ -313,7 +313,11 @@
                         <ui:FontIcon Glyph="&#xE95F;" />
                     </ui:SettingsCard.HeaderIcon>
 
-                    <ui:ToggleSwitch Name="Toggle_ConnectOnPlug" Toggled="Toggle_ConnectOnPlug_Toggled" />
+                    <ComboBox Name="cB_ControllerPlugBehavior" SelectionChanged="cB_ControllerPlugBehavior_SelectionChanged">
+                        <ComboBoxItem Content="{l:Static resx:Resources.ControllerPage_PlugBehavior_AutoConnect}" />
+                        <ComboBoxItem Content="{l:Static resx:Resources.ControllerPage_PlugBehavior_AlwaysAsk}" />
+                        <ComboBoxItem Content="{l:Static resx:Resources.ControllerPage_PlugBehavior_DoNothing}" />
+                    </ComboBox>
                 </ui:SettingsCard>
 
                 <!--  Vibrate on connect  -->

@@ -323,8 +323,11 @@
     <Setting Name="MuteConsole" Type="System.Boolean" Scope="User">
       <Value Profile="(Default)">False</Value>
     </Setting>
-    <Setting Name="ConnectOnPlug" Type="System.Boolean" Scope="User">
-      <Value Profile="(Default)">True</Value>
+    <Setting Name="ControllerPlugBehavior" Type="System.Int32" Scope="User">
+      <Value Profile="(Default)">0</Value>
+    </Setting>
+    <Setting Name="DockedDisplayBehavior" Type="System.Int32" Scope="User">
+      <Value Profile="(Default)">0</Value>
     </Setting>
     <Setting Name="ZotacGamingZoneVRAM" Type="System.Int32" Scope="User">
       <Value Profile="(Default)">0</Value>
