@@ -196,18 +196,22 @@ public partial class App : Application
                 {
                     using (Process prevProcess = processes[0])
                     {
-                        // Find the window by its title
-                        IntPtr hWnd = WinAPI.FindWindow(null, $"Handheld Companion ({fileVersionInfo.FileVersion})");
-                        if (hWnd == IntPtr.Zero || !prevProcess.Responding)
+                        if (!prevProcess.Responding)
                         {
                             MessageBox.Show("Another instance of Handheld Companion is already running.\n\nPlease close the other instance and try again.", "Error");
                             process.Kill();
                             return;
                         }
 
-                        // Bring previous window to foreground, kill self
-                        ProcessUtils.ShowWindow(hWnd, (int)ProcessUtils.ShowWindowCommands.Normal);
-                        ProcessUtils.SetForegroundWindow(hWnd);
+                        // Find MainWindow by PID + exact title — works even when hidden (tray mode),
+                        // and avoids picking up QuickTools or other overlay windows.
+                        IntPtr hWnd = WinAPI.FindWindowByProcessId(prevProcess.Id, HandheldCompanion.Properties.Resources.MainWindow_HandheldCompanion);
+                        if (hWnd != IntPtr.Zero)
+                        {
+                            ProcessUtils.ShowWindow(hWnd, (int)ProcessUtils.ShowWindowCommands.Restored);
+                            ProcessUtils.SetForegroundWindow(hWnd);
+                        }
+
                         process.Kill();
                         return;
                     }
