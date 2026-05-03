@@ -314,9 +314,9 @@
                     </ui:SettingsCard.HeaderIcon>
 
                     <ComboBox Name="cB_ControllerPlugBehavior" SelectionChanged="cB_ControllerPlugBehavior_SelectionChanged">
-                        <ComboBoxItem Content="{l:Static resx:Resources.ControllerPage_PlugBehavior_AutoConnect}" />
-                        <ComboBoxItem Content="{l:Static resx:Resources.ControllerPage_PlugBehavior_AlwaysAsk}" />
                         <ComboBoxItem Content="{l:Static resx:Resources.ControllerPage_PlugBehavior_DoNothing}" />
+                        <ComboBoxItem Content="{l:Static resx:Resources.ControllerPage_PlugBehavior_AlwaysAsk}" />
+                        <ComboBoxItem Content="{l:Static resx:Resources.ControllerPage_PlugBehavior_AutoConnect}" />
                     </ComboBox>
                 </ui:SettingsCard>
 

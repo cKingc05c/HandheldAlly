@@ -448,7 +448,7 @@ namespace HandheldCompanion.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Connect when plugged.
+        ///   Looks up a localized string similar to When an external controller is plugged in.
         /// </summary>
         public static string ControllerPage_ConnectWhenPlugged {
             get {
@@ -457,7 +457,7 @@ namespace HandheldCompanion.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Automatically connect the last plugged controller.
+        ///   Looks up a localized string similar to Define the behavior when an external controller is detected.
         /// </summary>
         public static string ControllerPage_ConnectWhenPluggedDesc {
             get {
@@ -804,6 +804,33 @@ namespace HandheldCompanion.Properties {
         public static string ControllerPage_PhysicalDeviceSettings {
             get {
                 return ResourceManager.GetString("ControllerPage_PhysicalDeviceSettings", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Always ask.
+        /// </summary>
+        public static string ControllerPage_PlugBehavior_AlwaysAsk {
+            get {
+                return ResourceManager.GetString("ControllerPage_PlugBehavior_AlwaysAsk", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Automatically connect.
+        /// </summary>
+        public static string ControllerPage_PlugBehavior_AutoConnect {
+            get {
+                return ResourceManager.GetString("ControllerPage_PlugBehavior_AutoConnect", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Do nothing.
+        /// </summary>
+        public static string ControllerPage_PlugBehavior_DoNothing {
+            get {
+                return ResourceManager.GetString("ControllerPage_PlugBehavior_DoNothing", resourceCulture);
             }
         }
         
@@ -1191,6 +1218,60 @@ namespace HandheldCompanion.Properties {
         public static string DevicePage_DeviceSettings {
             get {
                 return ResourceManager.GetString("DevicePage_DeviceSettings", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Display options.
+        /// </summary>
+        public static string DevicePage_DisplayOptions {
+            get {
+                return ResourceManager.GetString("DevicePage_DisplayOptions", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to When an external display is connected.
+        /// </summary>
+        public static string DevicePage_DockedDisplayBehavior {
+            get {
+                return ResourceManager.GetString("DevicePage_DockedDisplayBehavior", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Do nothing.
+        /// </summary>
+        public static string DevicePage_DockedDisplayBehavior_DoNothing {
+            get {
+                return ResourceManager.GetString("DevicePage_DockedDisplayBehavior_DoNothing", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Switch to external display.
+        /// </summary>
+        public static string DevicePage_DockedDisplayBehavior_SwitchToExternal {
+            get {
+                return ResourceManager.GetString("DevicePage_DockedDisplayBehavior_SwitchToExternal", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Switch to external display when plugged in.
+        /// </summary>
+        public static string DevicePage_DockedDisplayBehavior_SwitchToExternalWhenCharging {
+            get {
+                return ResourceManager.GetString("DevicePage_DockedDisplayBehavior_SwitchToExternalWhenCharging", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Define whether the main screen should switch to the external display when docking.
+        /// </summary>
+        public static string DevicePage_DockedDisplayBehaviorDesc {
+            get {
+                return ResourceManager.GetString("DevicePage_DockedDisplayBehaviorDesc", resourceCulture);
             }
         }
         

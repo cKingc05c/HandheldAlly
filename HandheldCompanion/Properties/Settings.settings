@@ -324,7 +324,7 @@
       <Value Profile="(Default)">False</Value>
     </Setting>
     <Setting Name="ControllerPlugBehavior" Type="System.Int32" Scope="User">
-      <Value Profile="(Default)">0</Value>
+      <Value Profile="(Default)">2</Value>
     </Setting>
     <Setting Name="DockedDisplayBehavior" Type="System.Int32" Scope="User">
       <Value Profile="(Default)">0</Value>
@@ -390,6 +390,9 @@
       <Value Profile="(Default)">True</Value>
     </Setting>
     <Setting Name="LibraryPageEnabled" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">True</Value>
+    </Setting>
+    <Setting Name="ConnectOnPlug" Type="System.String" Scope="User">
       <Value Profile="(Default)">True</Value>
     </Setting>
   </Settings>

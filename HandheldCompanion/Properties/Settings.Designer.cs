@@ -1308,7 +1308,7 @@ namespace HandheldCompanion.Properties
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("0")]
+        [global::System.Configuration.DefaultSettingValueAttribute("2")]
         public int ControllerPlugBehavior {
             get {
                 return ((int)(this["ControllerPlugBehavior"]));
@@ -1317,7 +1317,7 @@ namespace HandheldCompanion.Properties
                 this["ControllerPlugBehavior"] = value;
             }
         }
-
+        
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("0")]
@@ -1579,6 +1579,18 @@ namespace HandheldCompanion.Properties
             }
             set {
                 this["LibraryPageEnabled"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        public string ConnectOnPlug {
+            get {
+                return ((string)(this["ConnectOnPlug"]));
+            }
+            set {
+                this["ConnectOnPlug"] = value;
             }
         }
     }
