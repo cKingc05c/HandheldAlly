@@ -31,6 +31,7 @@ public partial class App : Application
     public static string InstallPath = string.Empty;
     public static string SettingsPath = string.Empty;
     public static string LogsPath = string.Empty;
+    public static string GameControllerDbPath = string.Empty;
     public static string ApplicationName
     {
         get => Path.GetFileNameWithoutExtension(Assembly.GetExecutingAssembly().Location);
@@ -61,6 +62,7 @@ public partial class App : Application
         InstallPath = AppDomain.CurrentDomain.BaseDirectory;
         SettingsPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), ApplicationName);
         LogsPath = Path.Combine(SettingsPath, "logs");
+        GameControllerDbPath = Path.Combine(InstallPath, "gamecontrollerdb.txt");
 
         // Initialize LogManager before accessing ManagerFactory to prevent initialization order issues
         Environment.SetEnvironmentVariable("LOG_PATH", LogsPath);

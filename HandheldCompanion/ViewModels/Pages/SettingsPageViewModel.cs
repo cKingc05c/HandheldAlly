@@ -200,6 +200,20 @@ namespace HandheldCompanion.ViewModels
                     }
                     break;
 
+                case UpdateStatus.ControllerDbReady:
+                    if (updateFile is not null && FindVm(updateFile) is null)
+                    {
+                        UpdateSymbolVisibility = Visibility.Visible;
+                        lock (_collectionLock)
+                        {
+                            var fileVm = new GithubUpdateViewModel(updateFile);
+                            fileVm.OnInstallFailed += OnInstallFailed;
+                            fileVm.OnInstalled += OnInstalled;
+                            UpdateFiles.Add(fileVm);
+                        }
+                    }
+                    break;
+
                 case UpdateStatus.Download:
                     vm?.OnDownloadStarted();
                     break;
@@ -235,6 +249,14 @@ namespace HandheldCompanion.ViewModels
                 Content = Properties.Resources.SettingsPage_UpdateFailedInstall,
                 PrimaryButtonText = Properties.Resources.ProfilesPage_OK
             }.ShowAsync();
+        }
+
+        private void OnInstalled(GithubUpdateViewModel vm)
+        {
+            lock (_collectionLock)
+            {
+                UpdateFiles.Remove(vm);
+            }
         }
 
         #endregion

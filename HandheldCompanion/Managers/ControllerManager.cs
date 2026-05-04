@@ -150,30 +150,33 @@ public static class ControllerManager
         if (IsInitialized)
             return;
 
-        // disable XInput from SDL
+        // Hints must be set before SDL_Init() — SDL reads them during subsystem initialization.
+        // Disable XInput so SDL does not enumerate XInput devices as SDL gamepads; those are
+        // handled separately through the XUsbDevice pipeline.
         SDL.SetHint(SDL.Hints.XInputEnabled, "0");
+        // Prevent SDL from exposing the Steam virtual controller and Steam Deck built-in
+        // controller through the HID API, avoiding double-enumeration with our own paths.
         SDL.SetHint(SDL.Hints.JoystickHIDAPISteam, "0");
         SDL.SetHint(SDL.Hints.JoystickHIDAPISteamdeck, "0");
 
-        // load SDL game controller database
-        // https://github.com/mdqinc/SDL_GameControllerDB
-        int loaded = SDL.AddGamepadMappingsFromFile("gamecontrollerdb.txt");
-
-        // Initialize SDL Gamepad
+        // Initialize the SDL Gamepad subsystem
         if (!SDL.Init(SDL.InitFlags.Gamepad))
             LogManager.LogError("SDL_Init Error: {0}", SDL.GetError());
         else
-            LogManager.LogInformation("SDL was successfully initialized with {0} gamepad supported", loaded);
+        {
+            LogManager.LogInformation("SDL was successfully initialized");
 
-        SDL.SetJoystickEventsEnabled(true);
-        SDL.SetGamepadEventsEnabled(true);
+            // Populate SDL's internal gamepad mapping table from the community database
+            LoadGamepadMappings();
 
-        foreach (SDL.EventType eventType in Enum.GetValues<SDL.EventType>())
-            SDL.SetEventEnabled((uint)eventType, false);
+            // Suppress all SDL event types by default to keep the event queue clean.
+            foreach (SDL.EventType eventType in Enum.GetValues<SDL.EventType>())
+                SDL.SetEventEnabled((uint)eventType, false);
 
-        // gamepad pipeline used by SDLController.PumpEvent()
-        SDL.SetEventEnabled((uint)SDL.EventType.GamepadAdded, true);
-        SDL.SetEventEnabled((uint)SDL.EventType.GamepadRemoved, true);
+            // Only GamepadAdded / GamepadRemoved are processed by the pump thread loop.
+            SDL.SetEventEnabled((uint)SDL.EventType.GamepadAdded, true);
+            SDL.SetEventEnabled((uint)SDL.EventType.GamepadRemoved, true);
+        }
 
         // manage pump thread
         pumpThreadRunning = true;
@@ -1045,6 +1048,12 @@ public static class ControllerManager
         xusbRemovalInProgress[key] = removeTask;
     }
     #endregion
+
+    public static void LoadGamepadMappings()
+    {
+        int loaded = SDL.AddGamepadMappingsFromFile(App.GameControllerDbPath);
+        LogManager.LogInformation("SDL gamepad mappings loaded: {0} mappings loaded", loaded);
+    }
 
     public static void Stop()
     {
