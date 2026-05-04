@@ -431,10 +431,7 @@
                     </Grid>
 
                     <!--  Profile details  -->
-                    <Expander
-                        Name="ProfileDetailsExpander"
-                        d:IsExpanded="True"
-                        IsEnabled="{Binding IsProfileDetailsExpanderEnabled, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}">
+                    <Expander Name="ProfileDetailsExpander" d:IsExpanded="True">
                         <Expander.Header>
                             <Grid>
                                 <Grid.ColumnDefinitions>
@@ -555,7 +552,8 @@
                                     <ToggleButton
                                         Name="ToggleFavoriteButton"
                                         VerticalAlignment="Stretch"
-                                        IsChecked="{Binding IsLiked, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
+                                        IsChecked="{Binding IsLiked, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                        IsEnabled="{Binding IsProfileDetailsExpanderEnabled, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}">
                                         <ui:FontIcon>
                                             <ui:FontIcon.Style>
                                                 <Style TargetType="ui:FontIcon">
@@ -572,7 +570,7 @@
                                 </ikw:SimpleStackPanel>
                             </Grid>
                         </Expander.Header>
-                        <ikw:SimpleStackPanel Spacing="3">
+                        <ikw:SimpleStackPanel IsEnabled="{Binding IsProfileDetailsExpanderEnabled, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}" Spacing="3">
                             <!--  Path  -->
                             <Grid>
                                 <Grid.ColumnDefinitions>
@@ -815,15 +813,13 @@
                         <ui:SettingsCard
                             Name="SettingsCardEnableProfile"
                             Description="{l:Static resx:Resources.ProfilesPage_EnableProfileDesc}"
-                            Header="{l:Static resx:Resources.ProfilesPage_EnableProfile}">
+                            Header="{l:Static resx:Resources.ProfilesPage_EnableProfile}"
+                            IsEnabled="{Binding IsProfileEnabledToggleEnabled}">
                             <ui:SettingsCard.HeaderIcon>
                                 <ui:FontIcon Glyph="&#xE7EE;" />
                             </ui:SettingsCard.HeaderIcon>
 
-                            <ui:ToggleSwitch
-                                x:Name="EnableProfileToggle"
-                                IsEnabled="{Binding IsProfileEnabledToggleEnabled}"
-                                IsOn="{Binding ProfileEnabled, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                            <ui:ToggleSwitch x:Name="EnableProfileToggle" IsOn="{Binding ProfileEnabled, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
                         </ui:SettingsCard>
 
                         <ui:SettingsCard
