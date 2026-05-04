@@ -1023,22 +1023,65 @@
         <Grid Margin="48,0,0,0">
             <ui:SettingsCard
                 Command="{Binding OpenSettingsCommand}"
-                Description="{Binding SelectedTarget.Content, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}"
-                Header="{Binding ActionTypeName, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}"
                 IsClickEnabled="True"
                 ToolTip="Open action settings">
-                <!--  Remove Button  -->
-                <Button
-                    Width="44"
-                    Height="44"
-                    Command="{Binding ButtonCommand}"
-                    ToolTip="Remove action">
+                <ui:SettingsCard.Header>
+                    <ikw:SimpleStackPanel Orientation="Horizontal" Spacing="3">
+                        <TextBlock
+                            Style="{StaticResource BodyTextBlockStyle}"
+                            Text="{Binding ActionTypeDisplayName, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}"
+                            TextWrapping="Wrap" />
+                        <TextBlock Text="{Binding TargetDisplayName, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}" TextWrapping="Wrap">
+                            <TextBlock.Style>
+                                <Style BasedOn="{StaticResource BodyTextBlockStyle}" TargetType="TextBlock">
+                                    <Setter Property="Visibility" Value="Visible" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding TargetDisplayName}" Value="">
+                                            <Setter Property="Visibility" Value="Collapsed" />
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding TargetDisplayName}" Value="{x:Null}">
+                                            <Setter Property="Visibility" Value="Collapsed" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                    </ikw:SimpleStackPanel>
+                </ui:SettingsCard.Header>
+
+                <ikw:SimpleStackPanel Orientation="Horizontal" Spacing="6">
+                    <!--  Turbo / Toggle  -->
                     <ui:FontIcon
-                        HorizontalAlignment="Stretch"
-                        VerticalAlignment="Stretch"
-                        FontFamily="{DynamicResource SymbolThemeFontFamily}"
-                        Glyph="&#xe74d;" />
-                </Button>
+                        Icon="{x:Static ui:SegoeFluentIcons.RepeatAll}"
+                        ToolTip="Turbo enabled"
+                        Visibility="{Binding HasTurbo, Mode=OneWay, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                    <ui:FontIcon
+                        Icon="{x:Static ui:SegoeFluentIcons.ToggleRight}"
+                        ToolTip="Toggle enabled"
+                        Visibility="{Binding HasToggle, Mode=OneWay, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource BooleanToVisibilityConverter}}" />
+
+                    <!--  Remove Button  -->
+                    <Button
+                        Width="44"
+                        Height="44"
+                        Command="{Binding ButtonCommand}"
+                        ToolTip="Remove action">
+                        <ui:FontIcon
+                            HorizontalAlignment="Stretch"
+                            VerticalAlignment="Stretch"
+                            FontFamily="{DynamicResource SymbolThemeFontFamily}"
+                            Glyph="&#xe74d;" />
+                    </Button>
+                </ikw:SimpleStackPanel>
+
+                <ui:SettingsCard.Description>
+                    <ikw:SimpleStackPanel Orientation="Horizontal" Spacing="6">
+                        <TextBlock
+                            Style="{StaticResource CaptionTextBlockStyle}"
+                            Text="{Binding InputShiftDisplayName, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}"
+                            TextWrapping="Wrap" />
+                    </ikw:SimpleStackPanel>
+                </ui:SettingsCard.Description>
             </ui:SettingsCard>
         </Grid>
     </DataTemplate>
@@ -1432,23 +1475,65 @@
         <Grid Margin="48,0,0,0">
             <ui:SettingsCard
                 Command="{Binding OpenSettingsCommand}"
-                Description="{Binding SelectedTarget.Content, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}"
-                Header="{Binding ActionTypeName, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}"
                 IsClickEnabled="True"
                 ToolTip="Open action settings">
+                <ui:SettingsCard.Header>
+                    <ikw:SimpleStackPanel Orientation="Horizontal" Spacing="3">
+                        <TextBlock
+                            Style="{StaticResource BodyTextBlockStyle}"
+                            Text="{Binding ActionTypeDisplayName, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}"
+                            TextWrapping="Wrap" />
+                        <TextBlock Text="{Binding TargetDisplayName, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}" TextWrapping="Wrap">
+                            <TextBlock.Style>
+                                <Style BasedOn="{StaticResource BodyTextBlockStyle}" TargetType="TextBlock">
+                                    <Setter Property="Visibility" Value="Visible" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding TargetDisplayName}" Value="">
+                                            <Setter Property="Visibility" Value="Collapsed" />
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding TargetDisplayName}" Value="{x:Null}">
+                                            <Setter Property="Visibility" Value="Collapsed" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                    </ikw:SimpleStackPanel>
+                </ui:SettingsCard.Header>
 
-                <!--  Remove Button  -->
-                <Button
-                    Width="44"
-                    Height="44"
-                    Command="{Binding ButtonCommand}"
-                    ToolTip="Remove action">
+                <ikw:SimpleStackPanel Orientation="Horizontal" Spacing="6">
+                    <!--  Turbo / Toggle  -->
                     <ui:FontIcon
-                        HorizontalAlignment="Stretch"
-                        VerticalAlignment="Stretch"
-                        FontFamily="{DynamicResource SymbolThemeFontFamily}"
-                        Glyph="&#xe74d;" />
-                </Button>
+                        Icon="{x:Static ui:SegoeFluentIcons.RepeatAll}"
+                        ToolTip="Turbo enabled"
+                        Visibility="{Binding HasTurbo, Mode=OneWay, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                    <ui:FontIcon
+                        Icon="{x:Static ui:SegoeFluentIcons.ToggleRight}"
+                        ToolTip="Toggle enabled"
+                        Visibility="{Binding HasToggle, Mode=OneWay, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource BooleanToVisibilityConverter}}" />
+
+                    <!--  Remove Button  -->
+                    <Button
+                        Width="44"
+                        Height="44"
+                        Command="{Binding ButtonCommand}"
+                        ToolTip="Remove action">
+                        <ui:FontIcon
+                            HorizontalAlignment="Stretch"
+                            VerticalAlignment="Stretch"
+                            FontFamily="{DynamicResource SymbolThemeFontFamily}"
+                            Glyph="&#xe74d;" />
+                    </Button>
+                </ikw:SimpleStackPanel>
+
+                <ui:SettingsCard.Description>
+                    <ikw:SimpleStackPanel Orientation="Horizontal" Spacing="6">
+                        <TextBlock
+                            Style="{StaticResource CaptionTextBlockStyle}"
+                            Text="{Binding InputShiftDisplayName, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}"
+                            TextWrapping="Wrap" />
+                    </ikw:SimpleStackPanel>
+                </ui:SettingsCard.Description>
             </ui:SettingsCard>
         </Grid>
     </DataTemplate>
@@ -1457,23 +1542,65 @@
         <Grid Margin="48,0,0,0">
             <ui:SettingsCard
                 Command="{Binding OpenSettingsCommand}"
-                Description="{Binding SelectedTarget.Content, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}"
-                Header="{Binding ActionTypeName, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}"
                 IsClickEnabled="True"
                 ToolTip="Open action settings">
+                <ui:SettingsCard.Header>
+                    <ikw:SimpleStackPanel Orientation="Horizontal" Spacing="3">
+                        <TextBlock
+                            Style="{StaticResource BodyTextBlockStyle}"
+                            Text="{Binding ActionTypeDisplayName, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}"
+                            TextWrapping="Wrap" />
+                        <TextBlock Text="{Binding TargetDisplayName, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}" TextWrapping="Wrap">
+                            <TextBlock.Style>
+                                <Style BasedOn="{StaticResource BodyTextBlockStyle}" TargetType="TextBlock">
+                                    <Setter Property="Visibility" Value="Visible" />
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding TargetDisplayName}" Value="">
+                                            <Setter Property="Visibility" Value="Collapsed" />
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding TargetDisplayName}" Value="{x:Null}">
+                                            <Setter Property="Visibility" Value="Collapsed" />
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
+                    </ikw:SimpleStackPanel>
+                </ui:SettingsCard.Header>
 
-                <!--  Remove Button  -->
-                <Button
-                    Width="44"
-                    Height="44"
-                    Command="{Binding ButtonCommand}"
-                    ToolTip="Remove action">
+                <ikw:SimpleStackPanel Orientation="Horizontal" Spacing="6">
+                    <!--  Turbo / Toggle  -->
                     <ui:FontIcon
-                        HorizontalAlignment="Stretch"
-                        VerticalAlignment="Stretch"
-                        FontFamily="{DynamicResource SymbolThemeFontFamily}"
-                        Glyph="&#xe74d;" />
-                </Button>
+                        Icon="{x:Static ui:SegoeFluentIcons.RepeatAll}"
+                        ToolTip="Turbo enabled"
+                        Visibility="{Binding HasTurbo, Mode=OneWay, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                    <ui:FontIcon
+                        Icon="{x:Static ui:SegoeFluentIcons.ToggleRight}"
+                        ToolTip="Toggle enabled"
+                        Visibility="{Binding HasToggle, Mode=OneWay, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource BooleanToVisibilityConverter}}" />
+
+                    <!--  Remove Button  -->
+                    <Button
+                        Width="44"
+                        Height="44"
+                        Command="{Binding ButtonCommand}"
+                        ToolTip="Remove action">
+                        <ui:FontIcon
+                            HorizontalAlignment="Stretch"
+                            VerticalAlignment="Stretch"
+                            FontFamily="{DynamicResource SymbolThemeFontFamily}"
+                            Glyph="&#xe74d;" />
+                    </Button>
+                </ikw:SimpleStackPanel>
+
+                <ui:SettingsCard.Description>
+                    <ikw:SimpleStackPanel Orientation="Horizontal" Spacing="6">
+                        <TextBlock
+                            Style="{StaticResource CaptionTextBlockStyle}"
+                            Text="{Binding InputShiftDisplayName, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}"
+                            TextWrapping="Wrap" />
+                    </ikw:SimpleStackPanel>
+                </ui:SettingsCard.Description>
             </ui:SettingsCard>
         </Grid>
     </DataTemplate>

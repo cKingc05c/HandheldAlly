@@ -514,22 +514,23 @@
                 Description="{x:Static resx:Resources.LayoutPage_InputShiftDesc}"
                 Header="{x:Static resx:Resources.LayoutPage_InputShift}"
                 Visibility="{Binding ActionTypeIndex, Mode=OneWay, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource IndexToVisibilityConverter}, ConverterParameter=1|2|3|4|5|6|7|8|9|10}">
-                <StackPanel Orientation="Horizontal">
+                <StackPanel Orientation="Vertical">
                     <ComboBox MinWidth="140" SelectedIndex="{Binding ShiftModeIndex, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
                         <ComboBoxItem Content="Disabled on shift" />
                         <ComboBoxItem Content="Always enabled" />
                         <ComboBoxItem Content="Enabled on shift (strict)" />
                         <ComboBoxItem Content="Enabled on shift (any)" />
                     </ComboBox>
-                    <WrapPanel
-                        Margin="8,0,0,0"
-                        Orientation="Horizontal"
-                        Visibility="{Binding ShowShiftSelection, Converter={StaticResource BooleanToVisibilityConverter}}">
-                        <CheckBox Content="A" IsChecked="{Binding ShiftA, Mode=TwoWay}" />
-                        <CheckBox Content="B" IsChecked="{Binding ShiftB, Mode=TwoWay}" />
-                        <CheckBox Content="C" IsChecked="{Binding ShiftC, Mode=TwoWay}" />
-                        <CheckBox Content="D" IsChecked="{Binding ShiftD, Mode=TwoWay}" />
-                    </WrapPanel>
+                    <ikw:SimpleStackPanel Visibility="{Binding ShowShiftSelection, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <WrapPanel>
+                            <CheckBox Content="A" IsChecked="{Binding ShiftA, Mode=TwoWay}" />
+                            <CheckBox Content="B" IsChecked="{Binding ShiftB, Mode=TwoWay}" />
+                        </WrapPanel>
+                        <WrapPanel>
+                            <CheckBox Content="C" IsChecked="{Binding ShiftC, Mode=TwoWay}" />
+                            <CheckBox Content="D" IsChecked="{Binding ShiftD, Mode=TwoWay}" />
+                        </WrapPanel>
+                    </ikw:SimpleStackPanel>
                 </StackPanel>
             </ui:SettingsCard>
 

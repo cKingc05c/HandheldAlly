@@ -2,6 +2,7 @@
 using HandheldCompanion.Actions;
 using HandheldCompanion.Inputs;
 using HandheldCompanion.Managers;
+using HandheldCompanion.Properties;
 using HandheldCompanion.Utils;
 using HandheldCompanion.Views;
 using System;
@@ -45,6 +46,16 @@ namespace HandheldCompanion.ViewModels
         }
 
         public string ActionTypeName => ((ActionType)ActionTypeIndex).ToString();
+
+        public string ActionTypeDisplayName => GetActionTypeDisplayName();
+
+        public string TargetDisplayName => SelectedTarget?.Content ?? string.Empty;
+
+        public string TurboDisplayName => GetStateDisplayName(HasTurbo);
+
+        public string ToggleDisplayName => GetStateDisplayName(HasToggle);
+
+        public string InputShiftDisplayName => GetInputShiftDisplayName();
 
         public bool HasTurbo
         {
@@ -464,12 +475,90 @@ namespace HandheldCompanion.ViewModels
             }
         }
 
+        protected string GetActionTypeDisplayName()
+        {
+            ActionType actionType = (ActionType)ActionTypeIndex;
+            string resourceKey = $"LayoutPage_ActionType_{actionType}";
+            return Resources.ResourceManager.GetString(resourceKey) ?? actionType.ToString();
+        }
+
+        protected static string GetStateDisplayName(bool isEnabled)
+        {
+            return isEnabled ? "Enabled" : "Disabled";
+        }
+
+        protected string GetInputShiftDisplayName()
+        {
+            if (Action is null)
+                return EnumUtils.GetDescriptionFromEnumValue(ShiftSlot.Any);
+
+            return ShiftModeIndex switch
+            {
+                0 => EnumUtils.GetDescriptionFromEnumValue(ShiftSlot.None),
+                1 => EnumUtils.GetDescriptionFromEnumValue(ShiftSlot.Any),
+                2 => $"Shift: {GetSelectedShiftSlotsDisplayName()} (Strict)",
+                3 => $"Shift: {GetSelectedShiftSlotsDisplayName()} (Any)",
+                _ => EnumUtils.GetDescriptionFromEnumValue(ShiftSlot.Any),
+            };
+        }
+
+        protected string GetSelectedShiftSlotsDisplayName()
+        {
+            List<string> selectedShiftSlots = new List<string>();
+
+            if (ShiftA)
+                selectedShiftSlots.Add(EnumUtils.GetDescriptionFromEnumValue(ShiftSlot.ShiftA));
+
+            if (ShiftB)
+                selectedShiftSlots.Add(EnumUtils.GetDescriptionFromEnumValue(ShiftSlot.ShiftB));
+
+            if (ShiftC)
+                selectedShiftSlots.Add(EnumUtils.GetDescriptionFromEnumValue(ShiftSlot.ShiftC));
+
+            if (ShiftD)
+                selectedShiftSlots.Add(EnumUtils.GetDescriptionFromEnumValue(ShiftSlot.ShiftD));
+
+            return selectedShiftSlots.Count != 0
+                ? string.Join(", ", selectedShiftSlots)
+                : EnumUtils.GetDescriptionFromEnumValue(ShiftSlot.None);
+        }
+
         // Purely UI related properties, they should NOT update the Layout
         // Avoid unnecessary save/update calls
         protected HashSet<string> ExcludedUpdateProperties =
         [
             nameof(IsSupported),
+            nameof(ActionTypeDisplayName),
+            nameof(TargetDisplayName),
+            nameof(TurboDisplayName),
+            nameof(ToggleDisplayName),
+            nameof(InputShiftDisplayName),
         ];
+
+        public override void OnPropertyChanged(string? propertyName)
+        {
+            switch (propertyName)
+            {
+                case "":
+                case nameof(SelectedTarget):
+                case nameof(ActionTypeIndex):
+                case nameof(HasTurbo):
+                case nameof(HasToggle):
+                case nameof(ShiftModeIndex):
+                case nameof(ShiftA):
+                case nameof(ShiftB):
+                case nameof(ShiftC):
+                case nameof(ShiftD):
+                    base.OnPropertyChanged(nameof(ActionTypeDisplayName));
+                    base.OnPropertyChanged(nameof(TargetDisplayName));
+                    base.OnPropertyChanged(nameof(TurboDisplayName));
+                    base.OnPropertyChanged(nameof(ToggleDisplayName));
+                    base.OnPropertyChanged(nameof(InputShiftDisplayName));
+                    break;
+            }
+
+            base.OnPropertyChanged(propertyName);
+        }
 
         // Property to block off updating to model in certain cases
         protected bool _updateToModel = true;
