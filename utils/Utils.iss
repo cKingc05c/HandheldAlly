@@ -134,55 +134,48 @@ begin
 end;
 
 
-function uninstallHidHide():boolean;
+function UninstallMsiByDisplayName(const DisplayName: String): Boolean;
 var
-  uninstallCommand:string;
-  splittedCommand:TArrayOfString;
-  resultCode:integer;
+  uninstallCommand: String;
+  splittedCommand: TArrayOfString;
+  resultCode: Integer;
 begin
-  result:= false;
-  uninstallCommand:= regGetAppUninstallStringByDisplayName('HidHide');
-  splittedCommand:= splitString(uninstallCommand, ' ');
+  Result := False;
+  uninstallCommand := regGetAppUninstallStringByDisplayName(DisplayName);
+  if uninstallCommand = '' then
+  begin
+    Log('No uninstall command found for ' + DisplayName);
+    Exit;
+  end;
 
-  if((getArrayLength(splittedCommand) > 1) and not(splittedCommand[1] = '')) then
+  splittedCommand := splitString(uninstallCommand, ' ');
+
+  if (GetArrayLength(splittedCommand) > 1) and not (splittedCommand[1] = '') then
   begin 
-    if(ShellExec('', 'msiexec.exe', splittedCommand[1] + ' /qn /norestart' , '', SW_SHOW, ewWaitUntilTerminated, resultCode)) then  
+    if ShellExec('', 'msiexec.exe', splittedCommand[1] + ' /qn /norestart', '', SW_SHOW, ewWaitUntilTerminated, resultCode) then
     begin
-      log('Successfully executed Hidhide uninstaller');
-      if(resultCode = 0) then
+      Log('Successfully executed uninstaller for ' + DisplayName);
+      if resultCode = 0 then
       begin
-        log('Hidhide uninstaller finished successfully');
-        result:= true;
+        Log('Uninstaller finished successfully for ' + DisplayName);
+        Result := True;
       end
       else
-        log('Hidhide uninstaller failed with exit code ' +intToStr(resultCode));
-    end 
-  end;  
+        Log('Uninstaller failed for ' + DisplayName + ' with exit code ' + IntToStr(resultCode));
+    end
+  end
+  else
+    Log('Unable to parse uninstall command for ' + DisplayName + ': ' + uninstallCommand);
+end;
+
+
+function uninstallHidHide():boolean;
+begin
+  Result := UninstallMsiByDisplayName('HidHide');
 end;
 
 
 function uninstallViGem():boolean;
-var
-  uninstallCommand:string;
-  splittedCommand:TArrayOfString;
-  resultCode:integer;
 begin
-  result:= false;
-  uninstallCommand:= regGetAppUninstallStringByDisplayName('ViGEm Bus Driver');
-  splittedCommand:= splitString(uninstallCommand, ' ');
-
-  if((getArrayLength(splittedCommand) > 1) and not(splittedCommand[1] = '')) then
-  begin 
-    if(ShellExec('', 'msiexec.exe', splittedCommand[1] + ' /qn /norestart' , '', SW_SHOW, ewWaitUntilTerminated, resultCode)) then  
-    begin
-      log('Successfully executed ViGem uninstaller');
-      if(resultCode = 0) then
-      begin
-        log('ViGem uninstaller finished successfully');
-        result:= true;
-      end
-      else
-        log('ViGem uninstaller failed with exit code ' +intToStr(resultCode));
-    end 
-  end;  
+  Result := UninstallMsiByDisplayName('ViGEm Bus Driver');
 end;

@@ -59,8 +59,8 @@
 
 #ifdef UseDotNet10
   #define MyConfigurationExt   "net10.0"
-  #define DotNetX64DownloadLink "https://builds.dotnet.microsoft.com/dotnet/WindowsDesktop/10.0.0/windowsdesktop-runtime-10.0.0-win-x64.exe"
-  #define DotNetX86DownloadLink "https://builds.dotnet.microsoft.com/dotnet/WindowsDesktop/10.0.0/windowsdesktop-runtime-10.0.0-win-x86.exe"
+  #define DotNetX64DownloadLink "https://builds.dotnet.microsoft.com/dotnet/WindowsDesktop/" + NewDotNetVersion + "/windowsdesktop-runtime-" + NewDotNetVersion + "-win-x64.exe"
+  #define DotNetX86DownloadLink "https://builds.dotnet.microsoft.com/dotnet/WindowsDesktop/" + NewDotNetVersion + "/windowsdesktop-runtime-" + NewDotNetVersion + "-win-x86.exe"
 #endif
 
 ; Windows 10 (2004+)
@@ -156,6 +156,8 @@ type
     Checksum: String;
     ForceSuccess: Boolean;
     RestartNeeded: Boolean;
+    UninstallBeforeInstall: Boolean;
+    UninstallDisplayName: String;
   end;
 
 var
@@ -169,9 +171,11 @@ var
 
 // Forward declarations
 procedure Dependency_Add(const Filename, Parameters, Title, URL, Checksum: String; const ForceSuccess: Boolean); forward;
-procedure Dependency_Add_With_Version(const Filename, NewVersion, InstalledVersion, Parameters, Title, URL, Checksum: String; const ForceSuccess, RestartNeeded: Boolean); forward;
+procedure Dependency_Add_With_Version(const Filename, NewVersion, InstalledVersion, Parameters, Title, URL, Checksum: String; const ForceSuccess, RestartNeeded, DoUninstallBefore: Boolean; const UninstallDisplayName: String); forward;
 function Dependency_PrepareToInstall(var NeedsRestart: Boolean): String; forward;
 function Dependency_UpdateReadyMemo(const Space, NewLine, MemoUserInfoInfo, MemoDirInfo, MemoTypeInfo, MemoComponentsInfo, MemoGroupInfo, MemoTasksInfo: String): String; forward;
+function Dependency_IsNetCoreInstalled(const Version: String): Boolean; forward;
+function Dependency_IsDirectXInstalled: Boolean; forward;
 procedure Dependency_AddDotNet10Desktop; forward;
 procedure Dependency_AddDirectX; forward;
 procedure Dependency_AddHideHide; forward;
@@ -459,20 +463,26 @@ var
   resultCode: Integer;
 begin
 #ifdef UseDotNet10
-  installedVersion := RegGetInstalledVersion('{#DotNetName}');
-  if compareVersions('{#NewDotNetVersion}', installedVersion, '.', '-') > 0 then
+  if not Dependency_IsNetCoreInstalled('Microsoft.WindowsDesktop.App {#NewDotNetVersion}') then
   begin
     Log('{#DotNetName} {#NewDotNetVersion} needs update.');
     Dependency_AddDotNet10Desktop;
+  end
+  else
+  begin
+    Log('{#DotNetName} {#NewDotNetVersion} is already installed.');
   end;
 #endif
 
 #ifdef UseDirectX
-  installedVersion := RegGetInstalledVersion('{#DirectXName}');
-  if compareVersions('{#NewDirectXVersion}', installedVersion, '.', '-') > 0 then
+  if not Dependency_IsDirectXInstalled() then
   begin
-    Log('{#DirectXName} {#NewDirectXVersion} needs update.');
+    Log('{#DirectXName} runtime files were not detected.');
     Dependency_AddDirectX;
+  end
+  else
+  begin
+    Log('{#DirectXName} runtime already detected.');
   end;
 #endif
 
@@ -480,7 +490,6 @@ begin
   if not IsHidHideInstalled() then
   begin
     Dependency_AddHideHide;
-    uninstallHidHide();
   end
   else
   begin
@@ -489,7 +498,6 @@ begin
     begin
       Log('{#HidHideName} {#NewHidHideVersion} needs update.');
       Dependency_AddHideHide;
-      uninstallHidHide();
     end;
   end;
 #endif
@@ -498,7 +506,6 @@ begin
   if not IsViGemInstalled() then
   begin
     Dependency_AddViGem;
-    uninstallViGem();
   end
   else
   begin
@@ -507,7 +514,6 @@ begin
     begin
       Log('{#ViGemName} {#NewViGemVersion} needs update.');
       Dependency_AddViGem;
-      uninstallViGem();
     end;
   end;
 #endif
@@ -532,7 +538,6 @@ begin
   else
   begin
     installedVersion := GetInstalledPawnIOVersion();
-
     if compareVersions('{#NewPawnIOVersion}', installedVersion, '.', '-') > 0 then
     begin
       Log('{#PawnIOName} update required. Installed: ' + installedVersion + ' New: {#NewPawnIOVersion}');
@@ -574,12 +579,15 @@ begin
     Dependency.URL := URL;
   Dependency.Checksum := Checksum;
   Dependency.ForceSuccess := ForceSuccess;
+  Dependency.RestartNeeded := False;
+  Dependency.UninstallBeforeInstall := False;
+  Dependency.UninstallDisplayName := '';
   DependencyCount := GetArrayLength(Dependency_List);
   SetArrayLength(Dependency_List, DependencyCount + 1);
   Dependency_List[DependencyCount] := Dependency;
 end;
 
-procedure Dependency_Add_With_Version(const Filename, NewVersion, InstalledVersion, Parameters, Title, URL, Checksum: String; const ForceSuccess, RestartNeeded: Boolean);
+procedure Dependency_Add_With_Version(const Filename, NewVersion, InstalledVersion, Parameters, Title, URL, Checksum: String; const ForceSuccess, RestartNeeded, DoUninstallBefore: Boolean; const UninstallDisplayName: String);
 var
   Dependency: TDependency_Entry;
   DependencyCount: Integer;
@@ -597,6 +605,8 @@ begin
   Dependency.Checksum := Checksum;
   Dependency.ForceSuccess := ForceSuccess;
   Dependency.RestartNeeded := RestartNeeded;
+  Dependency.UninstallBeforeInstall := DoUninstallBefore;
+  Dependency.UninstallDisplayName := UninstallDisplayName;
   DependencyCount := GetArrayLength(Dependency_List);
   SetArrayLength(Dependency_List, DependencyCount + 1);
   Dependency_List[DependencyCount] := Dependency;
@@ -653,6 +663,9 @@ begin
         Dependency_DownloadPage.SetProgress(DependencyIndex + 1, DependencyCount + 1);
         while True do
         begin
+          if Dependency_List[DependencyIndex].UninstallBeforeInstall then
+            UninstallMsiByDisplayName(Dependency_List[DependencyIndex].UninstallDisplayName);
+
           ResultCode := 0;
           if ShellExec('', ExpandConstant('{tmp}\') + Dependency_List[DependencyIndex].Filename, Dependency_List[DependencyIndex].Parameters, '', SW_SHOWNORMAL, ewWaitUntilTerminated, ResultCode) then
           begin
@@ -761,14 +774,33 @@ begin
   if not FileExists(ExpandConstant('{tmp}\') + 'netcorecheck_' + Dependency_ArchSuffix + '.exe') then
     ExtractTemporaryFile('netcorecheck_' + Dependency_ArchSuffix + '.exe');
   Result := ShellExec('', ExpandConstant('{tmp}\') + 'netcorecheck_' + Dependency_ArchSuffix + '.exe', Version, '', SW_HIDE, ewWaitUntilTerminated, ResultCode) and (ResultCode = 0);
+  Log('Dependency_IsNetCoreInstalled(' + Version + ')=' + BoolToStr(Result) + ' ResultCode=' + IntToStr(ResultCode));
+end;
+
+function Dependency_IsDirectXInstalled: Boolean;
+var
+  DirectXFile, VersionNumber: String;
+begin
+  DirectXFile := ExpandConstant('{sys}\D3DX9_43.dll');
+  Result := FileExists(DirectXFile);
+
+  if Result then
+  begin
+    if GetVersionNumbersString(DirectXFile, VersionNumber) then
+      Log('Found DirectX runtime file: ' + DirectXFile + ' version ' + VersionNumber)
+    else
+      Log('Found DirectX runtime file: ' + DirectXFile);
+  end
+  else
+    Log('DirectX runtime file not found: ' + DirectXFile);
 end;
 
 procedure Dependency_AddDotNet10Desktop;
 begin
-  if not Dependency_IsNetCoreInstalled('Microsoft.WindowsDesktop.App 10.0.0') then
-    Dependency_Add_With_Version('windowsdesktop-runtime-10.0.0-win-' + Dependency_ArchSuffix + '.exe', '{#NewDotNetVersion}', RegGetInstalledVersion('{#DotNetName}'),
+  if not Dependency_IsNetCoreInstalled('Microsoft.WindowsDesktop.App {#NewDotNetVersion}') then
+    Dependency_Add_With_Version('windowsdesktop-runtime-{#NewDotNetVersion}-win-' + Dependency_ArchSuffix + '.exe', '{#NewDotNetVersion}', RegGetInstalledVersion('{#DotNetName}'),
       '/lcid ' + IntToStr(GetUILanguage) + ' /passive /norestart',
-      '{#DotNetName}', Dependency_String('{#DotNetX86DownloadLink}', '{#DotNetX64DownloadLink}'), '', False, False);
+      '{#DotNetName}', Dependency_String('{#DotNetX86DownloadLink}', '{#DotNetX64DownloadLink}'), '', False, False, False, '');
 end;
 
 procedure Dependency_AddDirectX;
@@ -777,7 +809,7 @@ begin
     '/q',
     '{#DirectXName}',
     '{#DirectXDownloadLink}',
-    '', True, False);
+    '', True, False, False, '');
 end;
 
 procedure Dependency_AddHideHide;
@@ -786,7 +818,7 @@ begin
     '/quiet /norestart',
     '{#HidHideName}',
     '{#HidHideDownloadLink}',
-    '', True, False);
+    '', True, False, True, 'HidHide');
 end;
 
 procedure Dependency_AddViGem;
@@ -795,7 +827,7 @@ begin
     '/quiet /norestart',
     '{#ViGemName}',
     '{#ViGemDownloadLink}',
-    '', True, True);
+    '', True, True, True, 'ViGEm Bus Driver');
 end;
 
 procedure Dependency_AddRTSS;
@@ -804,7 +836,7 @@ begin
     '/S',
     '{#RtssName}',
     '{#RtssDownloadLink}',
-    '', True, True);
+    '', True, True, False, '');
 end;
 
 procedure Dependency_AddPawnIO;
@@ -813,7 +845,7 @@ begin
     '-install -silent',
     '{#PawnIOName}',
     '{#PawnIODownloadLink}',
-    '', True, True);
+    '', True, True, False, '');
 end;
 
 function BoolToStr(Value: Boolean): String;
