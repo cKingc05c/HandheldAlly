@@ -1087,9 +1087,6 @@ Interrupteur d'entrée de mouvement : appuyez sur le(s) bouton(s) sélectionné(
   <data name="Hotkey_LayoutMode" xml:space="preserve">
     <value>Mode contrôleur</value>
   </data>
-  <data name="Hotkey_LayoutModeDesc" xml:space="preserve">
-    <value>Modifier le mode contrôleur : Auto, Manette ou Bureau</value>
-  </data>
   <data name="Hotkey_ControlCenter" xml:space="preserve">
     <value>Ouvrir le Centre d’actions Windows</value>
   </data>

@@ -1072,9 +1072,6 @@
   <data name="Hotkey_LayoutMode" xml:space="preserve">
     <value>Controller mode</value>
   </data>
-  <data name="Hotkey_LayoutModeDesc" xml:space="preserve">
-    <value>Change controller mode: Auto, Gamepad or Desktop</value>
-  </data>
   <data name="Hotkey_ControlCenter" xml:space="preserve">
     <value>Показать центр уведомлений</value>
   </data>

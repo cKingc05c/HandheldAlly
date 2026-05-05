@@ -280,26 +280,17 @@
 
                             <Grid>
                                 <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="2*" MinWidth="70" />
-                                    <ColumnDefinition Width="5*" MinWidth="200" />
+                                    <ColumnDefinition Width="20" />
+                                    <ColumnDefinition />
                                 </Grid.ColumnDefinitions>
 
                                 <DockPanel>
                                     <ui:FontIcon
                                         Name="ProfileIcon"
-                                        HorizontalAlignment="Center"
+                                        HorizontalAlignment="Left"
                                         FontFamily="{DynamicResource SymbolThemeFontFamily}"
                                         Foreground="{DynamicResource SystemControlForegroundBaseHighBrush}"
                                         Glyph="&#xE7EE;" />
-
-                                    <ikw:SimpleStackPanel Margin="12,0,0,0" VerticalAlignment="Center">
-                                        <TextBlock Style="{StaticResource BodyTextBlockStyle}" Text="{l:Static resx:Resources.ProfilesPage_ProfileSelection}" />
-                                        <TextBlock
-                                            Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
-                                            Style="{StaticResource CaptionTextBlockStyle}"
-                                            Text="{l:Static resx:Resources.ProfilesPage_ProfileSelectionDesc}"
-                                            TextWrapping="Wrap" />
-                                    </ikw:SimpleStackPanel>
                                 </DockPanel>
 
                                 <Grid Grid.Column="1" Margin="12,0,0,0">
@@ -380,6 +371,7 @@
                         MaxHeight="320"
                         HorizontalAlignment="Stretch"
                         ClipToBounds="True"
+                        RenderOptions.BitmapScalingMode="HighQuality"
                         Visibility="{Binding Artwork, Converter={StaticResource HasArtworkConverter}}">
                         <Rectangle>
                             <Rectangle.Fill>
@@ -411,6 +403,7 @@
                             Margin="32,0,0,32"
                             HorizontalAlignment="Left"
                             VerticalAlignment="Bottom"
+                            RenderOptions.BitmapScalingMode="HighQuality"
                             Source="{Binding Logo, Mode=OneWay, UpdateSourceTrigger=PropertyChanged, NotifyOnTargetUpdated=True}"
                             Stretch="Uniform">
                             <Image.Triggers>

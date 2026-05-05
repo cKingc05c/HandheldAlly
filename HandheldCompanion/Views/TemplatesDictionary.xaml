@@ -327,6 +327,7 @@
                                             x:Name="MainImage"
                                             HorizontalAlignment="Center"
                                             VerticalAlignment="Center"
+                                            RenderOptions.BitmapScalingMode="LowQuality"
                                             RenderTransformOrigin="0.5,0.5"
                                             Source="{Binding Artwork, NotifyOnTargetUpdated=True}"
                                             Stretch="UniformToFill"
@@ -342,6 +343,7 @@
                                         <Image
                                             x:Name="LogoImage"
                                             Margin="50"
+                                            RenderOptions.BitmapScalingMode="LowQuality"
                                             RenderTransformOrigin="0.5,0.5"
                                             Source="{Binding Logo, NotifyOnTargetUpdated=True}"
                                             Stretch="Uniform"
@@ -373,6 +375,7 @@
                                     Margin="4"
                                     HorizontalAlignment="Right"
                                     VerticalAlignment="Bottom"
+                                    RenderOptions.BitmapScalingMode="LowQuality"
                                     Source="{Binding Platform, Mode=OneWay, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource DrawingImageToImageSourceConverter}}"
                                     Stretch="Uniform" />
                             </Grid>
@@ -497,6 +500,7 @@
                                         x:Name="MainImage"
                                         HorizontalAlignment="Center"
                                         VerticalAlignment="Center"
+                                        RenderOptions.BitmapScalingMode="LowQuality"
                                         RenderTransformOrigin="0.5,0.5"
                                         Source="{Binding Cover, NotifyOnTargetUpdated=True}"
                                         Stretch="UniformToFill"
@@ -534,6 +538,7 @@
                                     Margin="4"
                                     HorizontalAlignment="Right"
                                     VerticalAlignment="Bottom"
+                                    RenderOptions.BitmapScalingMode="LowQuality"
                                     Source="{Binding Platform, Mode=OneWay, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource DrawingImageToImageSourceConverter}}"
                                     Stretch="Uniform" />
                             </Grid>
@@ -646,7 +651,8 @@
                                 Height="64"
                                 Panel.ZIndex="1"
                                 DisplayName="{Binding Name}"
-                                ProfilePicture="{Binding Cover, NotifyOnTargetUpdated=True}" />
+                                ProfilePicture="{Binding Cover, NotifyOnTargetUpdated=True}"
+                                RenderOptions.BitmapScalingMode="LowQuality" />
                             <ui:ProgressRing
                                 HorizontalAlignment="Center"
                                 VerticalAlignment="Center"
@@ -700,6 +706,7 @@
                         Height="24"
                         Margin="0,0,12,0"
                         VerticalAlignment="Center"
+                        RenderOptions.BitmapScalingMode="LowQuality"
                         Source="{Binding Platform, Mode=OneWay, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource DrawingImageToImageSourceConverter}}"
                         Stretch="Uniform" />
                 </Grid>

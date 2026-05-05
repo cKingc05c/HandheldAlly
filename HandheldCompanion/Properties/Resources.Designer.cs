@@ -5497,7 +5497,7 @@ namespace HandheldCompanion.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Change controller mode: Auto, Gamepad or Desktop.
+        ///   Looks up a localized string similar to Press to toggle between Gamepad and Desktop mode. Double-press to set Auto mode.
         /// </summary>
         public static string Hotkey_LayoutModeDesc {
             get {
