@@ -65,7 +65,7 @@
                                     Icon="{x:Static ui:SegoeFluentIcons.Click}"
                                     ToolTip="This hotkey supports a double-tap action">
                                     <ui:FontIcon.Style>
-                                        <Style BasedOn="{StaticResource {x:Type ui:FontIcon}}" TargetType="ui:FontIcon">
+                                        <Style TargetType="ui:FontIcon">
                                             <Setter Property="Visibility" Value="Collapsed" />
                                             <Style.Triggers>
                                                 <DataTrigger Binding="{Binding HasDoubleExecute}" Value="True">
