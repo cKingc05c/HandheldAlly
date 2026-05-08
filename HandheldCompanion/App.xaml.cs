@@ -4,6 +4,7 @@ using HandheldCompanion.Properties;
 using HandheldCompanion.Shared;
 using HandheldCompanion.Utils;
 using HandheldCompanion.Views;
+using iNKORE.UI.WPF.Modern.Common;
 using Sentry;
 using System;
 using System.Diagnostics;
@@ -53,6 +54,8 @@ public partial class App : Application
     public App()
     {
         InitializeSentry();
+
+        ShadowAssist.UseBitmapCache = false;
 
         InjectResource();
 

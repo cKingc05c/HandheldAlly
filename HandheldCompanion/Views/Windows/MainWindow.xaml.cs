@@ -866,10 +866,6 @@ public partial class MainWindow : GamepadWindow
                         // when device resumes from sleep
                         resumeTime = DateTime.Now;
 
-                        // resume UI ?
-                        this.WMPaint_Trigger();
-                        overlayquickTools.WMPaint_Trigger();
-
                         // wait a bit more if device went to sleep for at least 30 minutes (arbitrary)
                         TimeSpan sleepDuration = resumeTime - pendingTime;
                         if (sleepDuration.TotalMinutes >= 30)
