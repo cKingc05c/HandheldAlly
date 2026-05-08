@@ -6,6 +6,7 @@ using HandheldCompanion.Views;
 using HandheldCompanion.Views.Windows;
 using iNKORE.UI.WPF.Modern.Controls;
 using System;
+using System.ComponentModel;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
@@ -60,10 +61,13 @@ namespace HandheldCompanion.ViewModels
                 if (!string.IsNullOrEmpty(FileDescription))
                     return FileDescription;
 
-                var nativeProcess = Process.Process;
-                string pName = nativeProcess?.MainModule?.FileVersionInfo?.ProductName ?? string.Empty;
+                string pName = GetMainModuleProductName();
                 if (!string.IsNullOrEmpty(pName))
                     return pName;
+
+                string mName = GetMainModuleWindowName();
+                if (!string.IsNullOrEmpty(mName))
+                    return mName;
 
                 return Executable;
             }
@@ -77,8 +81,7 @@ namespace HandheldCompanion.ViewModels
                 if (!string.IsNullOrEmpty(Copyright))
                     return Copyright;
 
-                var nativeProcess = Process.Process;
-                string cName = nativeProcess?.MainModule?.FileVersionInfo?.CompanyName ?? string.Empty;
+                string cName = GetMainModuleCompanyName();
                 if (!string.IsNullOrEmpty(cName))
                     return cName;
 
@@ -183,6 +186,42 @@ namespace HandheldCompanion.ViewModels
                         break;
                 }
             });
+        }
+
+        private string GetMainModuleProductName()
+        {
+            try
+            {
+                return Process.Process?.MainModule?.FileVersionInfo?.ProductName ?? string.Empty;
+            }
+            catch (Exception ex) when (ex is Win32Exception or InvalidOperationException or NotSupportedException)
+            {
+                return string.Empty;
+            }
+        }
+
+        private string GetMainModuleWindowName()
+        {
+            try
+            {
+                return Process.Process?.MainWindowTitle ?? string.Empty;
+            }
+            catch (Exception ex) when (ex is Win32Exception or InvalidOperationException or NotSupportedException)
+            {
+                return string.Empty;
+            }
+        }
+
+        private string GetMainModuleCompanyName()
+        {
+            try
+            {
+                return Process.Process?.MainModule?.FileVersionInfo?.CompanyName ?? string.Empty;
+            }
+            catch (Exception ex) when (ex is Win32Exception or InvalidOperationException or NotSupportedException)
+            {
+                return string.Empty;
+            }
         }
 
         private void Process_WindowAttached(ProcessWindow processWindow)
