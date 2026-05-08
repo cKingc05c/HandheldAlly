@@ -601,6 +601,7 @@ namespace HandheldCompanion.ViewModels
                     {
                         case MotionOutput.Disabled:
                             SelectedProfile.Layout.RemoveLayout(AxisLayoutFlags.Gyroscope);
+                            gyroActions = null;
                             break;
                         case MotionOutput.LeftStick:
                             if (gyroActions is not AxisActions)
@@ -656,7 +657,7 @@ namespace HandheldCompanion.ViewModels
                     if (gyroActions is not null)
                         SelectedProfile.Layout.UpdateLayout(AxisLayoutFlags.Gyroscope, gyroActions);
 
-                    SubmitProfile(UpdateSource.Creation);
+                    SubmitProfile();
                 }
             }
         }
@@ -1655,6 +1656,9 @@ namespace HandheldCompanion.ViewModels
             SubProfiles.Clear();
             foreach (var profile in newProfiles)
                 SubProfiles.Add(new ProfileViewModel(profile, IsQuickTools));
+
+            if (_selectedProfile?.Guid == profileToSelect.Guid)
+                OnPropertyChanged(nameof(SelectedSubProfileViewModel));
         }
 
         public ProfilesPageViewModel(ProfilesPage profilesPage)
@@ -1728,6 +1732,8 @@ namespace HandheldCompanion.ViewModels
             {
                 ManagerFactory.processManager.ForegroundChanged += ProcessManager_ForegroundChanged;
                 ManagerFactory.hotkeysManager.Updated += HotkeysManager_Updated;
+                InputsManager.StartedListening += InputsManager_StartedListening;
+                InputsManager.StoppedListening += InputsManager_StoppedListening;
 
                 switch (ManagerFactory.hotkeysManager.Status)
                 {
@@ -3225,6 +3231,24 @@ namespace HandheldCompanion.ViewModels
             }
         }
 
+        private void InputsManager_StartedListening(ButtonFlags buttonFlags, InputsChordTarget chordTarget)
+        {
+            if (buttonFlags != gyroButtonFlags)
+                return;
+
+            HotkeyViewModel? hotkeyViewModel = HotkeysList.FirstOrDefault(h => h.Hotkey.ButtonFlags == buttonFlags);
+            hotkeyViewModel?.SetListening(true, chordTarget);
+        }
+
+        private void InputsManager_StoppedListening(ButtonFlags buttonFlags, InputsChord storedChord)
+        {
+            if (buttonFlags != gyroButtonFlags)
+                return;
+
+            HotkeyViewModel? hotkeyViewModel = HotkeysList.FirstOrDefault(h => h.Hotkey.ButtonFlags == buttonFlags);
+            hotkeyViewModel?.SetListening(false, storedChord.chordTarget);
+        }
+
         /// <summary>
         /// Debounces profile updates - waits 500ms after the last change before saving.
         /// Useful for rapid UI changes like slider movements or text input.
@@ -3304,6 +3328,8 @@ namespace HandheldCompanion.ViewModels
                 {
                     ManagerFactory.processManager.ForegroundChanged -= ProcessManager_ForegroundChanged;
                     ManagerFactory.hotkeysManager.Updated -= HotkeysManager_Updated;
+                    InputsManager.StartedListening -= InputsManager_StartedListening;
+                    InputsManager.StoppedListening -= InputsManager_StoppedListening;
                     ManagerFactory.hotkeysManager.Initialized -= HotkeysManager_Initialized;
                 }
                 else
