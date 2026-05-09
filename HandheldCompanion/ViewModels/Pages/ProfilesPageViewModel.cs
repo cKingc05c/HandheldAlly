@@ -123,23 +123,8 @@ namespace HandheldCompanion.ViewModels
             get => _selectedProfile;
             set
             {
-                if (_selectedProfile != value)
-                {
-                    using (new LoadingScope(this))
-                    {
-                        _selectedProfile = value;
-                        OnPropertyChanged(nameof(SelectedProfile));
-                        OnPropertyChanged(nameof(HasSelectedProfile));
-                        OnPropertyChanged(nameof(CanLaunchProcess));
-                        OnPropertyChanged(nameof(CanKillProcess));
-                        OnPropertyChanged(nameof(IsProfileProcessRunning));
-                        OnPropertyChanged(nameof(CanToggleProfileProcess));
-                        OnPropertyChanged(nameof(IsProfileEnabledToggleEnabled));
-                        OnPropertyChanged(nameof(IsControllerPassthroughEnabled));
-                        OnPropertyChanged(nameof(SelectedSubProfileViewModel));
-                        OnProfileChanged();
-                    }
-                }
+                using (new LoadingScope(this))
+                    SetSelectedProfile(value, true);
             }
         }
 
@@ -149,19 +134,7 @@ namespace HandheldCompanion.ViewModels
             get => _selectedMainProfile;
             set
             {
-                if (_selectedMainProfile != value)
-                {
-                    _selectedMainProfile = value;
-                    OnPropertyChanged(nameof(SelectedMainProfile));
-                    OnPropertyChanged(nameof(SelectedMainProfileViewModel));
-                    OnPropertyChanged(nameof(IsProfileManagementEnabled));
-                    OnPropertyChanged(nameof(IsLibrarySettingsEnabled));
-                    OnPropertyChanged(nameof(CanLaunchProcess));
-                    OnPropertyChanged(nameof(CanKillProcess));
-                    OnPropertyChanged(nameof(IsProfileProcessRunning));
-                    OnPropertyChanged(nameof(CanToggleProfileProcess));
-                    UpdateSubProfiles();
-                }
+                SetSelectedMainProfile(value, true);
             }
         }
 
@@ -1293,16 +1266,9 @@ namespace HandheldCompanion.ViewModels
                 if (_SelectedLibraryEntry != value)
                 {
                     _SelectedLibraryEntry = value;
-                    if (value != null)
-                    {
-                        LibraryEntryViewModel? matchingPicker = LibraryPickers.FirstOrDefault(p => p.Id == value.Id);
-                        _SelectedLibraryIndex = matchingPicker is not null ? LibraryPickers.IndexOf(matchingPicker) : -1;
-                    }
-                    else
-                        _SelectedLibraryIndex = -1;
+                    UpdateSelectedLibraryIndex(value);
 
                     OnPropertyChanged(nameof(SelectedLibraryEntry));
-                    OnPropertyChanged(nameof(SelectedLibraryIndex));
                     SelectedLibraryChanged();
                 }
             }
@@ -1317,16 +1283,35 @@ namespace HandheldCompanion.ViewModels
                 if (_SelectedLibraryIndex != value)
                 {
                     _SelectedLibraryIndex = value;
-                    if (value >= 0 && value < LibraryPickers.Count)
-                        _SelectedLibraryEntry = LibraryPickers[value].LibEntry;
-                    else
-                        _SelectedLibraryEntry = null;
+                    UpdateSelectedLibraryEntry(value);
 
                     OnPropertyChanged(nameof(SelectedLibraryEntry));
                     OnPropertyChanged(nameof(SelectedLibraryIndex));
                     SelectedLibraryChanged();
                 }
             }
+        }
+
+        private void UpdateSelectedLibraryIndex(LibraryEntry? entry)
+        {
+            _SelectedLibraryIndex = GetLibraryIndex(entry);
+            OnPropertyChanged(nameof(SelectedLibraryIndex));
+        }
+
+        private int GetLibraryIndex(LibraryEntry? entry)
+        {
+            if (entry is null)
+                return -1;
+
+            LibraryEntryViewModel? matchingPicker = LibraryPickers.FirstOrDefault(p => p.Id == entry.Id);
+            return matchingPicker is not null ? LibraryPickers.IndexOf(matchingPicker) : -1;
+        }
+
+        private void UpdateSelectedLibraryEntry(int index)
+        {
+            _SelectedLibraryEntry = index >= 0 && index < LibraryPickers.Count
+                ? LibraryPickers[index].LibEntry
+                : null;
         }
 
         private int _LibraryCoversIndex;
@@ -1339,6 +1324,15 @@ namespace HandheldCompanion.ViewModels
                     _ = TriggerGameArtDownloadAsync(value, LibraryType.cover | LibraryType.thumbnails);
                 else
                     RefreshCover(value);
+            }
+        }
+
+        private void SetLibraryCoversIndex(int value)
+        {
+            if (_LibraryCoversIndex != value)
+            {
+                _LibraryCoversIndex = value;
+                OnPropertyChanged(nameof(LibraryCoversIndex));
             }
         }
 
@@ -1365,6 +1359,15 @@ namespace HandheldCompanion.ViewModels
             }
         }
 
+        private void SetLibraryArtworksIndex(int value)
+        {
+            if (_LibraryArtworksIndex != value)
+            {
+                _LibraryArtworksIndex = value;
+                OnPropertyChanged(nameof(LibraryArtworksIndex));
+            }
+        }
+
         public ObservableCollection<LibraryVisualViewModel> LibraryArtworks
         {
             get
@@ -1385,6 +1388,15 @@ namespace HandheldCompanion.ViewModels
                     _ = TriggerGameArtDownloadAsync(value, LibraryType.logo | LibraryType.thumbnails);
                 else
                     RefreshLogo(value);
+            }
+        }
+
+        private void SetLibraryLogosIndex(int value)
+        {
+            if (_LibraryLogosIndex != value)
+            {
+                _LibraryLogosIndex = value;
+                OnPropertyChanged(nameof(LibraryLogosIndex));
             }
         }
 
@@ -1469,15 +1481,7 @@ namespace HandheldCompanion.ViewModels
                 {
                     _selectedPickerDC = value;
                     OnPropertyChanged(nameof(SelectedPickerDC));
-
-                    if (value?.LinkedPresetId != null)
-                    {
-                        _selectedPresetDC = ManagerFactory.powerProfileManager.GetProfile(value.LinkedPresetId.Value);
-                        OnPropertyChanged(nameof(SelectedPresetDC));
-
-                        if (!isLoadingProfile)
-                            PowerProfile_Selected(_selectedPresetDC, false);
-                    }
+                    SelectPresetDC(value);
                 }
             }
         }
@@ -1495,17 +1499,33 @@ namespace HandheldCompanion.ViewModels
                 {
                     _selectedPickerAC = value;
                     OnPropertyChanged(nameof(SelectedPickerAC));
-
-                    if (value?.LinkedPresetId != null)
-                    {
-                        _selectedPresetAC = ManagerFactory.powerProfileManager.GetProfile(value.LinkedPresetId.Value);
-                        OnPropertyChanged(nameof(SelectedPresetAC));
-
-                        if (!isLoadingProfile)
-                            PowerProfile_Selected(_selectedPresetAC, true);
-                    }
+                    SelectPresetAC(value);
                 }
             }
+        }
+
+        private void SelectPresetDC(ProfilesPickerViewModel? picker)
+        {
+            if (picker?.LinkedPresetId == null)
+                return;
+
+            _selectedPresetDC = ManagerFactory.powerProfileManager.GetProfile(picker.LinkedPresetId.Value);
+            OnPropertyChanged(nameof(SelectedPresetDC));
+
+            if (!isLoadingProfile)
+                PowerProfile_Selected(_selectedPresetDC, false);
+        }
+
+        private void SelectPresetAC(ProfilesPickerViewModel? picker)
+        {
+            if (picker?.LinkedPresetId == null)
+                return;
+
+            _selectedPresetAC = ManagerFactory.powerProfileManager.GetProfile(picker.LinkedPresetId.Value);
+            OnPropertyChanged(nameof(SelectedPresetAC));
+
+            if (!isLoadingProfile)
+                PowerProfile_Selected(_selectedPresetAC, true);
         }
         #endregion
 
@@ -1527,9 +1547,6 @@ namespace HandheldCompanion.ViewModels
             {
                 if (_CurrentProcessViewModel != value)
                 {
-                    // Unsubscribe from old ViewModel
-                    _CurrentProcessViewModel?.PropertyChanged -= CurrentProcessViewModel_PropertyChanged;
-
                     _CurrentProcessViewModel = value;
 
                     // Subscribe to new ViewModel
@@ -1643,6 +1660,49 @@ namespace HandheldCompanion.ViewModels
             {
                 _viewModel.isLoadingProfile = false;
             }
+        }
+
+        private bool SetSelectedProfile(Profile value, bool updateProfileContext, bool forceNotification = false)
+        {
+            if (_selectedProfile == value && !forceNotification)
+                return false;
+
+            _selectedProfile = value;
+            OnPropertyChanged(nameof(SelectedProfile));
+            OnPropertyChanged(nameof(HasSelectedProfile));
+            OnPropertyChanged(nameof(CanLaunchProcess));
+            OnPropertyChanged(nameof(CanKillProcess));
+            OnPropertyChanged(nameof(IsProfileProcessRunning));
+            OnPropertyChanged(nameof(CanToggleProfileProcess));
+            OnPropertyChanged(nameof(IsProfileEnabledToggleEnabled));
+            OnPropertyChanged(nameof(IsControllerPassthroughEnabled));
+            OnPropertyChanged(nameof(SelectedSubProfileViewModel));
+
+            if (updateProfileContext)
+                OnProfileChanged();
+
+            return true;
+        }
+
+        private bool SetSelectedMainProfile(Profile value, bool updateSubProfiles, bool forceNotification = false)
+        {
+            if (_selectedMainProfile == value && !forceNotification)
+                return false;
+
+            _selectedMainProfile = value;
+            OnPropertyChanged(nameof(SelectedMainProfile));
+            OnPropertyChanged(nameof(SelectedMainProfileViewModel));
+            OnPropertyChanged(nameof(IsProfileManagementEnabled));
+            OnPropertyChanged(nameof(IsLibrarySettingsEnabled));
+            OnPropertyChanged(nameof(CanLaunchProcess));
+            OnPropertyChanged(nameof(CanKillProcess));
+            OnPropertyChanged(nameof(IsProfileProcessRunning));
+            OnPropertyChanged(nameof(CanToggleProfileProcess));
+
+            if (updateSubProfiles)
+                UpdateSubProfiles();
+
+            return true;
         }
 
         /// <summary>
@@ -2534,30 +2594,18 @@ namespace HandheldCompanion.ViewModels
                             SubmitProfile();
                         }
 
+                        // update profile
                         Profile mainProfile = ManagerFactory.profileManager.GetParent(profile);
-
                         if (SelectedMainProfile?.Guid != mainProfile.Guid)
-                        {
-                            _selectedMainProfile = mainProfile;
-                            OnPropertyChanged(nameof(SelectedMainProfile));
-                            OnPropertyChanged(nameof(SelectedMainProfileViewModel));
-                            OnPropertyChanged(nameof(IsProfileManagementEnabled));
-                            OnPropertyChanged(nameof(IsLibrarySettingsEnabled));
-                        }
+                            SelectedMainProfile = mainProfile;
 
+                        // update subprofiles
                         IEnumerable<Profile> subProfiles = ManagerFactory.profileManager.GetSubProfilesFromProfile(mainProfile, true);
-                        int selectedIndex = subProfiles.Select((p, i) => new { p, i })
-                            .FirstOrDefault(x => x.p.Guid == profile.Guid)?.i ?? 0;
-
                         SafeUpdateSubProfiles(subProfiles, profile);
 
-                        if (_SelectedSubProfileIndex != selectedIndex)
-                        {
-                            _SelectedSubProfileIndex = selectedIndex;
-                            OnPropertyChanged(nameof(SelectedSubProfileIndex));
-                        }
-
-                        SelectedProfile = profile;
+                        int selectedIndex = subProfiles.Select((p, i) => new { p, i }).FirstOrDefault(x => x.p.Guid == profile.Guid)?.i ?? 0;
+                        if (SelectedSubProfileIndex != selectedIndex)
+                            SelectedSubProfileIndex = selectedIndex;
 
                         if (IsQuickTools && profile.Layout.GyroLayout.TryGetValue(AxisLayoutFlags.Gyroscope, out IActions? currentAction))
                         {
@@ -2591,8 +2639,9 @@ namespace HandheldCompanion.ViewModels
             if (source == UpdateSource.Serializer)
                 return;
 
-            isCurrent = SelectedProfile?.Guid == profile.Guid;
-            isCurrent |= source.HasFlag(UpdateSource.Creation);
+            isCurrent |= SelectedProfile?.Guid == profile.Guid;
+            if (!IsQuickTools)
+                isCurrent |= source.HasFlag(UpdateSource.Creation);
 
             if (source == UpdateSource.QuickProfilesPage && !isCurrent)
                 return;
@@ -2606,7 +2655,7 @@ namespace HandheldCompanion.ViewModels
                     {
                         MainProfiles.Add(new ProfileViewModel(profile, false));
 
-                        if (source.HasFlag(UpdateSource.Creation))
+                        if (!IsQuickTools && source.HasFlag(UpdateSource.Creation))
                             SelectedMainProfile = profile;
                         return;
                     }
@@ -2614,11 +2663,7 @@ namespace HandheldCompanion.ViewModels
                     existingVm.Profile = profile;
                     MainProfilesView.Refresh();
                     if (SelectedMainProfile?.Guid == profile.Guid)
-                    {
-                        _selectedMainProfile = profile;
-                        OnPropertyChanged(nameof(SelectedMainProfile));
-                        OnPropertyChanged(nameof(SelectedMainProfileViewModel));
-                    }
+                        SetSelectedMainProfile(profile, false, true);
                 }
                 else
                 {
@@ -2626,7 +2671,7 @@ namespace HandheldCompanion.ViewModels
                     if (existingSubProfile == null && SelectedMainProfile != null && profile.ParentGuid == SelectedMainProfile.Guid)
                     {
                         SubProfiles.Add(new ProfileViewModel(profile, IsQuickTools));
-                        if (source.HasFlag(UpdateSource.Creation))
+                        if (!IsQuickTools && source.HasFlag(UpdateSource.Creation))
                             SelectedProfile = profile;
                         return;
                     }
@@ -2639,14 +2684,7 @@ namespace HandheldCompanion.ViewModels
 
                 if (SelectedProfile?.Guid == profile.Guid)
                 {
-                    _selectedProfile = profile;
-                    OnPropertyChanged(nameof(SelectedProfile));
-                    OnPropertyChanged(nameof(HasSelectedProfile));
-                    OnPropertyChanged(nameof(CanLaunchProcess));
-                    OnPropertyChanged(nameof(CanKillProcess));
-                    OnPropertyChanged(nameof(IsProfileProcessRunning));
-                    OnPropertyChanged(nameof(CanToggleProfileProcess));
-                    OnPropertyChanged(nameof(SelectedSubProfileViewModel));
+                    SetSelectedProfile(profile, false, true);
                     OnPropertyChanged(nameof(Cover));
                     OnPropertyChanged(nameof(Artwork));
                     OnPropertyChanged(nameof(Logo));
@@ -2656,10 +2694,7 @@ namespace HandheldCompanion.ViewModels
                         ProfileViewModel? subProfile = SubProfiles.FirstOrDefault(p => p.Profile.Guid == profile.Guid);
                         int subProfileIndex = subProfile is null ? -1 : SubProfiles.IndexOf(subProfile);
                         if (subProfileIndex >= 0 && subProfileIndex != _SelectedSubProfileIndex)
-                        {
-                            _SelectedSubProfileIndex = subProfileIndex;
-                            OnPropertyChanged(nameof(SelectedSubProfileIndex));
-                        }
+                            SelectedSubProfileIndex = subProfileIndex;
                     }
 
                     RefreshProfileExecutables();
@@ -2908,10 +2943,7 @@ namespace HandheldCompanion.ViewModels
                 var pickerViewModel = ProfilePicker.FirstOrDefault(p => p.LinkedPresetId == offlineGuid);
                 if (pickerViewModel != null)
                 {
-                    _selectedPresetDC = ManagerFactory.powerProfileManager.GetProfile(offlineGuid);
-                    _selectedPickerDC = pickerViewModel;
-                    OnPropertyChanged(nameof(SelectedPresetDC));
-                    OnPropertyChanged(nameof(SelectedPickerDC));
+                    SelectedPickerDC = pickerViewModel;
                 }
             }
 
@@ -2921,10 +2953,7 @@ namespace HandheldCompanion.ViewModels
                 var pickerViewModel = ProfilePicker.FirstOrDefault(p => p.LinkedPresetId == onlineGuid);
                 if (pickerViewModel != null)
                 {
-                    _selectedPresetAC = ManagerFactory.powerProfileManager.GetProfile(onlineGuid);
-                    _selectedPickerAC = pickerViewModel;
-                    OnPropertyChanged(nameof(SelectedPresetAC));
-                    OnPropertyChanged(nameof(SelectedPickerAC));
+                    SelectedPickerAC = pickerViewModel;
                 }
             }
         }
@@ -3107,8 +3136,7 @@ namespace HandheldCompanion.ViewModels
             try
             {
                 OnPropertyChanged(nameof(LibraryCovers));
-                _LibraryCoversIndex = index;
-                OnPropertyChanged(nameof(LibraryCoversIndex));
+                SetLibraryCoversIndex(index);
             }
             catch { }
         }
@@ -3118,8 +3146,7 @@ namespace HandheldCompanion.ViewModels
             try
             {
                 OnPropertyChanged(nameof(LibraryArtworks));
-                _LibraryArtworksIndex = index;
-                OnPropertyChanged(nameof(LibraryArtworksIndex));
+                SetLibraryArtworksIndex(index);
             }
             catch { }
         }
@@ -3129,8 +3156,7 @@ namespace HandheldCompanion.ViewModels
             try
             {
                 OnPropertyChanged(nameof(LibraryLogos));
-                _LibraryLogosIndex = index;
-                OnPropertyChanged(nameof(LibraryLogosIndex));
+                SetLibraryLogosIndex(index);
             }
             catch { }
         }
@@ -3173,12 +3199,21 @@ namespace HandheldCompanion.ViewModels
 
                 if (IsQuickTools)
                 {
+                    // Unsubscribe from old ViewModel
+                    CurrentProcessViewModel?.PropertyChanged -= CurrentProcessViewModel_PropertyChanged;
                     CurrentProcessViewModel?.Dispose();
 
                     if (currentProcess is null || currentProcess.Filter != ProcessFilter.Allowed)
                         CurrentProcessViewModel = null;
                     else
                         CurrentProcessViewModel = new ProcessExViewModel(currentProcess, true);
+
+                    Profile foregroundProfile = currentProcess is not null && currentProcess.Filter == ProcessFilter.Allowed
+                        ? ManagerFactory.profileManager.GetProfileFromPath(currentProcess.Path, false)
+                        : ManagerFactory.profileManager.GetDefault();
+
+                    if (SelectedProfile?.Guid != foregroundProfile.Guid)
+                        HandleProfileApplied(foregroundProfile, UpdateSource.Background);
                 }
             }
             catch { }
