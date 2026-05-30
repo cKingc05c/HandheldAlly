@@ -18,7 +18,7 @@
 #define InstallerVersion        "0.2"
 #define MyAppSetupName         "Handheld Companion"
 #define MyBuildId              "HandheldCompanion"
-#define MyAppVersion           "0.30.0.1"
+#define MyAppVersion           "0.30.1.0"
 #define MyAppPublisher         "BenjaminLSR"
 #define MyAppCopyright         "Copyright © BenjaminLSR"
 #define MyAppURL               "https://github.com/Valkirie/HandheldCompanion"
@@ -36,7 +36,7 @@
 #define HidHideName            "HidHide Drivers"
 #define RtssName               "RTSS Setup"
 #define PawnIOName             "PawnIO"
-#define USBipName              "USBip version 0.9.7.7"
+#define USBipName              "USBip"
 
 #define NewDotNetVersion       "10.0.0"
 #define NewDirectXVersion      "9.29.1974"
