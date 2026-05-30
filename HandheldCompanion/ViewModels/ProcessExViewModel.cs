@@ -6,8 +6,8 @@ using HandheldCompanion.Views;
 using HandheldCompanion.Views.Windows;
 using iNKORE.UI.WPF.Modern.Controls;
 using System;
-using System.ComponentModel;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Data;
@@ -289,7 +289,6 @@ namespace HandheldCompanion.ViewModels
             ProcessWindows.SafeClear();
 
             KillProcessCommand = null;
-            _process = null;
 
             base.Dispose();
         }

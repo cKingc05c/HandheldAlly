@@ -74,6 +74,45 @@ begin
 end;
 
 
+function IsUSBipInstalled(): boolean;
+var
+  uninstallString: string;
+begin
+  Result := False;
+
+  if not regUninstallKeyExists('{199505b0-b93d-4521-a8c7-897818e0205a}_is1') then
+  begin
+    Log('USBip uninstall key not found.');
+    Exit;
+  end;
+
+  uninstallString := regGetUninstallValue('{199505b0-b93d-4521-a8c7-897818e0205a}_is1', 'UninstallString');
+  if uninstallString = '' then
+  begin
+    Log('USBip UninstallString is empty or missing.');
+    Exit;
+  end;
+
+  Log('USBip uninstall key found.');
+  Result := True;
+end;
+
+
+function GetInstalledUSBipVersion(): string;
+begin
+  Result := '';
+  if not regUninstallKeyExists('{199505b0-b93d-4521-a8c7-897818e0205a}_is1') then
+  begin
+    Log('USBip uninstall key not found (version unavailable).');
+    Exit;
+  end;
+
+  Result := regGetUninstallValue('{199505b0-b93d-4521-a8c7-897818e0205a}_is1', 'DisplayVersion');
+  if Result = '' then
+    Log('USBip DisplayVersion is empty or missing.');
+end;
+
+
 function isHidHideInstalled():boolean;
 begin
   result:= false;
@@ -99,17 +138,6 @@ begin
     result:= versionNumber;
   end;  
 end;
-
-
-function isViGemInstalled():boolean;
-begin
-  result:= false;
-  if(FileExists(ExpandConstant('{commonpf}') + '\Nefarius Software Solutions\ViGEm Bus Driver\vigembus.cat')) then
-  begin
-    log('ViGem is already installed.');
-    result:= true;                       
-  end;
-end;        
 
 
 function splitString(Text: String; Separator: String): TArrayOfString;

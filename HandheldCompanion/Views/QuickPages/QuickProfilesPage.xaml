@@ -351,6 +351,7 @@
                                                                             <Storyboard>
                                                                                 <DoubleAnimation
                                                                                     AutoReverse="True"
+                                                                                    FillBehavior="Stop"
                                                                                     RepeatBehavior="1x"
                                                                                     Storyboard.TargetProperty="Opacity"
                                                                                     From="1.0"
@@ -1106,6 +1107,7 @@
                                 Name="GraphicsSettingsRing"
                                 Width="100"
                                 Height="100"
+                                IsActive="False"
                                 Visibility="Collapsed" />
                         </Grid>
                     </Expander.Content>

@@ -58,6 +58,7 @@
                         <DataTemplate>
                             <Grid>
                                 <!--  Double-execute indicator: shown only when the command supports a double-tap action  -->
+                                <!--
                                 <ui:FontIcon
                                     HorizontalAlignment="Right"
                                     VerticalAlignment="Top"
@@ -75,6 +76,7 @@
                                         </Style>
                                     </ui:FontIcon.Style>
                                 </ui:FontIcon>
+                                -->
 
                                 <ikw:SimpleStackPanel Spacing="3">
                                     <ToggleButton

@@ -2257,6 +2257,15 @@ namespace HandheldCompanion.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Emulated DualSense controller.
+        /// </summary>
+        public static string Enum_HIDmode_DualSenseController {
+            get {
+                return ResourceManager.GetString("Enum_HIDmode_DualSenseController", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Emulated DualShock 4 controller.
         /// </summary>
         public static string Enum_HIDmode_DualShock4Controller {
@@ -2275,11 +2284,29 @@ namespace HandheldCompanion.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to Emulated DInput controller.
+        ///   Looks up a localized string similar to Emulated Steam controller (Gordon).
         /// </summary>
-        public static string Enum_HIDmode_vJoyController {
+        public static string Enum_HIDmode_SteamController {
             get {
-                return ResourceManager.GetString("Enum_HIDmode_vJoyController", resourceCulture);
+                return ResourceManager.GetString("Enum_HIDmode_SteamController", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Emulated Steam Deck controller (Neptune).
+        /// </summary>
+        public static string Enum_HIDmode_SteamDeckController {
+            get {
+                return ResourceManager.GetString("Enum_HIDmode_SteamDeckController", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Emulated Switch Pro controller.
+        /// </summary>
+        public static string Enum_HIDmode_SwitchProController {
+            get {
+                return ResourceManager.GetString("Enum_HIDmode_SwitchProController", resourceCulture);
             }
         }
         
@@ -3310,11 +3337,20 @@ namespace HandheldCompanion.Properties {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to STEAM.
+        ///   Looks up a localized string similar to Steam.
         /// </summary>
         public static string Enum_NeptuneController_ButtonFlags_Special {
             get {
                 return ResourceManager.GetString("Enum_NeptuneController_ButtonFlags_Special", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Options.
+        /// </summary>
+        public static string Enum_NeptuneController_ButtonFlags_Special2 {
+            get {
+                return ResourceManager.GetString("Enum_NeptuneController_ButtonFlags_Special2", resourceCulture);
             }
         }
         
@@ -3603,15 +3639,6 @@ namespace HandheldCompanion.Properties {
         public static string Enum_ServiceStartMode_Manual {
             get {
                 return ResourceManager.GetString("Enum_ServiceStartMode_Manual", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Options.
-        /// </summary>
-        public static string Enum_SteamDeck_ButtonFlags_OEM1 {
-            get {
-                return ResourceManager.GetString("Enum_SteamDeck_ButtonFlags_OEM1", resourceCulture);
             }
         }
         
@@ -8981,15 +9008,6 @@ namespace HandheldCompanion.Properties {
         public static string ProfilesPage_EmulatedControllerDS4 {
             get {
                 return ResourceManager.GetString("ProfilesPage_EmulatedControllerDS4", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to Emulated DInput controller.
-        /// </summary>
-        public static string ProfilesPage_EmulatedControllervJoy {
-            get {
-                return ResourceManager.GetString("ProfilesPage_EmulatedControllervJoy", resourceCulture);
             }
         }
         

@@ -300,7 +300,7 @@
                     </ToggleButton>
                 </ui:SettingsCard>
 
-                <ui:ProgressBar IsIndeterminate="True" Visibility="{Binding ManufacturerAppBusy, Mode=OneWay, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource BooleanToVisibilityConverter}, ConverterParameter=False}" />
+                <ui:ProgressBar IsIndeterminate="{Binding ManufacturerAppBusy, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}" Visibility="{Binding ManufacturerAppBusy, Mode=OneWay, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource BooleanToVisibilityConverter}, ConverterParameter=False}" />
             </ikw:SimpleStackPanel>
 
             <!--  Display options  -->

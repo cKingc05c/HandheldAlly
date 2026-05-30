@@ -757,6 +757,54 @@ namespace HandheldCompanion.Properties
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        public bool VIIPEREnabled {
+            get {
+                return ((bool)(this["VIIPEREnabled"]));
+            }
+            set {
+                this["VIIPEREnabled"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("3242")]
+        public int VIIPERPort {
+            get {
+                return ((int)(this["VIIPERPort"]));
+            }
+            set {
+                this["VIIPERPort"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("127.0.0.1")]
+        public string VIIPERHost {
+            get {
+                return ((string)(this["VIIPERHost"]));
+            }
+            set {
+                this["VIIPERHost"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("Tools\\viiper-windows-amd64.exe")]
+        public string VIIPERExecutablePath {
+            get {
+                return ((string)(this["VIIPERExecutablePath"]));
+            }
+            set {
+                this["VIIPERExecutablePath"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("50")]
         public double LEDBrightness {
             get {

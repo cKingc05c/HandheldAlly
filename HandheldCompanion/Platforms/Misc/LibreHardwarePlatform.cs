@@ -103,9 +103,9 @@ namespace HandheldCompanion.Platforms.Misc
                     computer.Open();
                     computerOpened = true;
                 }
-                catch
+                catch (Exception ex)
                 {
-                    LogManager.LogError("LibreHardwareMonitor computer.Open() failed");
+                    LogManager.LogError("LibreHardwareMonitor computer.Open() failed, {0}", ex.Message);
                     computerOpened = false;
                 }
 

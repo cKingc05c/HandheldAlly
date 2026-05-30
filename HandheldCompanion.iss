@@ -10,16 +10,15 @@
 #endif
 
 #define UseDirectX
-;Install ViGem first
-#define UseViGem
 #define UseHideHide
 #define UseRTSS
 #define UsePawnIO
+#define UseUSBip
 
 #define InstallerVersion        "0.2"
 #define MyAppSetupName         "Handheld Companion"
 #define MyBuildId              "HandheldCompanion"
-#define MyAppVersion           "0.29.4.2"
+#define MyAppVersion           "0.30.0.1"
 #define MyAppPublisher         "BenjaminLSR"
 #define MyAppCopyright         "Copyright © BenjaminLSR"
 #define MyAppURL               "https://github.com/Valkirie/HandheldCompanion"
@@ -34,23 +33,23 @@
 
 #define DotNetName             ".NET Desktop Runtime"
 #define DirectXName            "DirectX Runtime"
-#define ViGemName              "ViGEmBus Setup"
 #define HidHideName            "HidHide Drivers"
 #define RtssName               "RTSS Setup"
 #define PawnIOName             "PawnIO"
+#define USBipName              "USBip version 0.9.7.7"
 
 #define NewDotNetVersion       "10.0.0"
 #define NewDirectXVersion      "9.29.1974"
-#define NewViGemVersion        "1.22.0.0"
 #define NewHidHideVersion      "1.5.230"
 #define NewRtssVersion         "7.3.5.28314"
 #define NewPawnIOVersion       "2.1.0.0"
+#define NewUSBipVersion        "0.9.7.7"
 
 #define DirectXDownloadLink    "https://download.microsoft.com/download/1/7/1/1718CCC4-6315-4D8E-9543-8E28A4E18C4C/dxwebsetup.exe"
 #define HidHideDownloadLink    "https://github.com/nefarius/HidHide/releases/download/v1.5.230.0/HidHide_1.5.230_x64.exe"
-#define ViGemDownloadLink      "https://github.com/nefarius/ViGEmBus/releases/download/v1.22.0/ViGEmBus_1.22.0_x64_x86_arm64.exe"
 #define RtssDownloadLink       "https://github.com/Valkirie/HandheldCompanion/raw/main/redist/RTSSSetup737.exe"
 #define PawnIODownloadLink     "https://github.com/namazso/PawnIO.Setup/releases/latest/download/PawnIO_setup.exe"
+#define USBipDownloadLink      "https://github.com/vadimgrn/usbip-win2/releases/download/v.0.9.7.7/USBip-0.9.7.7-x64.exe"
 #define GameControllerDBDownloadLink "https://raw.githubusercontent.com/mdqinc/SDL_GameControllerDB/refs/heads/master/gamecontrollerdb.txt"
 
 ; Registry  
@@ -179,9 +178,9 @@ function Dependency_IsDirectXInstalled: Boolean; forward;
 procedure Dependency_AddDotNet10Desktop; forward;
 procedure Dependency_AddDirectX; forward;
 procedure Dependency_AddHideHide; forward;
-procedure Dependency_AddViGem; forward;
 procedure Dependency_AddRTSS; forward;
 procedure Dependency_AddPawnIO; forward;
+procedure Dependency_AddUSBip; forward;
 function BoolToStr(Value: Boolean): String; forward;
 
 #include "./utils/CompareVersions.iss"
@@ -434,9 +433,14 @@ var
 begin
   if CurUninstallStep = usUninstall then
   begin
-    if deleteSettingsCheckbox.Checked then
-      if DirExists(ExpandConstant('{localappdata}\{#MyBuildId}')) then
-        DelTree(ExpandConstant('{localappdata}\{#MyBuildId}'), True, True, True);
+    if Exec(ExpandConstant('{app}\{#MyAppExeName}'), '--uninstall-restore', '', SW_SHOW, ewWaitUntilTerminated, resultCode) then
+    begin
+      Log('Uninstall restore mode finished with exit code ' + IntToStr(resultCode));
+      if resultCode <> 0 then
+        Log('Uninstall restore mode reported issues while restoring OEM stack');
+    end
+    else
+      Log('Failed to launch uninstall restore mode');
 
     if not(keepHidhideCheckbox.Checked) then
       uninstallHidHide();
@@ -454,6 +458,10 @@ begin
       else
         Log('Failed to execute Vigem uninstaller');
     end;
+
+    if deleteSettingsCheckbox.Checked then
+      if DirExists(ExpandConstant('{localappdata}\{#MyBuildId}')) then
+        DelTree(ExpandConstant('{localappdata}\{#MyBuildId}'), True, True, True);
   end;
 end;
 
@@ -502,22 +510,6 @@ begin
   end;
 #endif
 
-#ifdef UseViGem
-  if not IsViGemInstalled() then
-  begin
-    Dependency_AddViGem;
-  end
-  else
-  begin
-    installedVersion := RegGetInstalledVersion('{#ViGemName}');
-    if compareVersions('{#NewViGemVersion}', installedVersion, '.', '-') > 0 then
-    begin
-      Log('{#ViGemName} {#NewViGemVersion} needs update.');
-      Dependency_AddViGem;
-    end;
-  end;
-#endif
-
 #ifdef UseRTSS
   if not IsRtssInstalled() then
     Dependency_AddRTSS
@@ -557,6 +549,20 @@ begin
 
       // Install new version
       Dependency_AddPawnIO;
+    end;
+  end;
+#endif
+
+#ifdef UseUSBip
+  if not IsUSBipInstalled() then
+    Dependency_AddUSBip
+  else
+  begin
+    installedVersion := GetInstalledUSBipVersion();
+    if compareVersions('{#NewUSBipVersion}', installedVersion, '.', '-') > 0 then
+    begin
+      Log('{#USBipName} update required. Installed: ' + installedVersion + ' New: {#NewUSBipVersion}');
+      Dependency_AddUSBip;
     end;
   end;
 #endif
@@ -821,15 +827,6 @@ begin
     '', True, False, True, 'HidHide');
 end;
 
-procedure Dependency_AddViGem;
-begin
-  Dependency_Add_With_Version('ViGEmBus_1.22.0_x64_x86_arm64.exe', '{#NewViGemVersion}', RegGetInstalledVersion('{#ViGemName}'),
-    '/quiet /norestart',
-    '{#ViGemName}',
-    '{#ViGemDownloadLink}',
-    '', True, True, True, 'ViGEm Bus Driver');
-end;
-
 procedure Dependency_AddRTSS;
 begin
   Dependency_Add_With_Version('RTSSSetup737.exe', '{#NewRtssVersion}', RegGetInstalledVersion('{#RtssName}'),
@@ -845,6 +842,15 @@ begin
     '-install -silent',
     '{#PawnIOName}',
     '{#PawnIODownloadLink}',
+    '', True, True, False, '');
+end;
+
+procedure Dependency_AddUSBip;
+begin
+  Dependency_Add_With_Version('USBip-0.9.7.7-x64.exe', '{#NewUSBipVersion}', RegGetInstalledVersion('{#USBipName}'),
+    '/VERYSILENT /COMPONENTS=main,client /SUPPRESSMSGBOXES /NORESTART /SP-',
+    '{#USBipName}',
+    '{#USBipDownloadLink}',
     '', True, True, False, '');
 end;
 

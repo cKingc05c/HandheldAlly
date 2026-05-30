@@ -211,11 +211,11 @@ namespace HandheldCompanion.Controllers.Lenovo
 
         public override void Tick(long ticks, float delta, bool commit)
         {
-            // skip if controller isn't connected
-            if (!IsConnected() || IsBusy || !IsPlugged || _disposing || _disposed)
+            if (IsBusy || !IsPlugged || _disposing || _disposed)
                 return;
 
-            base.Tick(ticks, delta, false);
+            if (!UpdateXInputState())
+                return;
 
             FrontEnum frontButton = (FrontEnum)data[FRONT_IDX];
             Inputs.ButtonState[ButtonFlags.OEM1] = frontButton.HasFlag(FrontEnum.LegionR);

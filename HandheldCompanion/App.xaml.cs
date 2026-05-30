@@ -4,6 +4,7 @@ using HandheldCompanion.Properties;
 using HandheldCompanion.Shared;
 using HandheldCompanion.Utils;
 using HandheldCompanion.Views;
+using HandheldCompanion.Watchers;
 using iNKORE.UI.WPF.Modern.Common;
 using Sentry;
 using System;
@@ -33,6 +34,7 @@ public partial class App : Application
     public static string SettingsPath = string.Empty;
     public static string LogsPath = string.Empty;
     public static string GameControllerDbPath = string.Empty;
+    private const string UninstallRestoreArgument = "--uninstall-restore";
     public static string ApplicationName
     {
         get => Path.GetFileNameWithoutExtension(Assembly.GetExecutingAssembly().Location);
@@ -184,6 +186,12 @@ public partial class App : Application
     {
         try
         {
+            if (args.Args.Any(arg => string.Equals(arg, UninstallRestoreArgument, StringComparison.OrdinalIgnoreCase)))
+            {
+                RunUninstallRestoreMode();
+                return;
+            }
+
             // get current assembly
             Assembly CurrentAssembly = Assembly.GetExecutingAssembly();
             FileVersionInfo fileVersionInfo = FileVersionInfo.GetVersionInfo(CurrentAssembly.Location);
@@ -266,6 +274,10 @@ public partial class App : Application
             TaskScheduler.UnobservedTaskException += TaskScheduler_UnobservedTaskException;
 
             MainWindow = new MainWindow(fileVersionInfo, CurrentAssembly);
+
+            if (!SystemManager.IsSessionInteractive())
+                MainWindow.Visibility = Visibility.Hidden;
+
             MainWindow.Show();
         }
         catch (Exception ex)
@@ -291,6 +303,62 @@ public partial class App : Application
 
             // Re-throw to ensure app terminates
             throw;
+        }
+    }
+
+    private void RunUninstallRestoreMode()
+    {
+        ShutdownMode previousShutdownMode = ShutdownMode;
+        ShutdownMode = ShutdownMode.OnExplicitShutdown;
+
+        using SplashScreenHost splashScreen = new();
+
+        try
+        {
+            LogManager.LogInformation("Starting uninstall restore mode");
+
+            splashScreen.Show();
+            splashScreen.SetStatus("Preparing uninstall restore...");
+
+            bool success = ControllerManager.RestoreAllControllersForUninstall(splashScreen.SetStatus);
+            success &= RestoreOemSoftwareStack(splashScreen.SetStatus);
+
+            Shutdown(success ? 0 : 1);
+        }
+        catch (Exception ex)
+        {
+            LogManager.LogCritical("Uninstall restore failed: {0}\t{1}", ex.Message, ex.StackTrace ?? string.Empty);
+            splashScreen.SetStatus("Restore failed.");
+            Shutdown(1);
+        }
+        finally
+        {
+            splashScreen.Close();
+            ShutdownMode = previousShutdownMode;
+        }
+    }
+
+    private static bool RestoreOemSoftwareStack(Action<string>? reportStatus)
+    {
+        reportStatus?.Invoke("Restoring OEM software stack...");
+
+        try
+        {
+            using ISpaceWatcher? manufacturerWatcher = ISpaceWatcher.CreateCurrent();
+            if (manufacturerWatcher is null)
+            {
+                LogManager.LogInformation("No OEM software watcher available for the current device");
+                return true;
+            }
+
+            manufacturerWatcher.Enable();
+            LogManager.LogInformation("OEM software stack restored through {0}", manufacturerWatcher.GetType().Name);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            LogManager.LogError("Failed to restore OEM software stack: {0}", ex.Message);
+            return false;
         }
     }
 

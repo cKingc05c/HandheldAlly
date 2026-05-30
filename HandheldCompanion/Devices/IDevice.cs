@@ -2,6 +2,7 @@ using HandheldCompanion.Commands.Functions.HC;
 using HandheldCompanion.Commands.Functions.Windows;
 using HandheldCompanion.Devices.AYANEO;
 using HandheldCompanion.Devices.Lenovo;
+using HandheldCompanion.Devices.OneXPlayer;
 using HandheldCompanion.Devices.Zotac;
 using HandheldCompanion.Helpers;
 using HandheldCompanion.Inputs;
@@ -174,7 +175,7 @@ public abstract class IDevice
 
     // LibreHardwareMonitor
     public bool CpuMonitor = true;
-    public bool GpuMonitor = true;
+    public bool GpuMonitor = false;
     public bool MemoryMonitor = true;
     public bool BatteryMonitor = false;
 
@@ -676,6 +677,10 @@ public abstract class IDevice
                             break;
                         case "ONEXPLAYER X1Pro":
                             device = new OneXPlayerX1Pro();
+                            break;
+                        case "ONEXPLAYER APEX":
+                        case "ONEXPLAYERAPEX":
+                            device = new OneXPlayerApex();
                             break;
                         case "ONEXPLAYER G1 i":
                             device = new OneXPlayerG1Intel();

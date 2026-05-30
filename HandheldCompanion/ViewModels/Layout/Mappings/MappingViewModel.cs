@@ -18,6 +18,7 @@ namespace HandheldCompanion.ViewModels
     {
         public object? Tag { get; set; }
         public string Content { get; set; } = string.Empty;
+        public bool IsSupported { get; set; } = true;
 
         public override string ToString()
         {
@@ -134,6 +135,7 @@ namespace HandheldCompanion.ViewModels
                 if (value != SelectedTarget)
                 {
                     _selectedTarget = value;
+                    IsSupported = value?.IsSupported ?? true;
                     TargetTypeChanged();
                     OnPropertyChanged(nameof(SelectedTarget));
                 }
@@ -153,7 +155,7 @@ namespace HandheldCompanion.ViewModels
             }
         }
 
-        private bool _isSupported;
+        private bool _isSupported = true;
         public bool IsSupported
         {
             get => _isSupported;
@@ -287,9 +289,20 @@ namespace HandheldCompanion.ViewModels
         public virtual int Axis2AxisInnerDeadzone { get => 0; set { } }
         public virtual int Axis2AxisOuterDeadzone { get => 0; set { } }
         public virtual int Axis2AxisAntiDeadzone { get => 0; set { } }
+        public virtual int Button2AxisX { get => 0; set { } }
+        public virtual int Button2AxisY { get => 0; set { } }
 
         // Visibility for Axis invert properties - only Axis mappings
         public virtual Visibility AxisInvertVisibility => Visibility.Collapsed;
+        public virtual Visibility Button2AxisVisibility => Visibility.Collapsed;
+        public virtual Visibility AxisVisualizerVisibility => Visibility.Collapsed;
+        public virtual double AxisVisualizerDotX => 0.0d;
+        public virtual double AxisVisualizerDotY => 0.0d;
+        public virtual double AxisVisualizerDotTranslateX => 0.0d;
+        public virtual double AxisVisualizerDotTranslateY => 0.0d;
+        public virtual double AxisVisualizerInnerDeadzoneSize => 0.0d;
+        public virtual double AxisVisualizerOuterDeadzoneSize => 0.0d;
+        public virtual double AxisVisualizerAntiDeadzoneSize => 0.0d;
 
         // Trigger to Trigger/Axis deadzone properties - default to 0
         // Should only be visible for Trigger -> Trigger/Axis mappings
@@ -620,6 +633,36 @@ namespace HandheldCompanion.ViewModels
         protected abstract void Update();
         protected abstract void Delete();
         protected abstract void UpdateMapping(Layout layout);
+
+        protected MappingTargetViewModel CreateTarget(object? tag, string content, bool isSupported = true)
+        {
+            return new MappingTargetViewModel
+            {
+                Tag = tag,
+                Content = content,
+                IsSupported = isSupported
+            };
+        }
+
+        protected MappingTargetViewModel CreateUnsupportedTarget(object? tag, string content)
+        {
+            return CreateTarget(tag, $"{content} (Unavailable on current controller)", false);
+        }
+
+        protected void ReplaceTargets(List<MappingTargetViewModel> targets, MappingTargetViewModel? selectedTarget = null)
+        {
+            MappingTargetViewModel? resolvedTarget = selectedTarget ?? (targets.Count > 0 ? targets[0] : null);
+
+            lock (_collectionLock)
+            {
+                Targets.Clear();
+                foreach (var target in targets)
+                    Targets.Add(target);
+            }
+
+            IsSupported = resolvedTarget?.IsSupported ?? true;
+            SelectedTarget = resolvedTarget;
+        }
 
         public virtual void SetAction(IActions newAction, bool updateToModel = true)
         {

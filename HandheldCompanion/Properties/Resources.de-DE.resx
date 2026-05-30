@@ -1725,9 +1725,6 @@ Wenn die Bewegungseingabe aktiviert ist, verwenden Sie die ausgewählte(n) Taste
   <data name="Enum_XInputController_ButtonFlags_R1" xml:space="preserve">
     <value>RB</value>
   </data>
-  <data name="Enum_XInputController_ButtonFlags_Special" xml:space="preserve">
-    <value>XBOX-Taste</value>
-  </data>
   <data name="Enum_XInputController_ButtonFlags_Start" xml:space="preserve">
     <value>Menü</value>
   </data>
@@ -1742,12 +1739,6 @@ Wenn die Bewegungseingabe aktiviert ist, verwenden Sie die ausgewählte(n) Taste
   </data>
   <data name="Enum_InputsHotkeyType_Handheld" xml:space="preserve">
     <value>Handheld Companion</value>
-  </data>
-  <data name="Enum_SteamDeck_ButtonFlags_OEM1" xml:space="preserve">
-    <value>Optionen</value>
-  </data>
-  <data name="Enum_NeptuneController_ButtonFlags_Special" xml:space="preserve">
-    <value>STEAM</value>
   </data>
   <data name="Enum_ROGAlly_ButtonFlags_OEM1" xml:space="preserve">
     <value>Command Center</value>
@@ -3072,9 +3063,6 @@ Wenn die Bewegungseingabe aktiviert ist, verwenden Sie die ausgewählte(n) Taste
   <data name="Enum_DualShock4Controller_ButtonFlags_Back" xml:space="preserve">
     <value>Teilen</value>
   </data>
-  <data name="Enum_DualShock4Controller_ButtonFlags_Special" xml:space="preserve">
-    <value>Sony</value>
-  </data>
   <data name="Enum_DualShock4Controller_ButtonFlags_Start" xml:space="preserve">
     <value>Optionen</value>
   </data>
@@ -3122,12 +3110,6 @@ Wenn die Bewegungseingabe aktiviert ist, verwenden Sie die ausgewählte(n) Taste
   </data>
   <data name="Enum_NintendoSwitchProController_ButtonFlags_R1" xml:space="preserve">
     <value>R</value>
-  </data>
-  <data name="Enum_NintendoSwitchProController_ButtonFlags_Special" xml:space="preserve">
-    <value>Home</value>
-  </data>
-  <data name="Enum_NintendoSwitchProController_ButtonFlags_Special2" xml:space="preserve">
-    <value>Capture</value>
   </data>
   <data name="Enum_NintendoSwitchProController_ButtonFlags_Start" xml:space="preserve">
     <value>Plus</value>
@@ -3263,9 +3245,6 @@ Wenn die Bewegungseingabe aktiviert ist, verwenden Sie die ausgewählte(n) Taste
   </data>
   <data name="Enum_Xbox360Controller_ButtonFlags_RightThumbUp" xml:space="preserve">
     <value>Rechter Stick oben</value>
-  </data>
-  <data name="Enum_Xbox360Controller_ButtonFlags_Special" xml:space="preserve">
-    <value>XBOX-Taste</value>
   </data>
   <data name="Enum_Xbox360Controller_ButtonFlags_Start" xml:space="preserve">
     <value>Menü</value>

@@ -898,7 +898,9 @@ namespace HandheldCompanion.ViewModels
                 {
                     HIDmode.Xbox360Controller => 1,
                     HIDmode.DualShock4Controller => 2,
-                    HIDmode.DInputController => 3,
+                    HIDmode.DualSenseController => 3,
+                    HIDmode.SteamDeckController => 4,
+                    HIDmode.SteamController => 5,
                     _ => 0 // NotSelected
                 };
             }
@@ -908,7 +910,9 @@ namespace HandheldCompanion.ViewModels
                 {
                     1 => HIDmode.Xbox360Controller,
                     2 => HIDmode.DualShock4Controller,
-                    3 => HIDmode.DInputController,
+                    3 => HIDmode.DualSenseController,
+                    4 => HIDmode.SteamDeckController,
+                    5 => HIDmode.SteamController,
                     _ => HIDmode.NotSelected
                 };
                 if (SelectedProfile != null && SelectedProfile.HID != mode)

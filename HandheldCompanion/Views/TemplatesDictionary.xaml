@@ -28,6 +28,7 @@
     <converters:InvertBooleanConverter x:Key="InvertBooleanConverter" />
     <converters:InvertPercentageConverter x:Key="InvertPercentageConverter" />
     <converters:IsNullConverter x:Key="IsNullConverter" />
+    <converters:IsVerticalOrientationConverter x:Key="IsVerticalOrientationConverter" />
     <converters:ResourceFormatConverter x:Key="ResourceFormatConverter" />
     <converters:TypeToVisibilityConverter x:Key="TypeToVisibilityConverter" />
     <converters:ActionTypeIndexToNameConverter x:Key="ActionTypeIndexToNameConverter" />
@@ -152,6 +153,7 @@
                                             <Storyboard>
                                                 <DoubleAnimation
                                                     AutoReverse="True"
+                                                    FillBehavior="Stop"
                                                     RepeatBehavior="1x"
                                                     Storyboard.TargetProperty="Opacity"
                                                     From="1.0"
@@ -318,7 +320,8 @@
                                     HorizontalAlignment="Center"
                                     VerticalAlignment="Center"
                                     Panel.ZIndex="999"
-                                    IsIndeterminate="True"
+                                    IsActive="{Binding IsBusy}"
+                                    IsIndeterminate="{Binding IsBusy}"
                                     Visibility="{Binding IsBusy, Converter={StaticResource BooleanToVisibilityConverter}}" />
 
                                 <Border Grid.Row="0" ClipToBounds="True">
@@ -384,7 +387,7 @@
                             <VisualStateManager.VisualStateGroups>
                                 <VisualStateGroup x:Name="CommonStates">
                                     <VisualState x:Name="Normal">
-                                        <Storyboard>
+                                        <Storyboard FillBehavior="Stop">
                                             <DoubleAnimation
                                                 Storyboard.TargetName="MainImage"
                                                 Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleX)"
@@ -492,7 +495,8 @@
                                     HorizontalAlignment="Center"
                                     VerticalAlignment="Center"
                                     Panel.ZIndex="999"
-                                    IsIndeterminate="True"
+                                    IsActive="{Binding IsBusy}"
+                                    IsIndeterminate="{Binding IsBusy}"
                                     Visibility="{Binding IsBusy, Converter={StaticResource BooleanToVisibilityConverter}}" />
 
                                 <Border Grid.Row="0" ClipToBounds="True">
@@ -617,7 +621,7 @@
     <DataTemplate x:Key="LibraryTemplateList" DataType="{x:Type viewmodels:ProfileViewModel}">
         <Grid x:Name="CardRoot" behaviors:LibraryItemVisibilityBehavior.TrackVisibility="True">
             <Button
-                Height="80"
+                Height="48"
                 HorizontalAlignment="Stretch"
                 HorizontalContentAlignment="Stretch"
                 Background="Transparent"
@@ -647,8 +651,8 @@
                         <Grid>
                             <ui:PersonPicture
                                 x:Name="MainImage"
-                                Width="64"
-                                Height="64"
+                                Width="32"
+                                Height="32"
                                 Panel.ZIndex="1"
                                 DisplayName="{Binding Name}"
                                 ProfilePicture="{Binding Cover, NotifyOnTargetUpdated=True}"
@@ -657,7 +661,8 @@
                                 HorizontalAlignment="Center"
                                 VerticalAlignment="Center"
                                 Panel.ZIndex="2"
-                                IsIndeterminate="True"
+                                IsActive="{Binding IsBusy}"
+                                IsIndeterminate="{Binding IsBusy}"
                                 Visibility="{Binding IsBusy, Converter={StaticResource BooleanToVisibilityConverter}}" />
                             <ui:InfoBadge
                                 HorizontalAlignment="Right"
@@ -712,6 +717,192 @@
                 </Grid>
             </Button>
         </Grid>
+    </DataTemplate>
+
+    <DataTemplate x:Key="LibraryCollectionOverviewTemplate" DataType="{x:Type viewmodels:CollectionGroupViewModel}">
+        <Button
+            Margin="0,0,8,8"
+            Padding="0"
+            HorizontalAlignment="Stretch"
+            VerticalAlignment="Stretch"
+            Command="{Binding OpenCommand}"
+            Visibility="{Binding ShowInCollectionsOverview, Converter={StaticResource BooleanToVisibilityConverter}}">
+            <Button.Template>
+                <ControlTemplate TargetType="Button">
+                    <Border
+                        Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+                        BorderBrush="{DynamicResource CardStrokeColorDefaultBrush}"
+                        BorderThickness="1"
+                        CornerRadius="12">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="*" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+
+                            <Grid x:Name="PreviewHost">
+                                <Grid.Visibility>
+                                    <Binding Converter="{StaticResource BooleanToVisibilityConverter}" Path="HasPreviewArtworks" />
+                                </Grid.Visibility>
+
+                                <Grid>
+                                    <Grid.Style>
+                                        <Style TargetType="Grid">
+                                            <Setter Property="Visibility" Value="Collapsed" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding PreviewArtworkCount}" Value="1">
+                                                    <Setter Property="Visibility" Value="Visible" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Grid.Style>
+                                    <Image Source="{Binding PreviewHorizontal1}" Stretch="UniformToFill" />
+                                </Grid>
+
+                                <Grid>
+                                    <Grid.Style>
+                                        <Style TargetType="Grid">
+                                            <Setter Property="Visibility" Value="Collapsed" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding PreviewArtworkCount}" Value="2">
+                                                    <Setter Property="Visibility" Value="Visible" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Grid.Style>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition />
+                                        <ColumnDefinition />
+                                    </Grid.ColumnDefinitions>
+                                    <Image
+                                        Grid.Column="0"
+                                        Margin="0,0,2,0"
+                                        Source="{Binding PreviewVertical1}"
+                                        Stretch="UniformToFill" />
+                                    <Image
+                                        Grid.Column="1"
+                                        Margin="2,0,0,0"
+                                        Source="{Binding PreviewVertical2}"
+                                        Stretch="UniformToFill" />
+                                </Grid>
+
+                                <Grid>
+                                    <Grid.Style>
+                                        <Style TargetType="Grid">
+                                            <Setter Property="Visibility" Value="Collapsed" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding PreviewArtworkCount}" Value="3">
+                                                    <Setter Property="Visibility" Value="Visible" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Grid.Style>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="2*" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <Image
+                                        Grid.Column="0"
+                                        Margin="0,0,2,0"
+                                        Source="{Binding PreviewHorizontal1}"
+                                        Stretch="UniformToFill" />
+                                    <Grid Grid.Column="1" Margin="2,0,0,0">
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition />
+                                            <RowDefinition />
+                                        </Grid.RowDefinitions>
+                                        <Image
+                                            Grid.Row="0"
+                                            Margin="0,0,0,2"
+                                            Source="{Binding PreviewVertical2}"
+                                            Stretch="UniformToFill" />
+                                        <Image
+                                            Grid.Row="1"
+                                            Margin="0,2,0,0"
+                                            Source="{Binding PreviewVertical3}"
+                                            Stretch="UniformToFill" />
+                                    </Grid>
+                                </Grid>
+
+                                <Grid>
+                                    <Grid.Style>
+                                        <Style TargetType="Grid">
+                                            <Setter Property="Visibility" Value="Collapsed" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding PreviewArtworkCount}" Value="4">
+                                                    <Setter Property="Visibility" Value="Visible" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Grid.Style>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition />
+                                        <RowDefinition />
+                                    </Grid.RowDefinitions>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition />
+                                        <ColumnDefinition />
+                                    </Grid.ColumnDefinitions>
+                                    <Image
+                                        Grid.Row="0"
+                                        Grid.Column="0"
+                                        Margin="0,0,2,2"
+                                        Source="{Binding PreviewHorizontal1}"
+                                        Stretch="UniformToFill" />
+                                    <Image
+                                        Grid.Row="0"
+                                        Grid.Column="1"
+                                        Margin="2,0,0,2"
+                                        Source="{Binding PreviewHorizontal2}"
+                                        Stretch="UniformToFill" />
+                                    <Image
+                                        Grid.Row="1"
+                                        Grid.Column="0"
+                                        Margin="0,2,2,0"
+                                        Source="{Binding PreviewHorizontal3}"
+                                        Stretch="UniformToFill" />
+                                    <Image
+                                        Grid.Row="1"
+                                        Grid.Column="1"
+                                        Margin="2,2,0,0"
+                                        Source="{Binding PreviewHorizontal4}"
+                                        Stretch="UniformToFill" />
+                                </Grid>
+                            </Grid>
+
+                            <StackPanel
+                                Grid.Row="1"
+                                Margin="12"
+                                VerticalAlignment="Center">
+                                <TextBlock
+                                    Style="{StaticResource BaseTextBlockStyle}"
+                                    Text="{Binding Name}"
+                                    TextTrimming="CharacterEllipsis"
+                                    TextWrapping="NoWrap" />
+                                <TextBlock
+                                    Text="{Binding ProfileCount, StringFormat={}{0} games}"
+                                    TextTrimming="CharacterEllipsis"
+                                    TextWrapping="NoWrap">
+                                    <TextBlock.Style>
+                                        <Style BasedOn="{StaticResource BodyTextBlockStyle}" TargetType="TextBlock">
+                                            <Setter Property="Visibility" Value="Visible" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding ProfileCount}" Value="">
+                                                    <Setter Property="Visibility" Value="Collapsed" />
+                                                </DataTrigger>
+                                                <DataTrigger Binding="{Binding ProfileCount}" Value="{x:Null}">
+                                                    <Setter Property="Visibility" Value="Collapsed" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+                </ControlTemplate>
+            </Button.Template>
+        </Button>
     </DataTemplate>
 
     <DataTemplate x:Key="ControllerTemplate" DataType="{x:Type viewmodels:ControllerViewModel}">
@@ -1020,7 +1211,7 @@
                     <ui:ProgressBar
                         HorizontalAlignment="Stretch"
                         VerticalAlignment="Bottom"
-                        IsIndeterminate="True" />
+                        IsIndeterminate="{Binding IsBusy}" />
                 </ikw:SimpleStackPanel>
             </ikw:SimpleStackPanel>
         </Border>
@@ -1031,6 +1222,7 @@
             <ui:SettingsCard
                 Command="{Binding OpenSettingsCommand}"
                 IsClickEnabled="True"
+                IsEnabled="{Binding IsSupported, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}"
                 ToolTip="Open action settings">
                 <ui:SettingsCard.Header>
                     <ikw:SimpleStackPanel Orientation="Horizontal" Spacing="3">
@@ -1214,6 +1406,7 @@
                                                                     <Storyboard>
                                                                         <DoubleAnimation
                                                                             AutoReverse="True"
+                                                                            FillBehavior="Stop"
                                                                             RepeatBehavior="1x"
                                                                             Storyboard.TargetProperty="Opacity"
                                                                             From="1.0"
@@ -1484,6 +1677,7 @@
             <ui:SettingsCard
                 Command="{Binding OpenSettingsCommand}"
                 IsClickEnabled="True"
+                IsEnabled="{Binding IsSupported, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}"
                 ToolTip="Open action settings">
                 <ui:SettingsCard.Header>
                     <ikw:SimpleStackPanel Orientation="Horizontal" Spacing="3">
@@ -1551,6 +1745,7 @@
             <ui:SettingsCard
                 Command="{Binding OpenSettingsCommand}"
                 IsClickEnabled="True"
+                IsEnabled="{Binding IsSupported, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}"
                 ToolTip="Open action settings">
                 <ui:SettingsCard.Header>
                     <ikw:SimpleStackPanel Orientation="Horizontal" Spacing="3">

@@ -2,7 +2,6 @@
 using HandheldCompanion.Helpers;
 using HandheldCompanion.Managers;
 using HandheldCompanion.Misc;
-using HandheldCompanion.Targets;
 using HandheldCompanion.Utils;
 using HandheldCompanion.ViewModels;
 using System;
@@ -19,13 +18,13 @@ namespace HandheldCompanion.Views.Pages;
 /// </summary>
 public partial class ControllerPage : Page
 {
+    private readonly ControllerPageViewModel ViewModel;
 
     public ControllerPage()
     {
-        DataContext = new ControllerPageViewModel();
+        ViewModel = new ControllerPageViewModel();
+        DataContext = ViewModel;
         InitializeComponent();
-
-        cB_HidModeDInputItem.Visibility = VJoyTarget.IsInstalled() ? Visibility.Visible : Visibility.Collapsed;
 
         SteamDeckPanel.Visibility = IDevice.GetCurrent() is SteamDeck ? Visibility.Visible : Visibility.Collapsed;
 
@@ -67,7 +66,16 @@ public partial class ControllerPage : Page
                     SliderInterval.Value = Convert.ToDouble(value);
                     break;
                 case "HIDmode":
-                    cB_HidMode.SelectedIndex = Convert.ToInt32(value);
+                    {
+                        foreach (object? item in cB_HidMode.Items)
+                        {
+                            if (item is ComboBoxItem comboBoxItem && comboBoxItem.Tag is string hidRaw && Convert.ToInt32(hidRaw) == Convert.ToInt32(value))
+                            {
+                                cB_HidMode.SelectedItem = item;
+                                break;
+                            }
+                        }
+                    }
                     break;
                 case "HIDstatus":
                     cB_ServiceSwitch.SelectedIndex = Convert.ToInt32(value);
@@ -80,17 +88,23 @@ public partial class ControllerPage : Page
                 case "ControllerPlugBehavior":
                     cB_ControllerPlugBehavior.SelectedIndex = Convert.ToInt32(value);
                     break;
+                case "MasterInterval":
+                    if (FindName("cB_MasterInterval") is ComboBox masterIntervalComboBox)
+                        masterIntervalComboBox.SelectedIndex = Convert.ToInt32(value);
+                    break;
             }
         });
     }
 
     private void Page_Loaded(object sender, RoutedEventArgs e)
     {
+        SettingsManager_SettingValueChanged("MasterInterval", ManagerFactory.settingsManager.GetInt("MasterInterval"), false);
     }
 
     public void Page_Closed()
     {
-        ((ControllerPageViewModel)DataContext).Dispose();
+        ManagerFactory.settingsManager.SettingValueChanged -= SettingsManager_SettingValueChanged;
+        ViewModel.Dispose();
     }
 
     private string GetResourceString(string baseKey, int attempts)
@@ -122,10 +136,16 @@ public partial class ControllerPage : Page
         if (cB_HidMode.SelectedIndex == -1)
             return;
 
-        // only change HIDmode setting if current profile is default or set to default controller
-        var currentProfile = ManagerFactory.profileManager.GetCurrent();
-        if (currentProfile.Default || currentProfile.HID == HIDmode.NotSelected)
-            ManagerFactory.settingsManager.SetProperty("HIDmode", cB_HidMode.SelectedIndex);
+        // only change HIDmode setting is set to default controller
+        Profile currentProfile = ManagerFactory.profileManager.GetCurrent();
+        if (currentProfile.HID != HIDmode.NotSelected)
+            return;
+
+        if (cB_HidMode.SelectedItem is ComboBoxItem comboBoxItem && comboBoxItem.Tag is string hidRaw)
+        {
+            int hidValue = Convert.ToInt32(hidRaw);
+            ManagerFactory.settingsManager.SetProperty("HIDmode", hidValue);
+        }
     }
 
     private void cB_ServiceSwitch_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -133,10 +153,21 @@ public partial class ControllerPage : Page
         if (!IsLoaded)
             return;
 
-        if (cB_HidMode.SelectedIndex == -1)
+        if (cB_ServiceSwitch.SelectedIndex == -1)
             return;
 
         ManagerFactory.settingsManager.SetProperty("HIDstatus", cB_ServiceSwitch.SelectedIndex);
+    }
+
+    private void cB_MasterInterval_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (!IsLoaded)
+            return;
+
+        if (sender is not ComboBox masterIntervalComboBox || masterIntervalComboBox.SelectedIndex == -1)
+            return;
+
+        ManagerFactory.settingsManager.SetProperty("MasterInterval", masterIntervalComboBox.SelectedIndex);
     }
 
     private void cB_ControllerSlotManagementMode_SelectionChanged(object sender, SelectionChangedEventArgs e)

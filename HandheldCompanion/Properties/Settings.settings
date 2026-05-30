@@ -185,6 +185,18 @@
     <Setting Name="DSUip" Type="System.String" Scope="User">
       <Value Profile="(Default)">127.0.0.1</Value>
     </Setting>
+    <Setting Name="VIIPEREnabled" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">True</Value>
+    </Setting>
+    <Setting Name="VIIPERPort" Type="System.Int32" Scope="User">
+      <Value Profile="(Default)">3242</Value>
+    </Setting>
+    <Setting Name="VIIPERHost" Type="System.String" Scope="User">
+      <Value Profile="(Default)">127.0.0.1</Value>
+    </Setting>
+    <Setting Name="VIIPERExecutablePath" Type="System.String" Scope="User">
+      <Value Profile="(Default)">Tools\viiper-windows-amd64.exe</Value>
+    </Setting>
     <Setting Name="LEDBrightness" Type="System.Double" Scope="User">
       <Value Profile="(Default)">50</Value>
     </Setting>

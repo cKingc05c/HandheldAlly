@@ -151,7 +151,6 @@ namespace HandheldCompanion.Controllers
                     if (IsVirtual())
                     {
                         TargetButtons.Add(ButtonFlags.LeftPadClick);
-                        TargetButtons.Add(ButtonFlags.LeftPadTouch);
                         TargetAxis.Add(AxisLayoutFlags.LeftPad);
                     }
                 }
@@ -165,7 +164,6 @@ namespace HandheldCompanion.Controllers
                     if (IsVirtual())
                     {
                         TargetButtons.Add(ButtonFlags.RightPadClick);
-                        TargetButtons.Add(ButtonFlags.RightPadTouch);
                         TargetAxis.Add(AxisLayoutFlags.RightPad);
                     }
                 }

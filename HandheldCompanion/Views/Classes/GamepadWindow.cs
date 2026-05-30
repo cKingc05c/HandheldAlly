@@ -1,6 +1,5 @@
 ﻿using HandheldCompanion.Helpers;
 using HandheldCompanion.Managers;
-using HandheldCompanion.Shared;
 using HandheldCompanion.Utils;
 using HandheldCompanion.Views.Windows;
 using iNKORE.UI.WPF.Modern.Controls;
@@ -51,6 +50,13 @@ namespace HandheldCompanion.Views.Classes
 
         protected UIGamepad gamepadFocusManager = null!;
 
+        /// <summary>
+        /// Suppresses the next button-state change on this window's focus manager.
+        /// Call this on the destination window just before it gains focus mid-press,
+        /// so that buttons still held during the transition are not replayed as new presses.
+        /// </summary>
+        public void SuppressNextGamepadInput() => gamepadFocusManager?.SuppressNextInput();
+
         public HwndSource hwndSource = null!;
 
         public bool HasForeground() => this is OverlayQuickTools || (WinAPI.GetForegroundWindow() == this.hwndSource.Handle);
@@ -80,6 +86,8 @@ namespace HandheldCompanion.Views.Classes
         }
 
         protected virtual void ApplyPendingNavigation(string navItemTag) { }
+
+        public virtual void NavigateToPage(string navItemTag) { }
 
         protected virtual void Window_VisibleChanged(object sender, DependencyPropertyChangedEventArgs e)
         {
@@ -113,9 +121,13 @@ namespace HandheldCompanion.Views.Classes
             {
                 if (_highlightAdorner != null)
                 {
-                    _adornerLayer.Remove(_highlightAdorner);
+                    _adornerLayer?.Remove(_highlightAdorner);
                     _highlightAdorner = null;
                 }
+
+                // skip navigation view items, they have their own focus visual logic
+                if (focusedControl is NavigationViewItem)
+                    return;
 
                 _adornerLayer = AdornerLayer.GetAdornerLayer(focusedControl);
                 if (_adornerLayer != null)

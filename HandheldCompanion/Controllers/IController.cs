@@ -455,7 +455,7 @@ namespace HandheldCompanion.Controllers
             }
         }
 
-        protected void StopRumble(bool waitForCompletion = true)
+        public void StopRumble(bool waitForCompletion = true)
         {
             Task? taskToWait;
             CancellationTokenSource? cancellationTokenSource;

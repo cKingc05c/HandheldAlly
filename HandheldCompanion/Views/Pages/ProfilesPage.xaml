@@ -33,7 +33,8 @@
                 <Grid>
                     <ui:ProgressRing
                         Panel.ZIndex="1"
-                        IsIndeterminate="True"
+                        IsActive="{Binding IsLibraryBusy, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}"
+                        IsIndeterminate="{Binding IsLibraryBusy, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}"
                         Visibility="{Binding IsLibraryBusy, Mode=OneWay, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource BooleanToVisibilityConverter}}" />
 
                     <ikw:SimpleStackPanel
@@ -852,10 +853,12 @@
                             </ui:SettingsCard.HeaderIcon>
 
                             <ComboBox x:Name="EmulatedControllerComboBox" SelectedIndex="{Binding HIDModeIndex, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}">
-                                <ComboBoxItem Name="EmulatedControllerDefaultItem" Content="{l:Static resx:Resources.ProfilesPage_EmulatedControllerDefault}" />
-                                <ComboBoxItem Name="EmulatedControllerXboxItem" Content="{l:Static resx:Resources.ProfilesPage_EmulatedControllerXbox}" />
-                                <ComboBoxItem Name="EmulatedControllerDS4Item" Content="{l:Static resx:Resources.ProfilesPage_EmulatedControllerDS4}" />
-                                <ComboBoxItem Name="EmulatedControllerDInputItem" Content="{l:Static resx:Resources.ProfilesPage_EmulatedControllervJoy}" />
+                                <ComboBoxItem Content="{l:Static resx:Resources.ProfilesPage_EmulatedControllerDefault}" />
+                                <ComboBoxItem Content="{l:Static resx:Resources.Enum_HIDmode_Xbox360Controller}" />
+                                <ComboBoxItem Content="{l:Static resx:Resources.Enum_HIDmode_DualShock4Controller}" />
+                                <ComboBoxItem Content="{l:Static resx:Resources.Enum_HIDmode_DualSenseController}" />
+                                <ComboBoxItem Content="{l:Static resx:Resources.Enum_HIDmode_SteamDeckController}" />
+                                <ComboBoxItem Content="{l:Static resx:Resources.Enum_HIDmode_SteamController}" />
                             </ComboBox>
                         </ui:SettingsCard>
 

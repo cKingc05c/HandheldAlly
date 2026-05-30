@@ -9,6 +9,7 @@ using HandheldCompanion.Views;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 using System.Windows;
 using System.Windows.Input;
 
@@ -137,6 +138,155 @@ namespace HandheldCompanion.ViewModels
             }
         }
 
+        public override int Axis2AxisInnerDeadzone
+        {
+            get => (Action is AxisActions axisAction) ? axisAction.AxisDeadZoneInner : 0;
+            set
+            {
+                if (Action is AxisActions axisAction && value != Axis2AxisInnerDeadzone)
+                {
+                    axisAction.AxisDeadZoneInner = value;
+                    OnPropertyChanged(nameof(Axis2AxisInnerDeadzone));
+                    OnPropertyChanged(nameof(AxisVisualizerInnerDeadzoneSize));
+                }
+            }
+        }
+
+        public override int Axis2AxisOuterDeadzone
+        {
+            get => (Action is AxisActions axisAction) ? axisAction.AxisDeadZoneOuter : 0;
+            set
+            {
+                if (Action is AxisActions axisAction && value != Axis2AxisOuterDeadzone)
+                {
+                    axisAction.AxisDeadZoneOuter = value;
+                    OnPropertyChanged(nameof(Axis2AxisOuterDeadzone));
+                    OnPropertyChanged(nameof(AxisVisualizerOuterDeadzoneSize));
+                }
+            }
+        }
+
+        public override int Axis2AxisAntiDeadzone
+        {
+            get => (Action is AxisActions axisAction) ? axisAction.AxisAntiDeadZone : 0;
+            set
+            {
+                if (Action is AxisActions axisAction && value != Axis2AxisAntiDeadzone)
+                {
+                    axisAction.AxisAntiDeadZone = value;
+                    OnPropertyChanged(nameof(Axis2AxisAntiDeadzone));
+                    OnPropertyChanged(nameof(AxisVisualizerAntiDeadzoneSize));
+                }
+            }
+        }
+
+        public override int Axis2AxisOutputShapeIndex
+        {
+            get => (Action is AxisActions axisAction) ? (int)axisAction.OutputShape : 0;
+            set
+            {
+                if (Action is AxisActions axisAction && value != Axis2AxisOutputShapeIndex)
+                {
+                    axisAction.OutputShape = (OutputShape)value;
+                    OnPropertyChanged(nameof(Axis2AxisOutputShapeIndex));
+                    OnPropertyChanged(nameof(AxisVisualizerDotX));
+                    OnPropertyChanged(nameof(AxisVisualizerDotY));
+                    OnPropertyChanged(nameof(AxisVisualizerDotTranslateX));
+                    OnPropertyChanged(nameof(AxisVisualizerDotTranslateY));
+                }
+            }
+        }
+
+        public override bool Axis2AxisInvertHorizontal
+        {
+            get => (Action is AxisActions axisAction) && axisAction.InvertHorizontal;
+            set
+            {
+                if (Action is AxisActions axisAction && value != Axis2AxisInvertHorizontal)
+                {
+                    axisAction.InvertHorizontal = value;
+                    OnPropertyChanged(nameof(Axis2AxisInvertHorizontal));
+                }
+            }
+        }
+
+        public override bool Axis2AxisInvertVertical
+        {
+            get => (Action is AxisActions axisAction) && axisAction.InvertVertical;
+            set
+            {
+                if (Action is AxisActions axisAction && value != Axis2AxisInvertVertical)
+                {
+                    axisAction.InvertVertical = value;
+                    OnPropertyChanged(nameof(Axis2AxisInvertVertical));
+                }
+            }
+        }
+
+        public override int Button2AxisX
+        {
+            get => (Action is AxisActions axisAction) ? axisAction.ButtonX : 0;
+            set
+            {
+                if (Action is AxisActions axisAction && value != Button2AxisX)
+                {
+                    axisAction.ButtonX = (short)Math.Clamp(value, short.MinValue, short.MaxValue);
+                    OnPropertyChanged(nameof(Button2AxisX));
+                    OnPropertyChanged(nameof(AxisVisualizerDotX));
+                    OnPropertyChanged(nameof(AxisVisualizerDotTranslateX));
+                }
+            }
+        }
+
+        public override int Button2AxisY
+        {
+            get => (Action is AxisActions axisAction) ? axisAction.ButtonY : 0;
+            set
+            {
+                if (Action is AxisActions axisAction && value != Button2AxisY)
+                {
+                    axisAction.ButtonY = (short)Math.Clamp(value, short.MinValue, short.MaxValue);
+                    OnPropertyChanged(nameof(Button2AxisY));
+                    OnPropertyChanged(nameof(AxisVisualizerDotY));
+                    OnPropertyChanged(nameof(AxisVisualizerDotTranslateY));
+                }
+            }
+        }
+
+        public override Visibility Button2AxisVisibility => ActionTypeIndex == (int)ActionType.Joystick ? Visibility.Visible : Visibility.Collapsed;
+        public override Visibility AxisInvertVisibility => Button2AxisVisibility;
+        public override Visibility AxisVisualizerVisibility => ActionTypeIndex == (int)ActionType.Joystick ? Visibility.Visible : Visibility.Collapsed;
+
+        public override double AxisVisualizerDotX => GetVisualizerDotOffset(GetVisualizerVector().X);
+        public override double AxisVisualizerDotY => GetVisualizerDotOffset(GetVisualizerVector().Y);
+        public override double AxisVisualizerDotTranslateX => AxisVisualizerDotX;
+        public override double AxisVisualizerDotTranslateY => -AxisVisualizerDotY;
+        public override double AxisVisualizerInnerDeadzoneSize => Axis2AxisInnerDeadzone * 2.0d;
+        public override double AxisVisualizerOuterDeadzoneSize => Math.Max(0.0d, 200.0d - Axis2AxisOuterDeadzone * 2.0d);
+        public override double AxisVisualizerAntiDeadzoneSize => Axis2AxisAntiDeadzone * 2.0d;
+
+        private Vector2 GetVisualizerVector()
+        {
+            if (Action is not AxisActions axisAction)
+                return Vector2.Zero;
+
+            Vector2 vector = new(Button2AxisX, Button2AxisY);
+
+            return axisAction.OutputShape switch
+            {
+                OutputShape.Circle => InputUtils.ImproveCircularity(vector),
+                OutputShape.Cross => InputUtils.ImproveCircularity(InputUtils.CrossDeadzoneMapping(vector, axisAction.AxisDeadZoneInner, axisAction.AxisDeadZoneOuter)),
+                OutputShape.Square => InputUtils.ImproveSquare(vector),
+                _ => vector,
+            };
+        }
+
+        private static double GetVisualizerDotOffset(float value)
+        {
+            double normalized = Math.Clamp(value / (double)short.MaxValue, -1.0d, 1.0d);
+            return normalized * 94.0d;
+        }
+
         // Trigger output should only be visible for Button -> Trigger mappings
         public override Visibility TriggerOutputVisibility
         {
@@ -239,6 +389,16 @@ namespace HandheldCompanion.ViewModels
                     OnPropertyChanged(nameof(HasModifier));
                     OnPropertyChanged(nameof(Button2MouseTo));
                     OnPropertyChanged(nameof(GeneralActionVisibility));
+                    OnPropertyChanged(nameof(Button2AxisVisibility));
+                    OnPropertyChanged(nameof(AxisInvertVisibility));
+                    OnPropertyChanged(nameof(AxisVisualizerVisibility));
+                    OnPropertyChanged(nameof(AxisVisualizerDotX));
+                    OnPropertyChanged(nameof(AxisVisualizerDotY));
+                    OnPropertyChanged(nameof(AxisVisualizerDotTranslateX));
+                    OnPropertyChanged(nameof(AxisVisualizerDotTranslateY));
+                    OnPropertyChanged(nameof(AxisVisualizerInnerDeadzoneSize));
+                    OnPropertyChanged(nameof(AxisVisualizerOuterDeadzoneSize));
+                    OnPropertyChanged(nameof(AxisVisualizerAntiDeadzoneSize));
                     break;
             }
 
@@ -281,6 +441,7 @@ namespace HandheldCompanion.ViewModels
             var actionType = newActionType ?? (ActionType)ActionTypeIndex;
             if (actionType == ActionType.Disabled)
             {
+                IsSupported = true;
                 if (Action is not null) Delete();
                 SelectedTarget = null;
                 OnPropertyChanged(string.Empty);
@@ -297,7 +458,8 @@ namespace HandheldCompanion.ViewModels
 
             if (actionType == ActionType.Button)
             {
-                if (Action is null || Action is not ButtonActions)
+                bool preserveMissingTarget = Action is ButtonActions;
+                if (!preserveMissingTarget)
                 {
                     Action = new ButtonActions()
                     {
@@ -310,24 +472,21 @@ namespace HandheldCompanion.ViewModels
                 MappingTargetViewModel? matchingTargetVm = null;
                 foreach (var button in controller.GetTargetButtons())
                 {
-                    var mappingTargetVm = new MappingTargetViewModel
-                    {
-                        Tag = button,
-                        Content = controller.GetButtonName(button)
-                    };
+                    var mappingTargetVm = CreateTarget(button, controller.GetButtonName(button));
                     targets.Add(mappingTargetVm);
 
                     if (button == ((ButtonActions)Action).Button)
                         matchingTargetVm = mappingTargetVm;
                 }
 
-                lock (_collectionLock)
+                if (matchingTargetVm is null && preserveMissingTarget)
                 {
-                    Targets.Clear();
-                    foreach (var t in targets)
-                        Targets.Add(t);
+                    matchingTargetVm = CreateUnsupportedTarget(((ButtonActions)Action).Button,
+                        controller.GetButtonName(((ButtonActions)Action).Button));
+                    targets.Add(matchingTargetVm);
                 }
-                SelectedTarget = matchingTargetVm ?? Targets.First();
+
+                ReplaceTargets(targets, matchingTargetVm);
             }
             else if (actionType == ActionType.Keyboard)
             {
@@ -342,13 +501,39 @@ namespace HandheldCompanion.ViewModels
                     };
                 }
 
-                lock (_collectionLock)
+                targets.AddRange(_keyboardKeysTargets);
+                ReplaceTargets(targets, _keyboardKeysTargets.FirstOrDefault(e => Equals(e.Tag, ((KeyboardActions)Action).Key)));
+            }
+            else if (actionType == ActionType.Joystick)
+            {
+                bool preserveMissingTarget = Action is AxisActions;
+                if (!preserveMissingTarget)
                 {
-                    Targets.Clear();
-                    foreach (var t in _keyboardKeysTargets)
-                        Targets.Add(t);
+                    Action = new AxisActions()
+                    {
+                        ShiftSlot = ShiftSlot.Any,
+                        ShiftMatchAny = false
+                    };
                 }
-                SelectedTarget = _keyboardKeysTargets.FirstOrDefault(e => Equals(e.Tag, ((KeyboardActions)Action).Key)) ?? _keyboardKeysTargets.First();
+
+                MappingTargetViewModel? matchingTargetVm = null;
+                foreach (var axis in controller.GetTargetAxis())
+                {
+                    var mappingTargetVm = CreateTarget(axis, controller.GetAxisName(axis));
+                    targets.Add(mappingTargetVm);
+
+                    if (axis == ((AxisActions)Action).Axis)
+                        matchingTargetVm = mappingTargetVm;
+                }
+
+                if (matchingTargetVm is null && preserveMissingTarget)
+                {
+                    matchingTargetVm = CreateUnsupportedTarget(((AxisActions)Action).Axis,
+                        controller.GetAxisName(((AxisActions)Action).Axis));
+                    targets.Add(matchingTargetVm);
+                }
+
+                ReplaceTargets(targets, matchingTargetVm);
             }
             else if (actionType == ActionType.Mouse)
             {
@@ -366,29 +551,19 @@ namespace HandheldCompanion.ViewModels
                 MappingTargetViewModel? matchingTargetVm = null;
                 foreach (var mouseType in Enum.GetValues<MouseActionsType>().Except(_unsupportedMouseActionTypes))
                 {
-                    var mappingTargetVm = new MappingTargetViewModel
-                    {
-                        Tag = mouseType,
-                        Content = EnumUtils.GetDescriptionFromEnumValue(mouseType)
-                    };
+                    var mappingTargetVm = CreateTarget(mouseType, EnumUtils.GetDescriptionFromEnumValue(mouseType));
                     targets.Add(mappingTargetVm);
 
                     if (mouseType == ((MouseActions)Action).MouseType)
                         matchingTargetVm = mappingTargetVm;
                 }
 
-                // Update list and selected target
-                lock (_collectionLock)
-                {
-                    Targets.Clear();
-                    foreach (var t in targets)
-                        Targets.Add(t);
-                }
-                SelectedTarget = matchingTargetVm ?? Targets.First();
+                ReplaceTargets(targets, matchingTargetVm);
             }
             else if (actionType == ActionType.Trigger)
             {
-                if (Action is null || Action is not TriggerActions)
+                bool preserveMissingTarget = Action is TriggerActions;
+                if (!preserveMissingTarget)
                 {
                     Action = new TriggerActions()
                     {
@@ -401,24 +576,21 @@ namespace HandheldCompanion.ViewModels
                 MappingTargetViewModel? matchingTargetVm = null;
                 foreach (var axis in controller.GetTargetTriggers())
                 {
-                    var mappingTargetVm = new MappingTargetViewModel
-                    {
-                        Tag = axis,
-                        Content = controller.GetAxisName(axis)
-                    };
+                    var mappingTargetVm = CreateTarget(axis, controller.GetAxisName(axis));
                     targets.Add(mappingTargetVm);
 
                     if (axis == ((TriggerActions)Action).Axis)
                         matchingTargetVm = mappingTargetVm;
                 }
 
-                lock (_collectionLock)
+                if (matchingTargetVm is null && preserveMissingTarget)
                 {
-                    Targets.Clear();
-                    foreach (var t in targets)
-                        Targets.Add(t);
+                    matchingTargetVm = CreateUnsupportedTarget(((TriggerActions)Action).Axis,
+                        controller.GetAxisName(((TriggerActions)Action).Axis));
+                    targets.Add(matchingTargetVm);
                 }
-                SelectedTarget = matchingTargetVm ?? Targets.First();
+
+                ReplaceTargets(targets, matchingTargetVm);
             }
             else if (actionType == ActionType.Shift)
             {
@@ -429,33 +601,21 @@ namespace HandheldCompanion.ViewModels
                 // Only show individual shift slots (A, B, C, D), not None or combined values
                 foreach (ShiftSlot shiftSlot in new[] { ShiftSlot.ShiftA, ShiftSlot.ShiftB, ShiftSlot.ShiftC, ShiftSlot.ShiftD })
                 {
-                    MappingTargetViewModel mappingTargetVm = new MappingTargetViewModel
-                    {
-                        Tag = shiftSlot,
-                        Content = EnumUtils.GetDescriptionFromEnumValue(shiftSlot)
-                    };
+                    MappingTargetViewModel mappingTargetVm = CreateTarget(shiftSlot, EnumUtils.GetDescriptionFromEnumValue(shiftSlot));
                     targets.Add(mappingTargetVm);
 
                     if (shiftSlot == ((ShiftActions)Action).ActivationSlot)
                         matchingTargetVm = mappingTargetVm;
                 }
 
-                // Update list and selected target
-                lock (_collectionLock)
-                {
-                    Targets.Clear();
-                    foreach (var t in targets)
-                        Targets.Add(t);
-                }
-                SelectedTarget = matchingTargetVm ?? Targets.First();
+                ReplaceTargets(targets, matchingTargetVm);
             }
             else if (actionType == ActionType.Inherit)
             {
                 if (Action is null || Action is not InheritActions)
                     Action = new InheritActions();
 
-                // Update list and selected target
-                Targets.Clear();
+                ReplaceTargets(targets);
             }
 
             // Refresh mapping
@@ -479,6 +639,11 @@ namespace HandheldCompanion.ViewModels
                         ((KeyboardActions)Action).Key = virtualKeyCode;
                     break;
 
+                case ActionType.Joystick:
+                    if (SelectedTarget.Tag is AxisLayoutFlags axisLayoutFlags)
+                        ((AxisActions)Action).Axis = axisLayoutFlags;
+                    break;
+
                 case ActionType.Mouse:
                     if (SelectedTarget.Tag is MouseActionsType mouseActionsType)
                         ((MouseActions)Action).MouseType = mouseActionsType;
@@ -490,8 +655,8 @@ namespace HandheldCompanion.ViewModels
                     break;
 
                 case ActionType.Trigger:
-                    if (SelectedTarget.Tag is AxisLayoutFlags axisLayoutFlags)
-                        ((TriggerActions)Action).Axis = axisLayoutFlags;
+                    if (SelectedTarget.Tag is AxisLayoutFlags triggerAxisLayoutFlags)
+                        ((TriggerActions)Action).Axis = triggerAxisLayoutFlags;
                     break;
             }
         }
