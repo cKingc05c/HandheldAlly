@@ -228,6 +228,7 @@ public class MultimediaManager : IManager
     public static void SetDisplayTopology(bool externalOnly)
     {
         string argument = externalOnly ? "/external" : "/internal";
+        LogManager.LogInformation("Switching display topology: DisplaySwitch.exe {0}", argument);
         try
         {
             Process.Start(new ProcessStartInfo("DisplaySwitch.exe", argument)

@@ -48,7 +48,7 @@
                     <ItemsControl.ItemsPanel>
                         <ItemsPanelTemplate>
                             <WrapPanel
-                                ItemHeight="100"
+                                ItemHeight="160"
                                 ItemWidth="100"
                                 Orientation="Horizontal" />
                         </ItemsPanelTemplate>
@@ -80,8 +80,9 @@
 
                                 <ikw:SimpleStackPanel Spacing="3">
                                     <ToggleButton
-                                        Height="48"
+                                        Height="100"
                                         Margin="3"
+                                        Padding="0"
                                         HorizontalAlignment="Stretch"
                                         HorizontalContentAlignment="Stretch"
                                         Command="{Binding ExecuteCommand}"
@@ -89,13 +90,90 @@
                                         IsEnabled="{Binding IsEnabled, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}"
                                         Tag="Hotkey">
                                         <Grid>
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="50px" />
+                                                <RowDefinition Height="5px" />
+                                                <RowDefinition Height="30px" />
+                                            </Grid.RowDefinitions>
+
                                             <ui:FontIcon
                                                 Width="24"
                                                 Height="24"
                                                 HorizontalAlignment="Center"
+                                                VerticalAlignment="Center"
                                                 FontFamily="{Binding FontFamily, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}"
                                                 FontSize="{Binding FontSize, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}"
-                                                Glyph="{Binding LiveGlyph, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}" />
+                                                Glyph="{Binding LiveGlyph, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}">
+                                                <ui:FontIcon.Style>
+                                                    <Style TargetType="ui:FontIcon">
+                                                        <Setter Property="Grid.RowSpan" Value="1" />
+                                                        <Setter Property="VerticalAlignment" Value="Center" />
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding HasTriggerChord}" Value="False">
+                                                                <Setter Property="Grid.RowSpan" Value="3" />
+                                                                <Setter Property="VerticalAlignment" Value="Center" />
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </ui:FontIcon.Style>
+                                            </ui:FontIcon>
+
+                                            <Separator
+                                                Grid.Row="1"
+                                                BorderBrush="{DynamicResource SystemControlBackgroundChromeMediumBrush}"
+                                                BorderThickness="0,1,0,0"
+                                                Opacity="0.25">
+                                                <Separator.Style>
+                                                    <Style TargetType="Separator">
+                                                        <Setter Property="Visibility" Value="Visible" />
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding HasTriggerChord}" Value="False">
+                                                                <Setter Property="Visibility" Value="Collapsed" />
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Separator.Style>
+                                            </Separator>
+
+                                            <ItemsControl
+                                                Grid.Row="2"
+                                                HorizontalAlignment="Center"
+                                                ItemsSource="{Binding TriggerChordParts, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}">
+                                                <ItemsControl.Style>
+                                                    <Style TargetType="ItemsControl">
+                                                        <Setter Property="Visibility" Value="Visible" />
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding HasTriggerChord}" Value="False">
+                                                                <Setter Property="Visibility" Value="Collapsed" />
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </ItemsControl.Style>
+
+                                                <ItemsControl.ItemsPanel>
+                                                    <ItemsPanelTemplate>
+                                                        <ikw:SimpleStackPanel Orientation="Horizontal" Spacing="1" />
+                                                    </ItemsPanelTemplate>
+                                                </ItemsControl.ItemsPanel>
+
+                                                <ItemsControl.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <Border
+                                                            Height="24"
+                                                            MinWidth="24"
+                                                            Background="{DynamicResource NavigationViewContentGridBorderBrush}"
+                                                            CornerRadius="3">
+                                                            <TextBlock
+                                                                VerticalAlignment="Center"
+                                                                FontFamily="{Binding FontFamily}"
+                                                                FontSize="{Binding FontSize}"
+                                                                Text="{Binding Glyph}"
+                                                                TextAlignment="Center"
+                                                                TextWrapping="Wrap" />
+                                                        </Border>
+                                                    </DataTemplate>
+                                                </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
                                         </Grid>
                                     </ToggleButton>
 

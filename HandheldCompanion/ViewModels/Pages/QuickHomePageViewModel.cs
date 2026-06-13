@@ -1,4 +1,6 @@
 ﻿using GongSolutions.Wpf.DragDrop;
+using HandheldCompanion.Controllers;
+using HandheldCompanion.Inputs;
 using HandheldCompanion.Managers;
 using System;
 using System.Collections.ObjectModel;
@@ -17,8 +19,9 @@ namespace HandheldCompanion.ViewModels
             BindingOperations.EnableCollectionSynchronization(HotkeysList, _collectionLock);
 
             // manage events
-            ManagerFactory.hotkeysManager.Updated += HotkeysManager_Updated;
-            ManagerFactory.hotkeysManager.Deleted += HotkeysManager_Deleted;
+            ControllerManager.ControllerSelected += ControllerManager_ControllerSelected;
+            ControllerManager.ControllerPlugged += ControllerManager_ControllerChanged;
+            ControllerManager.ControllerUnplugged += ControllerManager_ControllerChanged;
 
             // raise events
             switch (ManagerFactory.hotkeysManager.Status)
@@ -38,9 +41,38 @@ namespace HandheldCompanion.ViewModels
             QueryHotkeys();
         }
 
+        private void ControllerManager_ControllerChanged(IController controller, bool isPowerCycling)
+        {
+            RefreshHotkeyGlyphs();
+        }
+
+        private void ControllerManager_ControllerChanged(IController controller, bool isPowerCycling, bool wasTarget)
+        {
+            RefreshHotkeyGlyphs();
+        }
+
+        private void ControllerManager_ControllerSelected(IController controller)
+        {
+            RefreshHotkeyGlyphs();
+        }
+
+        private void RefreshHotkeyGlyphs()
+        {
+            lock (_collectionLock)
+            {
+                foreach (HotkeyViewModel hotkeyViewModel in HotkeysList)
+                    hotkeyViewModel.DrawChords();
+            }
+        }
+
         private void QueryHotkeys()
         {
-            foreach (Hotkey hotkey in ManagerFactory.hotkeysManager.GetHotkeys())
+            // manage events
+            ManagerFactory.hotkeysManager.Updated += HotkeysManager_Updated;
+            ManagerFactory.hotkeysManager.Deleted += HotkeysManager_Deleted;
+
+            // raise events
+            foreach (Hotkey hotkey in ManagerFactory.hotkeysManager.GetHotkeys().OrderByDescending(hotkey => hotkey.PinIndex != -1).ThenBy(hotkey => hotkey.ButtonFlags))
                 HotkeysManager_Updated(hotkey);
         }
 
@@ -96,7 +128,7 @@ namespace HandheldCompanion.ViewModels
                         int index = hotkey.PinIndex;
                         if (index > HotkeysList.Count || index < 0)
                             index = HotkeysList.Count;
-                        HotkeysList.Insert(index, new HotkeyViewModel(hotkey));
+                        HotkeysList.Insert(index, new HotkeyViewModel(hotkey, true));
                     }
                 }
                 else
@@ -120,6 +152,17 @@ namespace HandheldCompanion.ViewModels
                     foundHotkey.Dispose();
                 }
             }
+        }
+
+        public override void Dispose()
+        {
+            ManagerFactory.hotkeysManager.Updated -= HotkeysManager_Updated;
+            ManagerFactory.hotkeysManager.Deleted -= HotkeysManager_Deleted;
+            ControllerManager.ControllerSelected -= ControllerManager_ControllerSelected;
+            ControllerManager.ControllerPlugged -= ControllerManager_ControllerChanged;
+            ControllerManager.ControllerUnplugged -= ControllerManager_ControllerChanged;
+
+            base.Dispose();
         }
     }
 }

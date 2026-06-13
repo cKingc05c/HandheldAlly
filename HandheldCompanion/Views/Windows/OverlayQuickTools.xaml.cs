@@ -173,9 +173,9 @@ public partial class OverlayQuickTools : GamepadWindow
         Top = _targetTop;   // otherwise start at the resting Y
     }
 
-    public static OverlayQuickTools GetCurrent()
+    public static OverlayQuickTools? GetCurrent()
     {
-        return CurrentWindow!;
+        return CurrentWindow;
     }
 
     private void SettingsManager_SettingValueChanged(string name, object? value, bool temporary)
@@ -544,6 +544,9 @@ public partial class OverlayQuickTools : GamepadWindow
 
     public void UpdateStyle()
     {
+        if (hwndSource is null)
+            return;
+
         WinAPI.SendMessage(hwndSource.Handle, WM_NCACTIVATE, (IntPtr)WM_NCACTIVATE, IntPtr.Zero);
     }
 

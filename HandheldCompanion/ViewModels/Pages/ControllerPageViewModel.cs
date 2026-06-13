@@ -100,13 +100,17 @@ namespace HandheldCompanion.ViewModels
                 {
                     default:
                     case HIDmode.Xbox360Controller:
-                    case HIDmode.SteamDeckController:
-                    case HIDmode.SwitchProController:
-                    case HIDmode.SteamController:
                         return LibraryResources.Xbox360Big;
+                    case HIDmode.SwitchProController:
+                        return LibraryResources.SwitchProBig;
+                    case HIDmode.SteamController:
+                        return LibraryResources.SteamControllerBig;
                     case HIDmode.DualShock4Controller:
-                    case HIDmode.DualSenseController:
                         return LibraryResources.DualShock4Big;
+                    case HIDmode.DualSenseController:
+                        return LibraryResources.DualSenseBig;
+                    case HIDmode.SteamDeckController:
+                        return LibraryResources.SteamDeckBig;
                 }
             }
         }
@@ -332,11 +336,6 @@ namespace HandheldCompanion.ViewModels
             BindingOperations.EnableCollectionSynchronization(VirtualControllers, _collectionLock2);
 
             // manage events
-            ControllerManager.ControllerPlugged += ControllerPlugged;
-            ControllerManager.ControllerUnplugged += ControllerUnplugged;
-            ControllerManager.ControllerSelected += ControllerManager_ControllerSelected;
-            ControllerManager.StatusChanged += ControllerManager_StatusChanged;
-            ControllerManager.SlotIssueChanged += ControllerManager_SlotIssueChanged;
             VirtualManager.ControllerSelected += VirtualManager_ControllerSelected;
             VirtualManager.MasterIntervalOverrideChanged += VirtualManager_MasterIntervalOverrideChanged;
             VirtualManager.StatusChanged += VirtualManager_StatusChanged;
@@ -381,11 +380,10 @@ namespace HandheldCompanion.ViewModels
                     break;
             }
 
-            // send events
-            if (ControllerManager.HasTargetController && ControllerManager.GetTarget() is IController controller)
-                ControllerManager_ControllerSelected(controller);
-            else
-                Refresh();
+            ControllerManager.Initialized += ControllerManager_Initialized;
+
+            if (ControllerManager.IsInitialized)
+                ControllerManager_Initialized();
 
             ScanHardwareCommand = new DelegateCommand(async () =>
             {
@@ -427,6 +425,26 @@ namespace HandheldCompanion.ViewModels
                 // Needed on .NET/WPF to invoke URI protocols
                 Process.Start(new ProcessStartInfo(target) { UseShellExecute = true });
             });
+        }
+
+        private void ControllerManager_Initialized()
+        {
+            // manage events
+            ControllerManager.ControllerPlugged += ControllerPlugged;
+            ControllerManager.ControllerUnplugged += ControllerUnplugged;
+            ControllerManager.ControllerSelected += ControllerManager_ControllerSelected;
+            ControllerManager.StatusChanged += ControllerManager_StatusChanged;
+            ControllerManager.SlotIssueChanged += ControllerManager_SlotIssueChanged;
+
+            // initialize slot issue state
+            _hasSlotIssue = ControllerManager.HasSlotIssue;
+            _virtualNotInSlot1 = ControllerManager.HasVirtualSlot1Issue;
+
+            // send events
+            if (ControllerManager.HasTargetController && ControllerManager.GetTarget() is IController controller)
+                ControllerManager_ControllerSelected(controller);
+            else
+                Refresh();
         }
 
         private void VirtualManager_ControllerSelected(HIDmode mode)
@@ -473,7 +491,10 @@ namespace HandheldCompanion.ViewModels
 
         private void QuerySettings()
         {
+            // manage events
             ManagerFactory.settingsManager.SettingValueChanged += SettingsManager_SettingValueChanged;
+
+            // raise events
             SettingsManager_SettingValueChanged("HIDstatus", ManagerFactory.settingsManager.GetString("HIDstatus"), false);
             SettingsManager_SettingValueChanged("SteamControllerMode", ManagerFactory.settingsManager.GetString("SteamControllerMode"), false);
             SettingsManager_SettingValueChanged("ControllerSlotManagementMode", ManagerFactory.settingsManager.GetString("ControllerSlotManagementMode"), false);
@@ -665,6 +686,7 @@ namespace HandheldCompanion.ViewModels
                 ControllerManager.ControllerSelected -= ControllerManager_ControllerSelected;
                 ControllerManager.StatusChanged -= ControllerManager_StatusChanged;
                 ControllerManager.SlotIssueChanged -= ControllerManager_SlotIssueChanged;
+                ControllerManager.Initialized -= ControllerManager_Initialized;
                 ManagerFactory.layoutManager.Initialized -= LayoutManager_Initialized;
                 ManagerFactory.profileManager.Initialized -= ProfileManager_Initialized;
                 ManagerFactory.profileManager.Applied -= ProfileManager_Applied;

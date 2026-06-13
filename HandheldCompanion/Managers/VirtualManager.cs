@@ -545,6 +545,10 @@ namespace HandheldCompanion.Managers
 
         public static void UpdateInputs(ControllerState controllerState, GamepadMotion gamepadMotion)
         {
+            // Skip sending inputs to virtual controller when listening for hotkey inputs
+            if (InputsManager.IsListening)
+                return;
+
             vTarget?.UpdateInputsAsync(controllerState, gamepadMotion);
         }
     }

@@ -89,23 +89,6 @@
                 <StaticResource x:Key="TopNavigationViewItemForegroundSelectedPointerOver" ResourceKey="NavigationViewSelectionIndicatorForeground" />
             </ui:NavigationView.Resources>
 
-            <ui:NavigationView.MenuItemContainerStyle>
-                <Style TargetType="ui:NavigationViewItem">
-                    <Setter Property="Background" Value="{DynamicResource NavigationViewItemBackground}" />
-                    <Setter Property="CornerRadius" Value="{DynamicResource OverlayCornerRadius}" />
-                    <Setter Property="Content" Value="{Binding Title}" />
-                    <Setter Property="Tag" Value="{Binding Key}" />
-                    <Setter Property="IsTabStop" Value="True" />
-                    <Setter Property="Visibility" Value="{Binding IsVisible, Converter={StaticResource BooleanToVisibilityConverter}}" />
-                    <Setter Property="Icon" Value="{Binding Icon}" />
-                    <Style.Triggers>
-                        <DataTrigger Binding="{Binding HasIcon}" Value="False">
-                            <Setter Property="Icon" Value="{x:Null}" />
-                        </DataTrigger>
-                    </Style.Triggers>
-                </Style>
-            </ui:NavigationView.MenuItemContainerStyle>
-
             <ui:NavigationView.MenuItems>
                 <ui:NavigationViewItem IsEnabled="False">
                     <ui:NavigationViewItem.Icon>
