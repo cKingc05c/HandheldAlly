@@ -111,7 +111,6 @@ namespace HandheldCompanion.Views.Pages
             this.Tag = Tag;
 
             // manage events
-            ControllerManager.ControllerSelected += ControllerManager_ControllerSelected;
             IDevice.GetCurrent().CapabilitiesChanged += OnCapabilitiesChanged;
 
             switch (ManagerFactory.settingsManager.Status)
