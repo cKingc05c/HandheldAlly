@@ -2131,8 +2131,9 @@ namespace HandheldCompanion.Managers
                 return;
 
             // Fast-path: the built-in Desktop layout maps every navigational button to a
-            // keyboard/mouse action — bail out entirely rather than checking each input.
-            if (_layoutModeIsDesktop)
+            // keyboard/mouse action for the main app window, but Quick Tools still needs
+            // direct controller navigation while it is open over FSE or games.
+            if (_layoutModeIsDesktop && !IsQuicktools)
                 return;
 
             // skip if page doesn't have focus

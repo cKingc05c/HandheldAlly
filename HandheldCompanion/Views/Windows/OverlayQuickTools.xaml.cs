@@ -59,6 +59,8 @@ public partial class OverlayQuickTools : GamepadWindow
     public QuickKeyboardPage keyboardPage = null!;
 
     private static OverlayQuickTools CurrentWindow = null!;
+    private IntPtr launchForegroundWindow;
+    private DateTime ignoreAutoHideUntilUtc = DateTime.MinValue;
     public string prevNavItemTag = string.Empty;
 
     public OverlayQuickTools()
@@ -131,14 +133,33 @@ public partial class OverlayQuickTools : GamepadWindow
 
     private void ProcessManager_RawForeground(nint hWnd)
     {
-        if (hWnd != hwndSource.Handle && AutoHide && !isClosing)
+        if (!AutoHide || isClosing || !IsVisible || Visibility != Visibility.Visible || hwndSource is null || hWnd == IntPtr.Zero)
+            return;
+
+        if (hWnd == hwndSource.Handle)
+            return;
+
+        if (DateTime.UtcNow < ignoreAutoHideUntilUtc)
+            return;
+
+        if (launchForegroundWindow != IntPtr.Zero && hWnd == launchForegroundWindow)
+            return;
+
+        // Use async dispatch to avoid deadlock during shutdown
+        UIHelper.TryBeginInvoke(() =>
         {
-            // Use async dispatch to avoid deadlock during shutdown
-            UIHelper.TryBeginInvoke(() =>
-            {
-                HideInstant();
-            });
-        }
+            if (!AutoHide || isClosing || !IsVisible || Visibility != Visibility.Visible || hwndSource is null)
+                return;
+
+            nint currentForeground = ProcessManager.GetCurrentWindowHandle();
+            if (currentForeground == hwndSource.Handle)
+                return;
+
+            if (launchForegroundWindow != IntPtr.Zero && currentForeground == launchForegroundWindow)
+                return;
+
+            HideInstant();
+        });
     }
 
     public void loadPages()
@@ -366,6 +387,9 @@ public partial class OverlayQuickTools : GamepadWindow
 
     private void ShowInstant()
     {
+        launchForegroundWindow = ProcessManager.GetCurrentWindowHandle();
+        ignoreAutoHideUntilUtc = DateTime.UtcNow.AddMilliseconds(750);
+
         UpdateLocation();
         Left = _Left;
         Top = _targetTop;
@@ -377,6 +401,9 @@ public partial class OverlayQuickTools : GamepadWindow
 
     private void HideInstant()
     {
+        ignoreAutoHideUntilUtc = DateTime.MinValue;
+        launchForegroundWindow = IntPtr.Zero;
+
         var openDialog = iNKORE.UI.WPF.Modern.Controls.ContentDialog.GetOpenDialog(this);
         if (openDialog is not null)
         {
