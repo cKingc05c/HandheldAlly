@@ -422,5 +422,32 @@
     <Setting Name="MainWindowApplyNoise" Type="System.Boolean" Scope="User">
       <Value Profile="(Default)">True</Value>
     </Setting>
+    <Setting Name="FSEExecutablePath" Type="System.String" Scope="User">
+      <Value Profile="(Default)" />
+    </Setting>
+    <Setting Name="FSEArguments" Type="System.String" Scope="User">
+      <Value Profile="(Default)">/FSE</Value>
+    </Setting>
+    <Setting Name="LosslessScalingEnabled" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">True</Value>
+    </Setting>
+    <Setting Name="LosslessScalingExecutablePath" Type="System.String" Scope="User">
+      <Value Profile="(Default)" />
+    </Setting>
+    <Setting Name="LosslessScalingToggleHotkey" Type="System.String" Scope="User">
+      <Value Profile="(Default)">LeftControl+LeftAlt+S</Value>
+    </Setting>
+    <Setting Name="LosslessScalingLaunchIfMissing" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">False</Value>
+    </Setting>
+    <Setting Name="LosslessScalingAllowPlayniteTarget" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">False</Value>
+    </Setting>
+    <Setting Name="LosslessScalingUseLastValidTarget" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">True</Value>
+    </Setting>
+    <Setting Name="LosslessScalingShowToastOnNoTarget" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">True</Value>
+    </Setting>
   </Settings>
 </SettingsFile>

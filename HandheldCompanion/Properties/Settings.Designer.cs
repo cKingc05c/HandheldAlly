@@ -1701,5 +1701,113 @@ namespace HandheldCompanion.Properties
                 this["MainWindowApplyNoise"] = value;
             }
         }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string FSEExecutablePath {
+            get {
+                return ((string)(this["FSEExecutablePath"]));
+            }
+            set {
+                this["FSEExecutablePath"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("/FSE")]
+        public string FSEArguments {
+            get {
+                return ((string)(this["FSEArguments"]));
+            }
+            set {
+                this["FSEArguments"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        public bool LosslessScalingEnabled {
+            get {
+                return ((bool)(this["LosslessScalingEnabled"]));
+            }
+            set {
+                this["LosslessScalingEnabled"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string LosslessScalingExecutablePath {
+            get {
+                return ((string)(this["LosslessScalingExecutablePath"]));
+            }
+            set {
+                this["LosslessScalingExecutablePath"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("LeftControl+LeftAlt+S")]
+        public string LosslessScalingToggleHotkey {
+            get {
+                return ((string)(this["LosslessScalingToggleHotkey"]));
+            }
+            set {
+                this["LosslessScalingToggleHotkey"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool LosslessScalingLaunchIfMissing {
+            get {
+                return ((bool)(this["LosslessScalingLaunchIfMissing"]));
+            }
+            set {
+                this["LosslessScalingLaunchIfMissing"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool LosslessScalingAllowPlayniteTarget {
+            get {
+                return ((bool)(this["LosslessScalingAllowPlayniteTarget"]));
+            }
+            set {
+                this["LosslessScalingAllowPlayniteTarget"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        public bool LosslessScalingUseLastValidTarget {
+            get {
+                return ((bool)(this["LosslessScalingUseLastValidTarget"]));
+            }
+            set {
+                this["LosslessScalingUseLastValidTarget"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        public bool LosslessScalingShowToastOnNoTarget {
+            get {
+                return ((bool)(this["LosslessScalingShowToastOnNoTarget"]));
+            }
+            set {
+                this["LosslessScalingShowToastOnNoTarget"] = value;
+            }
+        }
     }
 }

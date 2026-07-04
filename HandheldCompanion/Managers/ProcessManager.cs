@@ -61,6 +61,9 @@ public class ProcessManager : IManager
     private static readonly ConcurrentDictionary<int, ProcessEx> Processes = new();
 
     private static ProcessEx currentProcess = null!;
+    private static IntPtr currentRawForegroundWindow;
+    private static string currentRawForegroundWindowClass = string.Empty;
+    private static string currentRawForegroundWindowTitle = string.Empty;
     private IntPtr currenthWnd;
 
     private AutomationEventHandler _windowOpenedHandler = null!;
@@ -364,6 +367,21 @@ public class ProcessManager : IManager
         return currentProcess;
     }
 
+    public static IntPtr GetCurrentWindowHandle()
+    {
+        return currentRawForegroundWindow;
+    }
+
+    public static string GetCurrentWindowClass()
+    {
+        return currentRawForegroundWindowClass;
+    }
+
+    public static string GetCurrentWindowTitle()
+    {
+        return currentRawForegroundWindowTitle;
+    }
+
     public static ProcessEx? GetProcess(int processId)
     {
         if (Processes.TryGetValue(processId, out var process))
@@ -396,6 +414,11 @@ public class ProcessManager : IManager
         if (currenthWnd == hWnd || hWnd == IntPtr.Zero)
             return;
 
+        // update raw foreground metadata before notifying listeners so they can query it synchronously
+        currentRawForegroundWindow = hWnd;
+        currentRawForegroundWindowClass = GetWindowClassName(hWnd);
+        currentRawForegroundWindowTitle = ProcessUtils.GetWindowTitle(hWnd) ?? string.Empty;
+
         RawForeground?.Invoke(hWnd);
 
         // update current foreground window
@@ -403,7 +426,7 @@ public class ProcessManager : IManager
 
         AutomationElement? element = null;
         int processId = GetWindowProcessId(hWnd);
-        string className = GetWindowClassName(hWnd);
+        string className = currentRawForegroundWindowClass;
 
         if (className == "ApplicationFrameWindow")
         {

@@ -529,6 +529,7 @@ public partial class OverlayQuickTools : GamepadWindow
             case Visibility.Hidden:
                 InvokeLostGamepadWindowFocus();
                 clockUpdateTimer.Stop();
+                ControllerManager.NotifyQuickToolsVisibilityChanged(false, $"Quick Tools visibility changed to {Visibility}");
                 break;
 
             case Visibility.Visible:
@@ -536,6 +537,7 @@ public partial class OverlayQuickTools : GamepadWindow
 
                 InvokeGotGamepadWindowFocus();
                 clockUpdateTimer.Start();
+                ControllerManager.NotifyQuickToolsVisibilityChanged(true, "Quick Tools visibility changed to Visible");
                 break;
         }
 

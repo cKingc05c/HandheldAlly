@@ -5814,6 +5814,78 @@ namespace HandheldCompanion.Properties {
         /// <summary>
         ///   Looks up a localized string similar to Page.
         /// </summary>
+        /// <summary>
+        ///   Looks up a localized string similar to Cycle TDP Mode.
+        /// </summary>
+        public static string Hotkey_CycleTDPMode {
+            get {
+                return ResourceManager.GetString("Hotkey_CycleTDPMode", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Cycle between Default, Low Power, Balanced, Performance, and Turbo TDP modes.
+        /// </summary>
+        public static string Hotkey_CycleTDPModeDesc {
+            get {
+                return ResourceManager.GetString("Hotkey_CycleTDPModeDesc", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Reenter FSE.
+        /// </summary>
+        public static string Hotkey_ReenterFSE {
+            get {
+                return ResourceManager.GetString("Hotkey_ReenterFSE", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Launch the configured AnyFSE or AllyFSE executable with /FSE.
+        /// </summary>
+        public static string Hotkey_ReenterFSEDesc {
+            get {
+                return ResourceManager.GetString("Hotkey_ReenterFSEDesc", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Toggle Lossless Scaling.
+        /// </summary>
+        public static string Hotkey_ToggleLosslessScaling {
+            get {
+                return ResourceManager.GetString("Hotkey_ToggleLosslessScaling", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Send the configured Lossless Scaling hotkey to the current valid game or app target.
+        /// </summary>
+        public static string Hotkey_ToggleLosslessScalingDesc {
+            get {
+                return ResourceManager.GetString("Hotkey_ToggleLosslessScalingDesc", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to No valid target is available. Close Quick Tools or focus a game first..
+        /// </summary>
+        public static string LosslessScaling_NoTargetToast {
+            get {
+                return ResourceManager.GetString("LosslessScaling_NoTargetToast", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Lossless Scaling.
+        /// </summary>
+        public static string LosslessScaling_ToastTitle {
+            get {
+                return ResourceManager.GetString("LosslessScaling_ToastTitle", resourceCulture);
+            }
+        }
+        
         public static string Hotkey_QuickToolsPage {
             get {
                 return ResourceManager.GetString("Hotkey_QuickToolsPage", resourceCulture);

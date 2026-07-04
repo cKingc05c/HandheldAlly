@@ -124,7 +124,13 @@ public static class ControllerManager
 
     private static IController? targetController;
     private static ProcessEx? foregroundProcess;
+    private static ProcessEx? lastValidExternalTarget;
     private static bool ControllerMuted;
+    private static bool quickToolsVisible;
+    private static bool quickToolsFocused;
+    private static bool mainWindowFocused;
+    private static string previousValidForegroundExecutable = string.Empty;
+    private static string lastControllerMuteReason = string.Empty;
     private static SensorFamily sensorSelection = SensorFamily.None;
 
     private static object targetLock = new object();
@@ -195,8 +201,8 @@ public static class ControllerManager
 
         // manage events
         TimerManager.Tick += Tick;
-        UIGamepad.GotFocus += GamepadFocusManager_FocusChanged;
-        UIGamepad.LostFocus += GamepadFocusManager_FocusChanged;
+        UIGamepad.GotFocus += UIGamepad_GotFocus;
+        UIGamepad.LostFocus += UIGamepad_LostFocus;
         VirtualManager.Vibrated += VirtualManager_Vibrated;
         App.uiSettings.ColorValuesChanged += OnColorValuesChanged;
         ToastManager.CommandReceived += ToastCommandRouter;
@@ -1122,9 +1128,10 @@ public static class ControllerManager
         ManagerFactory.settingsManager.SettingValueChanged -= SettingsManager_SettingValueChanged;
         ManagerFactory.settingsManager.Initialized -= SettingsManager_Initialized;
         ManagerFactory.processManager.ForegroundChanged -= ProcessManager_ForegroundChanged;
+        ManagerFactory.processManager.RawForeground -= ProcessManager_RawForeground;
         ManagerFactory.processManager.Initialized -= ProcessManager_Initialized;
-        UIGamepad.GotFocus -= GamepadFocusManager_FocusChanged;
-        UIGamepad.LostFocus -= GamepadFocusManager_FocusChanged;
+        UIGamepad.GotFocus -= UIGamepad_GotFocus;
+        UIGamepad.LostFocus -= UIGamepad_LostFocus;
         VirtualManager.Vibrated -= VirtualManager_Vibrated;
         App.uiSettings.ColorValuesChanged -= OnColorValuesChanged;
         ToastManager.CommandReceived -= ToastCommandRouter;
@@ -1168,102 +1175,357 @@ public static class ControllerManager
         targetController?.SetLightColor(_systemAccent.R, _systemAccent.G, _systemAccent.B);
     }
 
-    [Flags]
-    private enum FocusedWindow
+    private static void UIGamepad_GotFocus(string name)
     {
-        None,
-        MainWindow,
-        Quicktools
+        UpdateFocusState(name, true);
+        LogManager.LogInformation("[ControllerFocus] UI focus gained: {0}. {1}", name, BuildControllerFocusDiagnostics());
+        CheckControllerScenario(false, $"UI focus gained: {name}");
     }
 
-    private static void GamepadFocusManager_FocusChanged(string Name)
+    private static void UIGamepad_LostFocus(string name)
     {
-        // check applicable scenarios
-        CheckControllerScenario();
+        UpdateFocusState(name, false);
+        LogManager.LogInformation("[ControllerFocus] UI focus lost: {0}. {1}", name, BuildControllerFocusDiagnostics());
+        CheckControllerScenario(false, $"UI focus lost: {name}");
+    }
+
+    private static void UpdateFocusState(string name, bool focused)
+    {
+        switch (name)
+        {
+            case "QuickTools":
+                quickToolsFocused = focused;
+                if (focused)
+                    quickToolsVisible = true;
+                break;
+            case "MainWindow":
+                mainWindowFocused = focused;
+                break;
+        }
+    }
+
+    public static void NotifyQuickToolsVisibilityChanged(bool isVisible, string reason)
+    {
+        if (!IsInitialized)
+            return;
+
+        bool visibilityChanged = quickToolsVisible != isVisible;
+        quickToolsVisible = isVisible;
+
+        if (!isVisible)
+            quickToolsFocused = false;
+        else
+            TrackLastValidExternalTarget(foregroundProcess);
+
+        if (visibilityChanged)
+            LogManager.LogInformation("[ControllerFocus] Quick Tools {0}. {1}", isVisible ? "opened" : "closed", BuildControllerFocusDiagnostics());
+
+        CheckControllerScenario(true, reason);
+    }
+
+    public static bool IsQuickToolsVisible()
+    {
+        return quickToolsVisible;
+    }
+
+    public static ProcessEx? GetLastValidExternalTarget()
+    {
+        return lastValidExternalTarget;
+    }
+
+    public static string GetControllerFocusDiagnostics()
+    {
+        return BuildControllerFocusDiagnostics();
+    }
+
+    public static bool TryGetLosslessScalingTarget(bool useLastValidTarget, bool allowPlayniteTarget, out ProcessEx? processEx, out string reason)
+    {
+        processEx = null;
+
+        if (quickToolsVisible)
+        {
+            if (!useLastValidTarget)
+            {
+                reason = "Quick Tools is open and using the last valid target is disabled";
+                return false;
+            }
+
+            if (IsLosslessScalingTargetCandidate(lastValidExternalTarget, allowPlayniteTarget))
+            {
+                processEx = lastValidExternalTarget;
+                reason = "Quick Tools is open, using the last valid foreground target";
+                return true;
+            }
+
+            reason = "Quick Tools is open but no valid previous foreground target is available";
+            return false;
+        }
+
+        if (IsLosslessScalingTargetCandidate(foregroundProcess, allowPlayniteTarget))
+        {
+            processEx = foregroundProcess;
+            reason = "Using the current foreground target";
+            return true;
+        }
+
+        if (foregroundProcess is null)
+            reason = "No allowed foreground process is currently available";
+        else
+            reason = $"Foreground process {foregroundProcess.Executable} is not a valid Lossless Scaling target";
+
+        return false;
+    }
+
+    private static void ProcessManager_RawForeground(nint hWnd)
+    {
+        if (!IsInitialized || hWnd == IntPtr.Zero)
+            return;
+
+        LogManager.LogInformation("[ControllerFocus] Raw foreground changed: title='{0}', class='{1}'. {2}",
+            ProcessManager.GetCurrentWindowTitle(),
+            ProcessManager.GetCurrentWindowClass(),
+            BuildControllerFocusDiagnostics());
+
+        CheckControllerScenario(false, "Raw foreground changed");
     }
 
     private static void ProcessManager_ForegroundChanged(ProcessEx? processEx, ProcessEx? backgroundEx, ProcessFilter filter)
     {
-        // update current process
         foregroundProcess = processEx;
 
-        // check applicable scenarios
-        CheckControllerScenario();
+        if (processEx is not null)
+        {
+            LogManager.LogInformation("[ControllerFocus] Allowed foreground target changed to {0}. {1}", processEx.Executable, BuildControllerFocusDiagnostics());
+            TrackLastValidExternalTarget(processEx);
+        }
+        else
+            LogManager.LogInformation("[ControllerFocus] Allowed foreground target cleared. {0}", BuildControllerFocusDiagnostics());
+
+        CheckControllerScenario(false, "Allowed foreground changed");
+    }
+
+    private static void TrackLastValidExternalTarget(ProcessEx? processEx)
+    {
+        bool allowPlayniteTarget = ManagerFactory.settingsManager.GetBoolean("LosslessScalingAllowPlayniteTarget");
+        if (!IsLosslessScalingTargetCandidate(processEx, allowPlayniteTarget))
+            return;
+
+        if (lastValidExternalTarget is not null && string.Equals(lastValidExternalTarget.Path, processEx!.Path, StringComparison.InvariantCultureIgnoreCase))
+            return;
+
+        previousValidForegroundExecutable = lastValidExternalTarget?.Executable ?? string.Empty;
+        lastValidExternalTarget = processEx;
+
+        LogManager.LogInformation("[ControllerFocus] Last valid foreground target set to {0}. Previous={1}. {2}",
+            processEx!.Executable,
+            string.IsNullOrWhiteSpace(previousValidForegroundExecutable) ? "none" : previousValidForegroundExecutable,
+            BuildControllerFocusDiagnostics());
     }
 
     private static void CurrentDevice_KeyReleased(ButtonFlags button)
     {
-        // calls current controller (if connected)
         targetController?.InjectButton(button, false, true);
     }
 
     private static void CurrentDevice_KeyPressed(ButtonFlags button)
     {
-        // calls current controller (if connected)
         targetController?.InjectButton(button, true, false);
     }
 
     private static void ScenarioTimer_Elapsed(object? sender, ElapsedEventArgs e)
     {
-        // set flag
-        ControllerMuted = false;
-
-        // Steam Deck specific scenario
-        if (IDevice.GetCurrent() is SteamDeck steamDeck)
-        {
-            bool IsExclusiveMode = ManagerFactory.settingsManager.GetBoolean("SteamControllerMode");
-
-            // Making sure current controller is embedded
-            if (targetController is NeptuneController neptuneController)
-            {
-                // We're busy, come back later
-                if (neptuneController.IsBusy)
-                    return;
-
-                if (IsExclusiveMode)
-                {
-                    // mode: exclusive
-                    // hide embedded controller
-                    if (!neptuneController.IsHidden())
-                        neptuneController.Hide();
-                }
-                else
-                {
-                    // mode: hybrid
-                    if (foregroundProcess?.Platform == GamePlatform.Steam)
-                    {
-                        // application is either steam or a steam game
-                        // restore embedded controller and mute virtual controller
-                        if (neptuneController.IsHidden())
-                            neptuneController.Unhide();
-
-                        // set flag
-                        ControllerMuted = true;
-                    }
-                    else
-                    {
-                        // application is not steam related
-                        // hide embbeded controller
-                        if (!neptuneController.IsHidden())
-                            neptuneController.Hide();
-                    }
-                }
-
-                // halt timer
-                scenarioTimer.Stop();
-            }
-        }
-
-        // either main window or quicktools are focused
-        if (UIGamepad.HasFocus())
-            ControllerMuted = true;
+        EvaluateControllerScenario("Scenario timer elapsed");
     }
 
-    private static void CheckControllerScenario()
+    private static void CheckControllerScenario(bool immediate = false, string trigger = "State change")
     {
-        // reset timer
         scenarioTimer.Stop();
+
+        if (immediate)
+        {
+            EvaluateControllerScenario(trigger);
+            return;
+        }
+
         scenarioTimer.Start();
+    }
+
+    private static void EvaluateControllerScenario(string trigger)
+    {
+        bool shouldMute = false;
+        string reason = "Focus is ambiguous; preferring unmuted while Quick Tools is not actively consuming input";
+
+        bool steamDeckWantsMute = ApplySteamDeckRouting(out string steamDeckReason);
+        bool quickToolsConsumesInput = quickToolsVisible && quickToolsFocused;
+        bool mainWindowConsumesInput = mainWindowFocused && IsMainWindowForeground();
+
+        if (quickToolsConsumesInput)
+        {
+            shouldMute = true;
+            reason = "Quick Tools is visible and actively receiving controller navigation";
+        }
+        else if (mainWindowConsumesInput)
+        {
+            shouldMute = true;
+            reason = "Main window is the active foreground window and is receiving controller navigation";
+        }
+        else if (steamDeckWantsMute)
+        {
+            shouldMute = true;
+            reason = steamDeckReason;
+        }
+        else if (!quickToolsVisible && mainWindowFocused)
+            reason = "Quick Tools is closed and stale Handheld Companion main-window focus is ignored";
+        else if (!quickToolsVisible && IsProtectedForegroundTarget(foregroundProcess))
+            reason = "Quick Tools is closed and controller input should return to the foreground launcher or game";
+        else if (quickToolsVisible && !quickToolsFocused)
+            reason = "Quick Tools is visible but no longer owns controller navigation";
+
+        if (ControllerMuted == shouldMute)
+        {
+            lastControllerMuteReason = reason;
+            return;
+        }
+
+        bool previous = ControllerMuted;
+        ControllerMuted = shouldMute;
+        lastControllerMuteReason = reason;
+
+        LogManager.LogInformation("[ControllerFocus] {0} virtual controller ({1} -> {2}). Trigger={3}, Reason={4}. {5}",
+            shouldMute ? "Muted" : "Unmuted",
+            previous,
+            shouldMute,
+            trigger,
+            reason,
+            BuildControllerFocusDiagnostics());
+    }
+
+    private static bool ApplySteamDeckRouting(out string reason)
+    {
+        reason = string.Empty;
+
+        if (IDevice.GetCurrent() is not SteamDeck)
+            return false;
+
+        bool isExclusiveMode = ManagerFactory.settingsManager.GetBoolean("SteamControllerMode");
+        if (targetController is not NeptuneController neptuneController)
+            return false;
+
+        if (neptuneController.IsBusy)
+            return false;
+
+        if (isExclusiveMode)
+        {
+            if (!neptuneController.IsHidden())
+                neptuneController.Hide();
+            return false;
+        }
+
+        if (foregroundProcess?.Platform == GamePlatform.Steam)
+        {
+            if (neptuneController.IsHidden())
+                neptuneController.Unhide();
+
+            reason = "Steam Deck hybrid mode is routing input to Steam";
+            return true;
+        }
+
+        if (!neptuneController.IsHidden())
+            neptuneController.Hide();
+
+        return false;
+    }
+
+    private static bool IsMainWindowForeground()
+    {
+        MainWindow? mainWindow = MainWindow.GetCurrent();
+        if (mainWindow?.hwndSource is null)
+            return false;
+
+        return mainWindow.IsActive
+            && mainWindow.WindowState != System.Windows.WindowState.Minimized
+            && ProcessManager.GetCurrentWindowHandle() == mainWindow.hwndSource.Handle;
+    }
+
+    private static bool IsProtectedForegroundTarget(ProcessEx? processEx)
+    {
+        if (processEx is null)
+            return false;
+
+        return IsAnyFseExecutable(processEx.Executable)
+            || IsPlayniteExecutable(processEx.Executable)
+            || SafeIsGame(processEx);
+    }
+
+    private static bool IsLosslessScalingTargetCandidate(ProcessEx? processEx, bool allowPlayniteTarget)
+    {
+        if (processEx is null || !IsProcessAlive(processEx))
+            return false;
+
+        string executable = processEx.Executable ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(executable))
+            return false;
+
+        if (executable.Equals("HandheldCompanion.exe", StringComparison.InvariantCultureIgnoreCase))
+            return false;
+
+        if (executable.Equals("LosslessScaling.exe", StringComparison.InvariantCultureIgnoreCase))
+            return false;
+
+        if (IsAnyFseExecutable(executable))
+            return false;
+
+        if (IsPlayniteExecutable(executable) && !allowPlayniteTarget)
+            return false;
+
+        return processEx.Filter == ProcessFilter.Allowed;
+    }
+
+    private static bool IsAnyFseExecutable(string executable)
+    {
+        return executable.Equals("AnyFSE.exe", StringComparison.InvariantCultureIgnoreCase)
+            || executable.Equals("AllyFSE.exe", StringComparison.InvariantCultureIgnoreCase);
+    }
+
+    private static bool IsPlayniteExecutable(string executable)
+    {
+        return executable.Contains("Playnite", StringComparison.InvariantCultureIgnoreCase);
+    }
+
+    private static bool IsProcessAlive(ProcessEx processEx)
+    {
+        try
+        {
+            return processEx.Process is not null && !processEx.Process.HasExited;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private static bool SafeIsGame(ProcessEx processEx)
+    {
+        try
+        {
+            return processEx.IsGame();
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private static string BuildControllerFocusDiagnostics()
+    {
+        string profileName = ManagerFactory.profileManager.GetCurrent()?.Name ?? "none";
+        string layoutMode = ((LayoutModes)ManagerFactory.settingsManager.GetInt("LayoutMode")).ToString();
+        string rawWindowTitle = ProcessManager.GetCurrentWindowTitle();
+        string rawWindowClass = ProcessManager.GetCurrentWindowClass();
+
+        string previousValidTarget = string.IsNullOrWhiteSpace(previousValidForegroundExecutable) ? "none" : previousValidForegroundExecutable;
+
+        return $"ForegroundProcess={foregroundProcess?.Executable ?? "none"}, RawTitle='{rawWindowTitle}', RawClass='{rawWindowClass}', QuickToolsVisible={quickToolsVisible}, QuickToolsFocused={quickToolsFocused}, MainWindowFocused={mainWindowFocused}, MainWindowForeground={IsMainWindowForeground()}, VirtualMuted={ControllerMuted}, LastMuteReason='{lastControllerMuteReason}', LastValidTarget={lastValidExternalTarget?.Executable ?? "none"}, PreviousValidTarget={previousValidTarget}, Profile={profileName}, Layout={layoutMode}";
     }
 
     private static void SettingsManager_SettingValueChanged(string name, object? value, bool temporary)
@@ -1371,7 +1633,10 @@ public static class ControllerManager
     private static void QueryForeground()
     {
         // manage events
+        ManagerFactory.processManager.RawForeground += ProcessManager_RawForeground;
         ManagerFactory.processManager.ForegroundChanged += ProcessManager_ForegroundChanged;
+
+        ProcessManager_RawForeground(ProcessManager.GetCurrentWindowHandle());
 
         ProcessEx processEx = ProcessManager.GetCurrent();
         if (processEx is not null)
