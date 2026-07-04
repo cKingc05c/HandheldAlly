@@ -129,7 +129,14 @@ public static class ControllerManager
     private static bool quickToolsVisible;
     private static bool quickToolsFocused;
     private static bool mainWindowFocused;
+    private static bool mainWindowForeground;
+    private static IntPtr mainWindowHandle;
+    private static bool controllerFocusStopping;
     private static string previousValidForegroundExecutable = string.Empty;
+    private static string previousValidForegroundTitle = string.Empty;
+    private static IntPtr previousValidForegroundHwnd;
+    private static string lastValidExternalTargetTitle = string.Empty;
+    private static IntPtr lastValidExternalTargetHwnd;
     private static string lastControllerMuteReason = string.Empty;
     private static SensorFamily sensorSelection = SensorFamily.None;
 
@@ -154,10 +161,27 @@ public static class ControllerManager
         Failed = 3,
     }
 
+    private readonly record struct ControllerFocusSnapshot(
+        string ForegroundProcessName,
+        string RawTitle,
+        string RawClass,
+        bool QuickToolsVisible,
+        bool QuickToolsFocused,
+        bool MainWindowFocused,
+        bool MainWindowForeground,
+        bool VirtualMuted,
+        string LastMuteReason,
+        string LastValidTarget,
+        string PreviousValidTarget,
+        string Profile,
+        string Layout);
+
     public static void Start()
     {
         if (IsInitialized)
             return;
+
+        controllerFocusStopping = false;
 
         // Hints must be set before SDL_Init() — SDL reads them during subsystem initialization.
         // Disable XInput so SDL does not enumerate XInput devices as SDL gamepads; those are
@@ -1118,6 +1142,8 @@ public static class ControllerManager
 
         SDL.Quit();
 
+        controllerFocusStopping = true;
+
         // manage events
         TimerManager.Tick -= Tick;
         ManagerFactory.deviceManager.XUsbDeviceArrived -= XUsbDeviceArrived;
@@ -1200,7 +1226,32 @@ public static class ControllerManager
                 break;
             case "MainWindow":
                 mainWindowFocused = focused;
+                RefreshMainWindowUiSnapshot();
                 break;
+        }
+    }
+
+    private static void RefreshMainWindowUiSnapshot()
+    {
+        try
+        {
+            MainWindow? mainWindow = MainWindow.GetCurrent();
+            if (mainWindow?.hwndSource is null)
+            {
+                mainWindowHandle = IntPtr.Zero;
+                mainWindowForeground = false;
+                return;
+            }
+
+            mainWindowHandle = mainWindow.hwndSource.Handle;
+            mainWindowForeground = mainWindowFocused
+                && mainWindowHandle != IntPtr.Zero
+                && ProcessManager.GetCurrentWindowHandle() == mainWindowHandle;
+        }
+        catch
+        {
+            mainWindowHandle = IntPtr.Zero;
+            mainWindowForeground = false;
         }
     }
 
@@ -1216,6 +1267,8 @@ public static class ControllerManager
             quickToolsFocused = false;
         else
             TrackLastValidExternalTarget(foregroundProcess);
+
+        UpdateCachedMainWindowForeground(ProcessManager.GetCurrentWindowHandle());
 
         if (visibilityChanged)
             LogManager.LogInformation("[ControllerFocus] Quick Tools {0}. {1}", isVisible ? "opened" : "closed", BuildControllerFocusDiagnostics());
@@ -1278,8 +1331,10 @@ public static class ControllerManager
 
     private static void ProcessManager_RawForeground(nint hWnd)
     {
-        if (!IsInitialized || hWnd == IntPtr.Zero)
+        if (!IsInitialized || controllerFocusStopping || hWnd == IntPtr.Zero)
             return;
+
+        UpdateCachedMainWindowForeground(hWnd);
 
         LogManager.LogInformation("[ControllerFocus] Raw foreground changed: title='{0}', class='{1}'. {2}",
             ProcessManager.GetCurrentWindowTitle(),
@@ -1291,6 +1346,9 @@ public static class ControllerManager
 
     private static void ProcessManager_ForegroundChanged(ProcessEx? processEx, ProcessEx? backgroundEx, ProcessFilter filter)
     {
+        if (controllerFocusStopping)
+            return;
+
         foregroundProcess = processEx;
 
         if (processEx is not null)
@@ -1310,11 +1368,26 @@ public static class ControllerManager
         if (!IsLosslessScalingTargetCandidate(processEx, allowPlayniteTarget))
             return;
 
-        if (lastValidExternalTarget is not null && string.Equals(lastValidExternalTarget.Path, processEx!.Path, StringComparison.InvariantCultureIgnoreCase))
+        string currentTitle = ProcessManager.GetCurrentWindowTitle();
+        IntPtr currentHwnd = ProcessManager.GetCurrentWindowHandle();
+        bool sameTarget = lastValidExternalTarget is not null
+            && processEx is not null
+            && string.Equals(lastValidExternalTarget.Path, processEx.Path, StringComparison.InvariantCultureIgnoreCase);
+
+        if (sameTarget)
+        {
+            lastValidExternalTargetTitle = currentTitle;
+            lastValidExternalTargetHwnd = currentHwnd;
             return;
+        }
 
         previousValidForegroundExecutable = lastValidExternalTarget?.Executable ?? string.Empty;
+        previousValidForegroundTitle = lastValidExternalTargetTitle;
+        previousValidForegroundHwnd = lastValidExternalTargetHwnd;
+
         lastValidExternalTarget = processEx;
+        lastValidExternalTargetTitle = currentTitle;
+        lastValidExternalTargetHwnd = currentHwnd;
 
         LogManager.LogInformation("[ControllerFocus] Last valid foreground target set to {0}. Previous={1}. {2}",
             processEx!.Executable,
@@ -1438,13 +1511,15 @@ public static class ControllerManager
 
     private static bool IsMainWindowForeground()
     {
-        MainWindow? mainWindow = MainWindow.GetCurrent();
-        if (mainWindow?.hwndSource is null)
-            return false;
+        return mainWindowForeground;
+    }
 
-        return mainWindow.IsActive
-            && mainWindow.WindowState != System.Windows.WindowState.Minimized
-            && ProcessManager.GetCurrentWindowHandle() == mainWindow.hwndSource.Handle;
+    private static void UpdateCachedMainWindowForeground(IntPtr foregroundWindow)
+    {
+        mainWindowForeground = mainWindowFocused
+            && mainWindowHandle != IntPtr.Zero
+            && foregroundWindow != IntPtr.Zero
+            && foregroundWindow == mainWindowHandle;
     }
 
     private static bool IsProtectedForegroundTarget(ProcessEx? processEx)
@@ -1518,14 +1593,75 @@ public static class ControllerManager
 
     private static string BuildControllerFocusDiagnostics()
     {
-        string profileName = ManagerFactory.profileManager.GetCurrent()?.Name ?? "none";
-        string layoutMode = ((LayoutModes)ManagerFactory.settingsManager.GetInt("LayoutMode")).ToString();
-        string rawWindowTitle = ProcessManager.GetCurrentWindowTitle();
-        string rawWindowClass = ProcessManager.GetCurrentWindowClass();
+        ControllerFocusSnapshot snapshot = BuildControllerFocusSnapshot();
+        return $"ForegroundProcess={snapshot.ForegroundProcessName}, RawTitle='{snapshot.RawTitle}', RawClass='{snapshot.RawClass}', QuickToolsVisible={snapshot.QuickToolsVisible}, QuickToolsFocused={snapshot.QuickToolsFocused}, MainWindowFocused={snapshot.MainWindowFocused}, MainWindowForeground={snapshot.MainWindowForeground}, VirtualMuted={snapshot.VirtualMuted}, LastMuteReason='{snapshot.LastMuteReason}', LastValidTarget={snapshot.LastValidTarget}, PreviousValidTarget={snapshot.PreviousValidTarget}, Profile={snapshot.Profile}, Layout={snapshot.Layout}";
+    }
 
-        string previousValidTarget = string.IsNullOrWhiteSpace(previousValidForegroundExecutable) ? "none" : previousValidForegroundExecutable;
+    private static ControllerFocusSnapshot BuildControllerFocusSnapshot()
+    {
+        string rawForegroundExecutable = ProcessManager.GetCurrentProcessExecutable();
+        string foregroundProcessName = !string.IsNullOrWhiteSpace(foregroundProcess?.Executable)
+            ? foregroundProcess!.Executable
+            : (!string.IsNullOrWhiteSpace(rawForegroundExecutable) ? rawForegroundExecutable : "none");
 
-        return $"ForegroundProcess={foregroundProcess?.Executable ?? "none"}, RawTitle='{rawWindowTitle}', RawClass='{rawWindowClass}', QuickToolsVisible={quickToolsVisible}, QuickToolsFocused={quickToolsFocused}, MainWindowFocused={mainWindowFocused}, MainWindowForeground={IsMainWindowForeground()}, VirtualMuted={ControllerMuted}, LastMuteReason='{lastControllerMuteReason}', LastValidTarget={lastValidExternalTarget?.Executable ?? "none"}, PreviousValidTarget={previousValidTarget}, Profile={profileName}, Layout={layoutMode}";
+        return new ControllerFocusSnapshot(
+            foregroundProcessName,
+            ProcessManager.GetCurrentWindowTitle(),
+            ProcessManager.GetCurrentWindowClass(),
+            quickToolsVisible,
+            quickToolsFocused,
+            mainWindowFocused,
+            mainWindowForeground,
+            ControllerMuted,
+            lastControllerMuteReason,
+            FormatTrackedTarget(lastValidExternalTarget?.Executable, lastValidExternalTargetTitle, lastValidExternalTargetHwnd),
+            FormatTrackedTarget(previousValidForegroundExecutable, previousValidForegroundTitle, previousValidForegroundHwnd),
+            SafeGetCurrentProfileName(),
+            SafeGetCurrentLayoutMode());
+    }
+
+    private static string FormatTrackedTarget(string executable, string title, IntPtr hwnd)
+    {
+        if (string.IsNullOrWhiteSpace(executable))
+            return "none";
+
+        string formatted = executable;
+        if (!string.IsNullOrWhiteSpace(title))
+            formatted += $" ('{title}')";
+        if (hwnd != IntPtr.Zero)
+            formatted += $" [0x{hwnd:X}]";
+
+        return formatted;
+    }
+
+    private static string SafeGetCurrentProfileName()
+    {
+        if (controllerFocusStopping)
+            return "none";
+
+        try
+        {
+            return ManagerFactory.profileManager.GetCurrent()?.Name ?? "none";
+        }
+        catch
+        {
+            return "none";
+        }
+    }
+
+    private static string SafeGetCurrentLayoutMode()
+    {
+        if (controllerFocusStopping)
+            return "unknown";
+
+        try
+        {
+            return ((LayoutModes)ManagerFactory.settingsManager.GetInt("LayoutMode")).ToString();
+        }
+        catch
+        {
+            return "unknown";
+        }
     }
 
     private static void SettingsManager_SettingValueChanged(string name, object? value, bool temporary)
@@ -1636,6 +1772,7 @@ public static class ControllerManager
         ManagerFactory.processManager.RawForeground += ProcessManager_RawForeground;
         ManagerFactory.processManager.ForegroundChanged += ProcessManager_ForegroundChanged;
 
+        UIHelper.TryInvoke(() => RefreshMainWindowUiSnapshot());
         ProcessManager_RawForeground(ProcessManager.GetCurrentWindowHandle());
 
         ProcessEx processEx = ProcessManager.GetCurrent();

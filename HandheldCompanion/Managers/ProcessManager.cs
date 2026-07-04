@@ -64,6 +64,9 @@ public class ProcessManager : IManager
     private static IntPtr currentRawForegroundWindow;
     private static string currentRawForegroundWindowClass = string.Empty;
     private static string currentRawForegroundWindowTitle = string.Empty;
+    private static int currentRawForegroundProcessId;
+    private static string currentRawForegroundExecutable = string.Empty;
+    private static string currentRawForegroundProcessPath = string.Empty;
     private IntPtr currenthWnd;
 
     private AutomationEventHandler _windowOpenedHandler = null!;
@@ -362,6 +365,97 @@ public class ProcessManager : IManager
         }
     }
 
+    private static int ResolveWindowProcessId(IntPtr hWnd, string className)
+    {
+        int processId = GetWindowProcessId(hWnd);
+        if (className == "ApplicationFrameWindow")
+        {
+            ProcessDiagnosticInfo? processInfo = new ProcessUtils.FindHostedProcess(hWnd)._realProcess;
+            if (processInfo is not null)
+                processId = (int)processInfo.ProcessId;
+        }
+
+        return processId;
+    }
+
+    private static void ResolveForegroundProcessMetadata(int processId, string className, out string executable, out string path)
+    {
+        executable = string.Empty;
+        path = string.Empty;
+
+        if (processId != 0 && Processes.TryGetValue(processId, out ProcessEx? cachedProcess))
+        {
+            executable = cachedProcess.Executable ?? string.Empty;
+            path = cachedProcess.Path ?? string.Empty;
+        }
+
+        if (processId != 0 && string.IsNullOrWhiteSpace(executable))
+        {
+            try
+            {
+                Process process = Process.GetProcessById(processId);
+                if (!process.HasExited)
+                {
+                    path = ProcessUtils.GetPathToApp(process.Id) ?? string.Empty;
+                    if (!string.IsNullOrWhiteSpace(path))
+                        executable = Path.GetFileName(path);
+                    else
+                        executable = GetExecutableName(process);
+                }
+            }
+            catch { }
+        }
+
+        if (string.IsNullOrWhiteSpace(executable))
+            executable = ExtractExecutableFromWindowClass(className);
+    }
+
+    private static string GetExecutableName(Process process)
+    {
+        try
+        {
+            string processName = process.ProcessName;
+            if (string.IsNullOrWhiteSpace(processName))
+                return string.Empty;
+
+            return processName.EndsWith(".exe", StringComparison.InvariantCultureIgnoreCase)
+                ? processName
+                : $"{processName}.exe";
+        }
+        catch
+        {
+            return string.Empty;
+        }
+    }
+
+    private static string ExtractExecutableFromWindowClass(string className)
+    {
+        const string prefix = "HwndWrapper[";
+        if (string.IsNullOrWhiteSpace(className))
+            return string.Empty;
+
+        int start = className.IndexOf(prefix, StringComparison.InvariantCultureIgnoreCase);
+        if (start < 0)
+            return string.Empty;
+
+        start += prefix.Length;
+
+        int end = className.IndexOf(';', start);
+        if (end < 0)
+            end = className.IndexOf(']', start);
+
+        if (end <= start)
+            return string.Empty;
+
+        string executable = className.Substring(start, end - start).Trim();
+        if (string.IsNullOrWhiteSpace(executable))
+            return string.Empty;
+
+        return executable.EndsWith(".exe", StringComparison.InvariantCultureIgnoreCase)
+            ? executable
+            : $"{executable}.exe";
+    }
+
     public static ProcessEx? GetCurrent()
     {
         return currentProcess;
@@ -380,6 +474,21 @@ public class ProcessManager : IManager
     public static string GetCurrentWindowTitle()
     {
         return currentRawForegroundWindowTitle;
+    }
+
+    public static int GetCurrentProcessId()
+    {
+        return currentRawForegroundProcessId;
+    }
+
+    public static string GetCurrentProcessExecutable()
+    {
+        return currentRawForegroundExecutable;
+    }
+
+    public static string GetCurrentProcessPath()
+    {
+        return currentRawForegroundProcessPath;
     }
 
     public static ProcessEx? GetProcess(int processId)
@@ -418,6 +527,11 @@ public class ProcessManager : IManager
         currentRawForegroundWindow = hWnd;
         currentRawForegroundWindowClass = GetWindowClassName(hWnd);
         currentRawForegroundWindowTitle = ProcessUtils.GetWindowTitle(hWnd) ?? string.Empty;
+        currentRawForegroundProcessId = ResolveWindowProcessId(hWnd, currentRawForegroundWindowClass);
+        ResolveForegroundProcessMetadata(currentRawForegroundProcessId,
+            currentRawForegroundWindowClass,
+            out currentRawForegroundExecutable,
+            out currentRawForegroundProcessPath);
 
         RawForeground?.Invoke(hWnd);
 
@@ -425,15 +539,8 @@ public class ProcessManager : IManager
         currenthWnd = hWnd;
 
         AutomationElement? element = null;
-        int processId = GetWindowProcessId(hWnd);
+        int processId = currentRawForegroundProcessId;
         string className = currentRawForegroundWindowClass;
-
-        if (className == "ApplicationFrameWindow")
-        {
-            ProcessDiagnosticInfo? processInfo = new ProcessUtils.FindHostedProcess(hWnd)._realProcess;
-            if (processInfo is not null)
-                processId = (int)processInfo.ProcessId;
-        }
 
         // failed to retrieve process
         if (processId == 0)
@@ -443,10 +550,8 @@ public class ProcessManager : IManager
         {
             if (!Processes.TryGetValue(processId, out ProcessEx? process))
             {
-                if (!TryGetAutomationElement(hWnd, out element) || element is null)
-                    return;
-
-                if (!CreateOrUpdateProcess(processId, element))
+                bool hasAutomationElement = TryGetAutomationElement(hWnd, out element);
+                if (!CreateOrUpdateProcess(processId, hasAutomationElement ? element : null))
                     return;
             }
 
@@ -523,14 +628,16 @@ public class ProcessManager : IManager
     // Define a thread-safe dictionary to hold lock objects per process id.
     private static readonly ConcurrentDictionary<int, object> processLocks = new ConcurrentDictionary<int, object>();
 
-    private bool CreateOrUpdateProcess(int processID, AutomationElement automationElement, bool OnStartup = false)
+    private bool CreateOrUpdateProcess(int processID, AutomationElement? automationElement, bool OnStartup = false)
     {
         object lockObject = processLocks.GetOrAdd(processID, id => new object());
         lock (lockObject)
         {
             try
             {
-                if (!automationElement.Current.IsContentElement && !automationElement.Current.IsControlElement)
+                if (automationElement is not null
+                    && !automationElement.Current.IsContentElement
+                    && !automationElement.Current.IsControlElement)
                     return false;
 
                 // Process has exited on arrival
@@ -575,7 +682,8 @@ public class ProcessManager : IManager
                         return false;
 
                     // Attach current window
-                    processEx.AttachWindow(automationElement);
+                    if (automationElement is not null)
+                        processEx.AttachWindow(automationElement);
 
                     // Get the proper platform
                     processEx.Platform = PlatformManager.GetPlatform(processEx);
@@ -593,7 +701,8 @@ public class ProcessManager : IManager
                 else
                 {
                     // Process already exists; attach current window
-                    processEx.AttachWindow(automationElement);
+                    if (automationElement is not null)
+                        processEx.AttachWindow(automationElement);
                 }
 
                 return true;
