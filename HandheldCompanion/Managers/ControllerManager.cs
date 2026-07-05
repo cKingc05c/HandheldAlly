@@ -1,4 +1,4 @@
-﻿using HandheldCompanion.Controllers;
+using HandheldCompanion.Controllers;
 using HandheldCompanion.Controllers.Dummies;
 using HandheldCompanion.Controllers.GameSir;
 using HandheldCompanion.Controllers.Lenovo;
@@ -109,7 +109,7 @@ public static class ControllerManager
     private static int ControllerManagementAttempts = 0;
     private const int ControllerManagementMaxAttempts = 4;
 
-    // Consecutive watchdog failure tracking – prevents infinite retry loops at boot
+    // Consecutive watchdog failure tracking - prevents infinite retry loops at boot
     // when XInput slot assignments are not yet stable. After MaxConsecutiveWatchdogFailures
     // failed runs the mode is switched to Manual, which never auto-triggers the watchdog.
     private static int consecutiveWatchdogFailures = 0;
@@ -138,7 +138,10 @@ public static class ControllerManager
     private static string lastValidExternalTargetTitle = string.Empty;
     private static IntPtr lastValidExternalTargetHwnd;
     private static string lastControllerMuteReason = string.Empty;
+    private static DateTime suppressMainWindowMutingUntilUtc = DateTime.MinValue;
     private static SensorFamily sensorSelection = SensorFamily.None;
+
+    private static readonly TimeSpan PostQuickToolsMainWindowMuteSuppression = TimeSpan.FromMilliseconds(1500);
 
     private static object targetLock = new object();
     public static ControllerManagerStatus managerStatus = ControllerManagerStatus.Pending;
@@ -171,6 +174,7 @@ public static class ControllerManager
         bool MainWindowForeground,
         bool VirtualMuted,
         string LastMuteReason,
+        string ControllerReturnTarget,
         string LastValidTarget,
         string PreviousValidTarget,
         string Profile,
@@ -183,7 +187,7 @@ public static class ControllerManager
 
         controllerFocusStopping = false;
 
-        // Hints must be set before SDL_Init() — SDL reads them during subsystem initialization.
+        // Hints must be set before SDL_Init() - SDL reads them during subsystem initialization.
         // Disable XInput so SDL does not enumerate XInput devices as SDL gamepads; those are
         // handled separately through the XUsbDevice pipeline.
         SDL.SetHint(SDL.Hints.XInputEnabled, "0");
@@ -1264,9 +1268,15 @@ public static class ControllerManager
         quickToolsVisible = isVisible;
 
         if (!isVisible)
+        {
             quickToolsFocused = false;
+            suppressMainWindowMutingUntilUtc = DateTime.UtcNow.Add(PostQuickToolsMainWindowMuteSuppression);
+        }
         else
+        {
+            suppressMainWindowMutingUntilUtc = DateTime.MinValue;
             TrackLastValidExternalTarget(foregroundProcess);
+        }
 
         UpdateCachedMainWindowForeground(ProcessManager.GetCurrentWindowHandle());
 
@@ -1290,6 +1300,27 @@ public static class ControllerManager
     {
         return BuildControllerFocusDiagnostics();
     }
+
+    public static IReadOnlyList<string> GetControllerFocusOverlayLines()
+    {
+        if (!IsInitialized || controllerFocusStopping)
+            return Array.Empty<string>();
+
+        ControllerFocusSnapshot snapshot = BuildControllerFocusSnapshot();
+        return new[]
+        {
+            $"[CTRL] ForegroundProcess={FormatOverlayField(snapshot.ForegroundProcessName, 64)}",
+            $"[CTRL] RawTitle='{FormatOverlayField(snapshot.RawTitle, 72)}'",
+            $"[CTRL] RawClass='{FormatOverlayField(snapshot.RawClass, 72)}'",
+            $"[CTRL] QuickToolsVisible={snapshot.QuickToolsVisible}, QuickToolsFocused={snapshot.QuickToolsFocused}",
+            $"[CTRL] MainWindowFocused={snapshot.MainWindowFocused}, MainWindowForeground={snapshot.MainWindowForeground}",
+            $"[CTRL] VirtualMuted={snapshot.VirtualMuted}",
+            $"[CTRL] ControllerReturnTarget={FormatOverlayField(snapshot.ControllerReturnTarget, 96)}",
+            $"[CTRL] LosslessScalingTarget={FormatOverlayField(snapshot.LastValidTarget, 96)}",
+            $"[CTRL] LastMuteReason='{FormatOverlayField(snapshot.LastMuteReason, 96)}'"
+        };
+    }
+
 
     public static bool TryGetLosslessScalingTarget(bool useLastValidTarget, bool allowPlayniteTarget, out ProcessEx? processEx, out string reason)
     {
@@ -1430,7 +1461,9 @@ public static class ControllerManager
 
         bool steamDeckWantsMute = ApplySteamDeckRouting(out string steamDeckReason);
         bool quickToolsConsumesInput = quickToolsVisible && quickToolsFocused;
-        bool mainWindowConsumesInput = mainWindowFocused && IsMainWindowForeground();
+        bool protectedForegroundTarget = IsProtectedForegroundTarget(foregroundProcess);
+        bool mainWindowMuteSuppressed = IsMainWindowMuteSuppressed();
+        bool mainWindowConsumesInput = CanMainWindowConsumeControllerInput(protectedForegroundTarget, mainWindowMuteSuppressed);
 
         if (quickToolsConsumesInput)
         {
@@ -1440,17 +1473,21 @@ public static class ControllerManager
         else if (mainWindowConsumesInput)
         {
             shouldMute = true;
-            reason = "Main window is the active foreground window and is receiving controller navigation";
+            reason = "Main window is the active foreground window and is intentionally receiving controller navigation";
         }
         else if (steamDeckWantsMute)
         {
             shouldMute = true;
             reason = steamDeckReason;
         }
-        else if (!quickToolsVisible && mainWindowFocused)
-            reason = "Quick Tools is closed and stale Handheld Companion main-window focus is ignored";
-        else if (!quickToolsVisible && IsProtectedForegroundTarget(foregroundProcess))
+        else if (mainWindowMuteSuppressed)
+            reason = "Quick Tools just closed; main-window muting is temporarily suppressed so controller input can return to the foreground launcher or game";
+        else if (!quickToolsVisible && protectedForegroundTarget)
             reason = "Quick Tools is closed and controller input should return to the foreground launcher or game";
+        else if (!quickToolsVisible && mainWindowFocused && !mainWindowForeground)
+            reason = "Quick Tools is closed and stale Handheld Companion main-window focus is ignored";
+        else if (!quickToolsVisible && mainWindowForeground && protectedForegroundTarget)
+            reason = "Quick Tools is closed and a protected foreground launcher or game keeps controller input even if Handheld Companion briefly regains foreground";
         else if (quickToolsVisible && !quickToolsFocused)
             reason = "Quick Tools is visible but no longer owns controller navigation";
 
@@ -1514,6 +1551,22 @@ public static class ControllerManager
         return mainWindowForeground;
     }
 
+    private static bool CanMainWindowConsumeControllerInput(bool protectedForegroundTarget, bool mainWindowMuteSuppressed)
+    {
+        if (!mainWindowFocused || !IsMainWindowForeground())
+            return false;
+
+        if (mainWindowMuteSuppressed || protectedForegroundTarget)
+            return false;
+
+        return IsHandheldCompanionExecutable(ProcessManager.GetCurrentProcessExecutable());
+    }
+
+    private static bool IsMainWindowMuteSuppressed()
+    {
+        return !quickToolsVisible && DateTime.UtcNow < suppressMainWindowMutingUntilUtc;
+    }
+
     private static void UpdateCachedMainWindowForeground(IntPtr foregroundWindow)
     {
         mainWindowForeground = mainWindowFocused
@@ -1541,7 +1594,7 @@ public static class ControllerManager
         if (string.IsNullOrWhiteSpace(executable))
             return false;
 
-        if (executable.Equals("HandheldCompanion.exe", StringComparison.InvariantCultureIgnoreCase))
+        if (IsHandheldCompanionExecutable(executable))
             return false;
 
         if (executable.Equals("LosslessScaling.exe", StringComparison.InvariantCultureIgnoreCase))
@@ -1560,6 +1613,15 @@ public static class ControllerManager
     {
         return executable.Equals("AnyFSE.exe", StringComparison.InvariantCultureIgnoreCase)
             || executable.Equals("AllyFSE.exe", StringComparison.InvariantCultureIgnoreCase);
+    }
+
+    private static bool IsHandheldCompanionExecutable(string executable)
+    {
+        if (string.IsNullOrWhiteSpace(executable))
+            return false;
+
+        return executable.Equals("HandheldCompanion.exe", StringComparison.InvariantCultureIgnoreCase)
+            || executable.Equals("HandheldAlly.exe", StringComparison.InvariantCultureIgnoreCase);
     }
 
     private static bool IsPlayniteExecutable(string executable)
@@ -1594,7 +1656,7 @@ public static class ControllerManager
     private static string BuildControllerFocusDiagnostics()
     {
         ControllerFocusSnapshot snapshot = BuildControllerFocusSnapshot();
-        return $"ForegroundProcess={snapshot.ForegroundProcessName}, RawTitle='{snapshot.RawTitle}', RawClass='{snapshot.RawClass}', QuickToolsVisible={snapshot.QuickToolsVisible}, QuickToolsFocused={snapshot.QuickToolsFocused}, MainWindowFocused={snapshot.MainWindowFocused}, MainWindowForeground={snapshot.MainWindowForeground}, VirtualMuted={snapshot.VirtualMuted}, LastMuteReason='{snapshot.LastMuteReason}', LastValidTarget={snapshot.LastValidTarget}, PreviousValidTarget={snapshot.PreviousValidTarget}, Profile={snapshot.Profile}, Layout={snapshot.Layout}";
+        return $"ForegroundProcess={snapshot.ForegroundProcessName}, RawTitle='{snapshot.RawTitle}', RawClass='{snapshot.RawClass}', QuickToolsVisible={snapshot.QuickToolsVisible}, QuickToolsFocused={snapshot.QuickToolsFocused}, MainWindowFocused={snapshot.MainWindowFocused}, MainWindowForeground={snapshot.MainWindowForeground}, VirtualMuted={snapshot.VirtualMuted}, LastMuteReason='{snapshot.LastMuteReason}', ControllerReturnTarget={snapshot.ControllerReturnTarget}, LosslessScalingTarget={snapshot.LastValidTarget}, PreviousLosslessScalingTarget={snapshot.PreviousValidTarget}, Profile={snapshot.Profile}, Layout={snapshot.Layout}";
     }
 
     private static ControllerFocusSnapshot BuildControllerFocusSnapshot()
@@ -1614,6 +1676,7 @@ public static class ControllerManager
             mainWindowForeground,
             ControllerMuted,
             lastControllerMuteReason,
+            BuildControllerReturnTarget(foregroundProcessName),
             FormatTrackedTarget(lastValidExternalTarget?.Executable, lastValidExternalTargetTitle, lastValidExternalTargetHwnd),
             FormatTrackedTarget(previousValidForegroundExecutable, previousValidForegroundTitle, previousValidForegroundHwnd),
             SafeGetCurrentProfileName(),
@@ -1632,6 +1695,29 @@ public static class ControllerManager
             formatted += $" [0x{hwnd:X}]";
 
         return formatted;
+    }
+
+
+    private static string FormatOverlayField(string value, int maxLength)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return "none";
+
+        string sanitized = value.Replace("\r", " ").Replace("\n", " ").Trim();
+        if (sanitized.Length <= maxLength)
+            return sanitized;
+
+        return sanitized.Substring(0, Math.Max(0, maxLength - 3)) + "...";
+    }
+    private static string BuildControllerReturnTarget(string foregroundProcessName)
+    {
+        IntPtr currentHwnd = ProcessManager.GetCurrentWindowHandle();
+        string currentTitle = ProcessManager.GetCurrentWindowTitle();
+
+        if (!string.IsNullOrWhiteSpace(foregroundProcess?.Executable))
+            return FormatTrackedTarget(foregroundProcess.Executable, currentTitle, currentHwnd);
+
+        return FormatTrackedTarget(foregroundProcessName, currentTitle, currentHwnd);
     }
 
     private static string SafeGetCurrentProfileName()
@@ -2059,7 +2145,7 @@ public static class ControllerManager
                     if (index == byte.MaxValue && controller.Details is not null)
                         index = (byte)XInputController.TryGetUserIndex(controller.Details);
 
-                    // Skip controllers whose slot could not be determined —
+                    // Skip controllers whose slot could not be determined -
                     // they must not be attached (UserIndex.Any cross-talk) or
                     // counted as duplicates (false-positive triggering FixDuplicateSlots).
                     if (index == byte.MaxValue)
@@ -2257,7 +2343,7 @@ public static class ControllerManager
         if (displaced is not null && !ReferenceEquals(displaced, controller))
             displaced.CyclePort();
 
-        // Cycle the moved controller — forces running apps to see it in its new slot.
+        // Cycle the moved controller - forces running apps to see it in its new slot.
         controller.CyclePort();
 
         return true;
@@ -2276,7 +2362,7 @@ public static class ControllerManager
             VirtualManager.Resume(false).GetAwaiter().GetResult();
 
             // Wait for the virtual controller to actually reconnect before
-            // cycling physical controllers — otherwise the freed slot can
+            // cycling physical controllers - otherwise the freed slot can
             // be immediately reclaimed by a physical device.
             WaitUntil(
                 () => GetVirtualControllers<XInputController>().Any(),
@@ -2290,7 +2376,7 @@ public static class ControllerManager
                 controller.CyclePort();
 
                 // Allow the device to fully disappear before cycling the next
-                // one — rapid back-to-back cycles can cause re-enumeration
+                // one - rapid back-to-back cycles can cause re-enumeration
                 // collisions in the USB stack.
                 Thread.Sleep(500);
             }
@@ -2310,7 +2396,7 @@ public static class ControllerManager
             if (attempt > ControllerManagementMaxAttempts)
                 return false;
 
-            // No physical XInput controller — just cycle the virtual controller
+            // No physical XInput controller - just cycle the virtual controller
             if (HasVirtualController<XInputController>() && GetControllerFromSlot<XInputController>(UserIndex.One, false) is null)
             {
                 // Disconnect and reconnect the virtual controller so it re-enumerates from scratch and hopefully claims slot 1.
@@ -2318,7 +2404,7 @@ public static class ControllerManager
                 Thread.Sleep(1000);
                 VirtualManager.Resume(false).GetAwaiter().GetResult();
 
-                // Wait for the virtual controller to actually reconnect before re-probing — otherwise we may end up in a tight loop if it fails to re-enumerate.
+                // Wait for the virtual controller to actually reconnect before re-probing - otherwise we may end up in a tight loop if it fails to re-enumerate.
                 WaitUntil(() => GetVirtualControllers<XInputController>(VirtualManager.VendorId, VirtualManager.ProductId).Any(), TimeSpan.FromSeconds(4));
             }
 
@@ -2528,7 +2614,7 @@ public static class ControllerManager
         {
             if (current is not null && !current.IsDummy())
             {
-                // deviceInstanceId already holds the current target — nothing to do
+                // deviceInstanceId already holds the current target - nothing to do
             }
             else if (internalController is not null)
             {
@@ -2538,7 +2624,7 @@ public static class ControllerManager
         // Auto-connect to the most recently arrived external/wireless controller.
         else if (latestExternalController is not null)
         {
-            // If the current target is already an external/wireless controller, keep it —
+            // If the current target is already an external/wireless controller, keep it -
             // we don't want to switch away when a second external controller is plugged in.
             if (current is not null && (current.IsWireless() || current.IsExternal()))
                 deviceInstanceId = current.GetContainerInstanceId();
@@ -2659,7 +2745,7 @@ public static class ControllerManager
                     }
 
                     // Capture for post-lock call: Hide() -> CyclePort() can block for seconds
-                    // and fires IsBusy which dispatches to the UI thread — invoking it while
+                    // and fires IsBusy which dispatches to the UI thread - invoking it while
                     // holding targetLock deadlocks if the UI thread is also waiting for the lock.
                     if (!targetController.IsHidden())
                     {
@@ -3105,3 +3191,4 @@ public static class ControllerManager
 
     #endregion
 }
+

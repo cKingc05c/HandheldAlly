@@ -83,6 +83,7 @@ public partial class OverlayPage : Page
         SettingsManager_SettingValueChanged("OnScreenDisplayRAMLevel", ManagerFactory.settingsManager.GetString("OnScreenDisplayRAMLevel"), false);
         SettingsManager_SettingValueChanged("OnScreenDisplayVRAMLevel", ManagerFactory.settingsManager.GetString("OnScreenDisplayVRAMLevel"), false);
         SettingsManager_SettingValueChanged("OnScreenDisplayBATTLevel", ManagerFactory.settingsManager.GetString("OnScreenDisplayBATTLevel"), false);
+        SettingsManager_SettingValueChanged(Settings.OnScreenDisplayControllerFocusDebug, ManagerFactory.settingsManager.GetString(Settings.OnScreenDisplayControllerFocusDebug), false);
     }
 
     private void QueryPlatforms()
@@ -194,8 +195,17 @@ public partial class OverlayPage : Page
                 case "OnScreenDisplayBATTLevel":
                     ComboBoxOnScreenDisplayBATTLevel.SelectedIndex = Convert.ToInt32(value);
                     break;
+                case "OnScreenDisplayControllerFocusDebug":
+                    Toggle_ControllerFocusDebug.IsOn = Convert.ToBoolean(value);
+                    break;
             }
         });
+    }
+
+    private void Toggle_ControllerFocusDebug_Toggled(object sender, RoutedEventArgs e)
+    {
+        ManagerFactory.settingsManager.SetProperty(Settings.OnScreenDisplayControllerFocusDebug,
+            Toggle_ControllerFocusDebug.IsOn);
     }
 
     private void Page_Loaded(object sender, RoutedEventArgs e)
@@ -424,3 +434,6 @@ public partial class OverlayPage : Page
         ManagerFactory.settingsManager.SetProperty("OnScreenDisplayBATTLevel", ((ComboBox)sender).SelectedIndex);
     }
 }
+
+
+

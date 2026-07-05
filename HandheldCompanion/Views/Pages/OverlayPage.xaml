@@ -1,4 +1,4 @@
-﻿<Page
+<Page
     x:Class="HandheldCompanion.Views.Pages.OverlayPage"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -204,6 +204,15 @@
                             </ui:SettingsCard>
                         </ui:SettingsExpander.Items>
                     </ui:SettingsExpander>
+                    <ui:SettingsCard
+                        Description="Shows the controller focus and muting diagnostics in the RTSS top-left overlay for troubleshooting."
+                        Header="Controller focus debug overlay"
+                        IsEnabled="{Binding IsRunningRTSS}">
+                        <ui:ToggleSwitch
+                            Name="Toggle_ControllerFocusDebug"
+                            HorizontalAlignment="Right"
+                            Toggled="Toggle_ControllerFocusDebug_Toggled" />
+                    </ui:SettingsCard>
                 </ikw:SimpleStackPanel>
             </ikw:SimpleStackPanel>
 
@@ -606,3 +615,5 @@
         </ikw:SimpleStackPanel>
     </StackPanel>
 </Page>
+
+

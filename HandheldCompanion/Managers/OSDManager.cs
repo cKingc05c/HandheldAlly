@@ -1,4 +1,4 @@
-﻿using HandheldCompanion.Shared;
+using HandheldCompanion.Shared;
 
 using RTSSSharedMemoryNET;
 
@@ -217,13 +217,18 @@ public static class OSDManager
         Content.Clear();
         try
         {
+            AppendControllerFocusOverlay();
+
             var config = _overlayManager.GetConfig(OverlayLevel);
             if (config is null)
             {
                 goto Exit;
             }
 
-            Content.Add(Header + config);
+            if (Content.Count == 0)
+                Content.Add(Header + config);
+            else
+                Content.Add(config);
         }
         catch (NotImplementedException)
         {
@@ -231,6 +236,20 @@ public static class OSDManager
 
     Exit:
         return string.Join("\n", Content);
+    }
+
+    private static void AppendControllerFocusOverlay()
+    {
+        if (!ManagerFactory.settingsManager.GetBoolean(Settings.OnScreenDisplayControllerFocusDebug))
+            return;
+
+        IReadOnlyList<string> lines = ControllerManager.GetControllerFocusOverlayLines();
+        if (lines.Count == 0)
+            return;
+
+        Content.Add(Header + lines[0]);
+        for (int i = 1; i < lines.Count; i++)
+            Content.Add(lines[i]);
     }
 
     public static void AddElementIfNotNull(OverlayEntry entry, float? value, string unit)
@@ -442,3 +461,5 @@ public class OverlayRow : IDisposable
         return string.Join("<C1> | <C>", rowStr);
     }
 }
+
+

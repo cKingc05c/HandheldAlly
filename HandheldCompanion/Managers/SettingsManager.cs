@@ -1,4 +1,4 @@
-﻿using HandheldCompanion.Devices;
+using HandheldCompanion.Devices;
 using HandheldCompanion.Processors;
 using HandheldCompanion.Shared;
 using System;
@@ -29,6 +29,7 @@ public static class Settings
     public static readonly string OnScreenDisplayRAMLevel = "OnScreenDisplayRAMLevel";
     public static readonly string OnScreenDisplayVRAMLevel = "OnScreenDisplayVRAMLevel";
     public static readonly string OnScreenDisplayBATTLevel = "OnScreenDisplayBATTLevel";
+    public static readonly string OnScreenDisplayControllerFocusDebug = "OnScreenDisplayControllerFocusDebug";
 
     /// <summary>
     /// First version that implemented the new Hotkey manager
