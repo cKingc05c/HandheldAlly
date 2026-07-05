@@ -105,7 +105,7 @@ Source: "{#SourcePath}\redist\netcorecheck.exe"; Flags: dontcopy noencryption
 Source: "{#SourcePath}\redist\netcorecheck_x64.exe"; Flags: dontcopy noencryption
 Source: "{#SourcePath}\redist\PawnIO_setup.exe"; Flags: dontcopy noencryption
 #endif
-Source: "{#SourcePath}\bin\{#MyConfiguration}\{#MyConfigurationExt}-windows{#WindowsVersion}.0\win-x64\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "{#SourcePath}\bin\{#MyConfiguration}\{#MyConfigurationExt}-windows{#WindowsVersion}.0\win-x64\*"; DestDir: "{app}"; Excludes: "publish\*"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "{#SourcePath}\Certificate.pfx"; DestDir: "{tmp}"; Flags: deleteafterinstall
 Source: "{#SourcePath}\Certificate.ps1"; DestDir: "{tmp}"; Flags: deleteafterinstall
 Source: "{#SourcePath}\redist\PromptFont.otf"; DestDir: "{autofonts}"; FontInstall: "PromptFont"; Flags: uninsneveruninstall
@@ -861,3 +861,4 @@ begin
   else
     Result := 'No';
 end;
+
